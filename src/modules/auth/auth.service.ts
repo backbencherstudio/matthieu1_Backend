@@ -381,7 +381,7 @@ export class AuthService {
 
 
 
-  async register({ email, password, name }: { email: string; password: string; name: string }) {
+  async register({ email, password }: { email: string; password: string }) {
     try {
       // Check if email already exists
       const userEmailExist = await UserRepository.exist({
@@ -401,7 +401,6 @@ export class AuthService {
       const user = await UserRepository.createUser({
         email,
         password,
-        name, // Use 'name' instead of 'username'
       });
 
       if (!user || user.success === false) {
@@ -427,7 +426,7 @@ export class AuthService {
 
       // Notify admin
       const adminUsers = await this.prisma.user.findMany({
-        where: { type: 'admin' },
+        where: { type: 'ADMIN' },
         select: { id: true },
       });
 
@@ -450,7 +449,6 @@ export class AuthService {
         data: {
           userId: user.data.id,
           email: user.data.email,
-          name: user.data.name, // Include name in the response
         },
       };
     } catch (error) {
@@ -465,7 +463,7 @@ export class AuthService {
   async getAdminUsers() {
     return this.prisma.user.findMany({
       where: {
-        type: 'admin', // Assuming you have a field 'type' to differentiate between user roles
+        type: 'ADMIN', // Assuming you have a field 'type' to differentiate between user roles
       },
       select: {
         id: true,

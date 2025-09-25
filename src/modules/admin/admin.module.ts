@@ -9,6 +9,7 @@ import { GeneralSettingsModule } from './general-setings/general-setings.module'
 import { SystemSettingsModule } from './system-setings/system-setings.module';
 
 
+
 @Module({
   imports: [
     FaqModule,
@@ -18,7 +19,8 @@ import { SystemSettingsModule } from './system-setings/system-setings.module';
     UserModule,
     NotificationModule,
     GeneralSettingsModule,
-    SystemSettingsModule
+    SystemSettingsModule,
+
   ],
 })
-export class AdminModule {}
+export class AdminModule { }
