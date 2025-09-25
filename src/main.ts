@@ -23,7 +23,7 @@ async function bootstrap() {
   app.useWebSocketAdapter(new IoAdapter(app));
   app.setGlobalPrefix('api');
   //app.enableCors();
- app.enableCors({
+  app.enableCors({
     origin: true, // Add your frontend URL
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     credentials: true,
@@ -100,7 +100,7 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, document);
   // end swaggers
 
-  await app.listen(3000);
+  await app.listen(process.env.PORT ?? 3000);
   console.log(`Application is running on: ${await app.getUrl()}`);
 }
 bootstrap();

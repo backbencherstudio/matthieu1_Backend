@@ -63,7 +63,7 @@ export class AuthController {
   @Post('register')
   async create(@Body() data: CreateUserDto) {
     try {
-      const { email, password, name } = data;
+      const { email, password } = data;
 
       if (!email) {
         return {
@@ -73,13 +73,6 @@ export class AuthController {
         };
       }
 
-      if (!name) {  // Check for name instead of username
-        return {
-          success: false,
-          statusCode: 400,
-          message: 'Name not provided',
-        };
-      }
 
       if (!password) {
         return {
@@ -89,7 +82,7 @@ export class AuthController {
         };
       }
 
-      const response = await this.authService.register({ email, password, name });
+      const response = await this.authService.register({ email, password });
 
       return response; // Return the unified response
 
