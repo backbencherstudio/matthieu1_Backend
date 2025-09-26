@@ -77,7 +77,6 @@ model User {
 
   NotificationSent     Notification[] @relation("SenderNotifications")
   NotificationReceived Notification[] @relation("ReceiverNotifications")
-  blogs               Blog[]
 
   @@map("users")
 }
@@ -355,35 +354,47 @@ model GeneralSetting {
   updatedAt      DateTime @updatedAt
 }
 
+
+
+
+
 model BlogCategory {
-  id         String    @id @default(cuid())
-  name       String    @unique
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
+  id         String   @id @default(cuid())
+  name       String   @unique
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // One category can have many blogs
+  blogs      Blog[]
 }
 
 model Blog {
-  id          String    @id @default(cuid())
-  title       String
-  content     String    @db.Text
-  slug        String    @unique
-  image       String?
-  description String?   @db.Text
-  status      String    @default("draft") // draft, published
-  authorId    String
-  author      User      @relation(fields: [authorId], references: [id])
-  views       Int       @default(0)
-  tags        String[]
-  created_at  DateTime  @default(now())
-  updated_at  DateTime  @updatedAt
-  deleted_at  DateTime?
+  id                String              @id @default(cuid())
+  title             String
+  authorName        String
+  thumbnailImageUrl String?
+  thumbnailVideoUrl String?
+  descriptions      String[]
+  tags              String[]
+  categoryId        String
+  category          BlogCategory        @relation(fields: [categoryId], references: [id])
+  contentImages     BlogContentImage[]
 
-  @@map("blogs")
+  created_at        DateTime            @default(now())
+  updated_at        DateTime            @updatedAt
 }
 
+model BlogContentImage {
+  id          String   @id @default(cuid())
+  imageUrl    String
+  imageTitle  String
+  imageDetail String
 
-
-
+  blogId      String
+  blog        Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+}
 
 
 

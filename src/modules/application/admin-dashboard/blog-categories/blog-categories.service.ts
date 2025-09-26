@@ -26,9 +26,7 @@ export class BlogCategoriesService {
 
   async findAll() {
     try {
-      const blogCategories = await this.prisma.blogCategory.findMany({
-        include: { blogs: true },
-      });
+      const blogCategories = await this.prisma.blogCategory.findMany();
       return {
         success: true,
         data: blogCategories,

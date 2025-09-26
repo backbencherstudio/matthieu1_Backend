@@ -1,238 +1,133 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../../prisma/prisma.service';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateBlogDto } from './dto/create-blog.dto';
 import { UpdateBlogDto } from './dto/update-blog.dto';
-import slugify from 'slugify';
 
 @Injectable()
-export class BlogService {
-  constructor(private prisma: PrismaService) { }
+export class BlogsService {
+  constructor(private prisma: PrismaService) {}
 
-  async create(createBlogDto: CreateBlogDto, authorId: string) {
-    try {
-      const slug = slugify(createBlogDto.title, { lower: true });
+  // ---------- Admin ----------
+  async create(dto: CreateBlogDto) {
+    this.assertSingleThumbnail(dto.thumbnailImageUrl, dto.thumbnailVideoUrl);
 
-      const blog = await this.prisma.blog.create({
-        data: {
-          ...createBlogDto,
-          slug,
-          authorId,
+    const category = await this.prisma.blogCategory.findUnique({ where: { id: dto.categoryId } });
+    if (!category) throw new BadRequestException('Invalid categoryId');
+
+    const blog = await this.prisma.blog.create({
+      data: {
+        title: dto.title,
+        authorName: dto.authorName,
+        thumbnailImageUrl: dto.thumbnailImageUrl,
+        thumbnailVideoUrl: dto.thumbnailVideoUrl,
+        descriptions: dto.descriptions,
+        tags: dto.tags ?? [],
+        categoryId: dto.categoryId,
+        contentImages: {
+          create: (dto.contentImages ?? []).map(ci => ({
+            imageUrl: ci.imageUrl,
+            imageTitle: ci.imageTitle,
+            imageDetail: ci.imageDetail,
+          })),
         },
-        include: {
-          author: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-        },
-      });
+      },
+      include: { category: true, contentImages: true },
+    });
 
-      return {
-        success: true,
-        data: blog,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message,
-      };
-    }
+    return { success: true, data: blog };
   }
 
-  async findAll({
-    q = null,
-    status = null,
-    page = 1,
-    limit = 10,
-  }: {
-    q?: string;
-    status?: string;
-    page?: number;
-    limit?: number;
-  }) {
-    try {
-      const skip = (page - 1) * limit;
-      const where: any = {};
-
-      if (q) {
-        where['OR'] = [
-          { title: { contains: q, mode: 'insensitive' } },
-          { content: { contains: q, mode: 'insensitive' } },
-          { description: { contains: q, mode: 'insensitive' } },
-        ];
-      }
-
-      if (status) {
-        where.status = status;
-      }
-
-      const [blogs, total] = await Promise.all([
-        this.prisma.blog.findMany({
-          where,
-          skip,
-          take: limit,
-          orderBy: { created_at: 'desc' },
-          include: {
-            author: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-          },
-        }),
-        this.prisma.blog.count({ where }),
-      ]);
-
-      return {
-        success: true,
-        data: blogs,
-        meta: {
-          total,
-          page,
-          limit,
-          totalPages: Math.ceil(total / limit),
-        },
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message,
-      };
-    }
+  async findAllAdmin() {
+    const blogs = await this.prisma.blog.findMany({
+      orderBy: { created_at: 'desc' },
+      include: { category: true, contentImages: true },
+    });
+    return { success: true, data: blogs };
   }
 
-  async findOne(id: string) {
-    try {
-      const blog = await this.prisma.blog.findUnique({
-        where: { id },
-        include: {
-          author: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-        },
-      });
-
-      if (!blog) {
-        return {
-          success: false,
-          message: 'Blog not found',
-        };
-      }
-
-      // Increment views
-      await this.prisma.blog.update({
-        where: { id },
-        data: { views: blog.views + 1 },
-      });
-
-      return {
-        success: true,
-        data: blog,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message,
-      };
-    }
+  async findOneAdmin(id: string) {
+    const blog = await this.prisma.blog.findUnique({
+      where: { id },
+      include: { category: true, contentImages: true },
+    });
+    if (!blog) throw new NotFoundException('Blog not found');
+    return { success: true, data: blog };
   }
 
-  async findBySlug(slug: string) {
-    try {
-      const blog = await this.prisma.blog.findUnique({
-        where: { slug },
-        include: {
-          author: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-        },
-      });
-
-      if (!blog) {
-        return {
-          success: false,
-          message: 'Blog not found',
-        };
-      }
-
-      // Increment views
-      await this.prisma.blog.update({
-        where: { id: blog.id },
-        data: { views: blog.views + 1 },
-      });
-
-      return {
-        success: true,
-        data: blog,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message,
-      };
+  async update(id: string, dto: UpdateBlogDto) {
+    if (dto.thumbnailImageUrl || dto.thumbnailVideoUrl) {
+      this.assertSingleThumbnail(dto.thumbnailImageUrl, dto.thumbnailVideoUrl);
     }
-  }
 
-  async update(id: string, updateBlogDto: UpdateBlogDto) {
-    try {
-      const blog = await this.prisma.blog.update({
+    if (dto.categoryId) {
+      const exists = await this.prisma.blogCategory.findUnique({ where: { id: dto.categoryId } });
+      if (!exists) throw new BadRequestException('Invalid categoryId');
+    }
+
+    const tx: any[] = [];
+    if (dto.contentImages) {
+      tx.push(this.prisma.blogContentImage.deleteMany({ where: { blogId: id } }));
+    }
+
+    tx.push(
+      this.prisma.blog.update({
         where: { id },
         data: {
-          ...updateBlogDto,
-          ...(updateBlogDto.title && {
-            slug: slugify(updateBlogDto.title, { lower: true }),
-          }),
+          title: dto.title,
+          authorName: dto.authorName,
+          thumbnailImageUrl: dto.thumbnailImageUrl,
+          thumbnailVideoUrl: dto.thumbnailVideoUrl,
+          descriptions: dto.descriptions,
+          tags: dto.tags,
+          categoryId: dto.categoryId,
+          ...(dto.contentImages
+            ? {
+                contentImages: {
+                  create: dto.contentImages.map(ci => ({
+                    imageUrl: ci.imageUrl,
+                    imageTitle: ci.imageTitle,
+                    imageDetail: ci.imageDetail,
+                  })),
+                },
+              }
+            : {}),
         },
-        include: {
-          author: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-        },
-      });
+        include: { category: true, contentImages: true },
+      })
+    );
 
-      return {
-        success: true,
-        data: blog,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message,
-      };
-    }
+    const res = await this.prisma.$transaction(tx);
+    const updated = res[res.length - 1];
+    return { success: true, data: updated };
   }
 
   async remove(id: string) {
-    try {
-      await this.prisma.blog.delete({
-        where: { id },
-      });
+    await this.prisma.blog.delete({ where: { id } });
+    return { success: true, message: 'Blog deleted' };
+  }
 
-      return {
-        success: true,
-        message: 'Blog deleted successfully',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message,
-      };
+  // ---------- User ----------
+  async findAllUser() {
+    const blogs = await this.prisma.blog.findMany({
+      orderBy: { created_at: 'desc' },
+      include: { category: true, contentImages: true },
+    });
+    return { success: true, data: blogs };
+  }
+
+  async findOneUser(id: string) {
+    const blog = await this.prisma.blog.findUnique({
+      where: { id },
+      include: { category: true, contentImages: true },
+    });
+    if (!blog) throw new NotFoundException('Blog not found');
+    return { success: true, data: blog };
+  }
+
+  // helper
+  private assertSingleThumbnail(img?: string, vid?: string) {
+    if (img && vid) {
+      throw new BadRequestException('Provide either thumbnailImageUrl OR thumbnailVideoUrl, not both.');
     }
   }
 }

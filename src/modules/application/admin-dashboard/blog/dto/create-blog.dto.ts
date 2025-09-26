@@ -1,32 +1,28 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsArray } from 'class-validator';
+import { IsArray, IsOptional, IsString, IsUrl, ArrayNotEmpty } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class CreateBlogContentImageDto {
+  @IsUrl() imageUrl: string;
+  @IsString() imageTitle: string;
+  @IsString() imageDetail: string;
+}
 
 export class CreateBlogDto {
-    @ApiProperty({ description: 'Blog title' })
-    @IsString()
-    title: string;
+  @IsString() title: string;
+  @IsString() authorName: string;
 
-    @ApiProperty({ description: 'Blog content' })
-    @IsString()
-    content: string;
+  @IsOptional() @IsUrl() thumbnailImageUrl?: string;
+  @IsOptional() @IsUrl() thumbnailVideoUrl?: string;
 
-    @ApiProperty({ description: 'Blog description' })
-    @IsString()
-    @IsOptional()
-    description?: string;
+  @IsArray() @ArrayNotEmpty() @IsString({ each: true })
+  descriptions: string[];
 
-    @ApiProperty({ description: 'Blog image URL' })
-    @IsString()
-    @IsOptional()
-    image?: string;
+  @IsArray() @IsString({ each: true })
+  tags: string[];
 
-    @ApiProperty({ description: 'Blog tags' })
-    @IsArray()
-    @IsOptional()
-    tags?: string[];
+  @IsString()
+  categoryId: string;
 
-    @ApiProperty({ description: 'Blog status (draft or published)' })
-    @IsString()
-    @IsOptional()
-    status?: string;
+  @IsArray() @Type(() => CreateBlogContentImageDto)
+  contentImages: CreateBlogContentImageDto[];
 }
