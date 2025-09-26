@@ -355,6 +355,13 @@ model GeneralSetting {
   updatedAt      DateTime @updatedAt
 }
 
+model BlogCategory {
+  id         String    @id @default(cuid())
+  name       String    @unique
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+}
+
 model Blog {
   id          String    @id @default(cuid())
   title       String
