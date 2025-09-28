@@ -398,6 +398,61 @@ model BlogContentImage {
 
 
 
+model Category {
+  id           String    @id @default(cuid())
+  name          String        @unique
+  subcategories Subcategory[] 
+  products      Product[]     
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Subcategory {
+  id         String    @id @default(cuid())
+  name       String
+  category   Category  @relation(fields: [categoryId], references: [id])
+  categoryId String
+  products   Product[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([name, categoryId]) 
+}
+
+
+model Product {
+  id              String    @id @default(cuid())
+  name            String
+  sku             String      @unique
+  stockQuantity   Int
+  benefits        String?
+  description     String?
+  leatherCareGuide String?
+  price           Float
+  discountPrice   Float?
+  color           String?
+  size            String?
+
+  // Relations
+  category        Category    @relation(fields: [categoryId], references: [id])
+  categoryId      String
+  subcategory     Subcategory @relation(fields: [subcategoryId], references: [id])
+  subcategoryId   String
+
+  images          ProductImage[]
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+
+model ProductImage {
+  id        String    @id @default(cuid())
+  url       String
+  product   Product @relation(fields: [productId], references: [id])
+  productId String
+}
+
 
 
 

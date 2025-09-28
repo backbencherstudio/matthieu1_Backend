@@ -24,6 +24,8 @@ import { NotificationModule } from './modules/application/notification/notificat
 
 import { GeneralSettingsModule } from './modules/admin/general-setings/general-setings.module';
 import { FirebaseGoogleAuthModule } from './modules/firebase-googleauth/firebase-googleauth.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { DbHeartbeatService } from './db-heartbeat.service';
 
 
 
@@ -66,6 +68,8 @@ import { FirebaseGoogleAuthModule } from './modules/firebase-googleauth/firebase
     //   },
     // ]),
     // General modules
+
+      ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
    
@@ -92,6 +96,7 @@ import { FirebaseGoogleAuthModule } from './modules/firebase-googleauth/firebase
     //   useClass: ThrottlerBehindProxyGuard,
     // },
     AppService,
+    DbHeartbeatService
   ],
 })
 export class AppModule {
