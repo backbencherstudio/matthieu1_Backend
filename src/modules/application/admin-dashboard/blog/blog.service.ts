@@ -1,30 +1,24 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+// src/modules/blogs/blogs.service.ts
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateBlogDto } from './dto/create-blog.dto';
-import { UpdateBlogDto } from './dto/update-blog.dto';
 
 @Injectable()
 export class BlogsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
-  // ---------- Admin ----------
-  async create(dto: CreateBlogDto) {
-    this.assertSingleThumbnail(dto.thumbnailImageUrl, dto.thumbnailVideoUrl);
-
-    const category = await this.prisma.blogCategory.findUnique({ where: { id: dto.categoryId } });
-    if (!category) throw new BadRequestException('Invalid categoryId');
-
+  // Create a new blog
+  async create(data: any) {
     const blog = await this.prisma.blog.create({
       data: {
-        title: dto.title,
-        authorName: dto.authorName,
-        thumbnailImageUrl: dto.thumbnailImageUrl,
-        thumbnailVideoUrl: dto.thumbnailVideoUrl,
-        descriptions: dto.descriptions,
-        tags: dto.tags ?? [],
-        categoryId: dto.categoryId,
+        title: data.title,
+        authorName: data.authorName,
+        thumbnailImageUrl: data.thumbnailImageUrl,
+        thumbnailVideoUrl: data.thumbnailVideoUrl,
+        descriptions: data.descriptions,
+        tags: data.tags,
+        categoryId: data.categoryId,
         contentImages: {
-          create: (dto.contentImages ?? []).map(ci => ({
+          create: (data.contentImages || []).map((ci) => ({
             imageUrl: ci.imageUrl,
             imageTitle: ci.imageTitle,
             imageDetail: ci.imageDetail,
@@ -33,101 +27,160 @@ export class BlogsService {
       },
       include: { category: true, contentImages: true },
     });
-
-    return { success: true, data: blog };
+    return blog;
   }
 
-  async findAllAdmin() {
-    const blogs = await this.prisma.blog.findMany({
-      orderBy: { created_at: 'desc' },
+  // Update an existing blog
+  async update(id: string, data: any) {
+    // Ensure the blog exists
+    const blog = await this.prisma.blog.findUnique({ where: { id } });
+    if (!blog) throw new NotFoundException('Blog not found');
+
+    // Prepare the update data
+    const updateData: any = {
+      title: data.title,
+      authorName: data.authorName,
+      descriptions: data.descriptions,
+      tags: data.tags,
+      categoryId: data.categoryId,
+      thumbnailImageUrl: data.thumbnailImageUrl,
+      thumbnailVideoUrl: data.thumbnailVideoUrl,
+    };
+
+    // Handle content images if provided
+    if (data.contentImages && Array.isArray(data.contentImages)) {
+      // Separate existing images (with IDs) from new images (without IDs)
+      const existingImages = data.contentImages.filter((img: any) => img.id);
+      const newImages = data.contentImages.filter((img: any) => !img.id);
+
+      console.log('Updating content images:', { existingImages: existingImages.length, newImages: newImages.length });
+
+      // Use a shorter transaction with timeout configuration
+      return await this.prisma.$transaction(async (tx) => {
+        // Update the blog basic fields first
+        await tx.blog.update({
+          where: { id },
+          data: updateData,
+        });
+
+        // Update existing content images in parallel
+        if (existingImages.length > 0) {
+          console.log('Updating existing images:', existingImages);
+          await Promise.all(
+            existingImages.map((img: any) => {
+              console.log('Updating image:', img.id, 'with data:', { imageUrl: img.imageUrl, imageTitle: img.imageTitle, imageDetail: img.imageDetail });
+              return tx.blogContentImage.update({
+                where: { id: img.id },
+                data: {
+                  imageUrl: img.imageUrl,
+                  imageTitle: img.imageTitle,
+                  imageDetail: img.imageDetail,
+                },
+              });
+            })
+          );
+        }
+
+        // Create new content images in batch
+        if (newImages.length > 0) {
+          console.log('Creating new images:', newImages);
+          await tx.blogContentImage.createMany({
+            data: newImages.map((img: any) => ({
+              blogId: id,
+              imageUrl: img.imageUrl,
+              imageTitle: img.imageTitle,
+              imageDetail: img.imageDetail,
+            })),
+          });
+        }
+
+        // Return the updated blog with all content images
+        return await tx.blog.findUnique({
+          where: { id },
+          include: { category: true, contentImages: true },
+        });
+      }, {
+        timeout: 10000, // 10 seconds timeout
+      });
+    }
+
+    // Handle updating the blog (text fields, tags, etc.) without content images
+    const updatedBlog = await this.prisma.blog.update({
+      where: { id },
+      data: updateData,
       include: { category: true, contentImages: true },
     });
-    return { success: true, data: blogs };
+
+    return updatedBlog;
   }
 
-  async findOneAdmin(id: string) {
+  // Get content images of a blog (to handle existing ones)
+  async getContentImages(blogId: string) {
+    const blog = await this.prisma.blog.findUnique({
+      where: { id: blogId },
+      select: { contentImages: true },
+    });
+    return blog?.contentImages || [];
+  }
+
+  async findAll() {
+    return this.prisma.blog.findMany({
+      include: { category: true, contentImages: true },
+    });
+  }
+
+  async findOne(id: string) {
     const blog = await this.prisma.blog.findUnique({
       where: { id },
       include: { category: true, contentImages: true },
     });
     if (!blog) throw new NotFoundException('Blog not found');
-    return { success: true, data: blog };
-  }
-
-  async update(id: string, dto: UpdateBlogDto) {
-    if (dto.thumbnailImageUrl || dto.thumbnailVideoUrl) {
-      this.assertSingleThumbnail(dto.thumbnailImageUrl, dto.thumbnailVideoUrl);
-    }
-
-    if (dto.categoryId) {
-      const exists = await this.prisma.blogCategory.findUnique({ where: { id: dto.categoryId } });
-      if (!exists) throw new BadRequestException('Invalid categoryId');
-    }
-
-    const tx: any[] = [];
-    if (dto.contentImages) {
-      tx.push(this.prisma.blogContentImage.deleteMany({ where: { blogId: id } }));
-    }
-
-    tx.push(
-      this.prisma.blog.update({
-        where: { id },
-        data: {
-          title: dto.title,
-          authorName: dto.authorName,
-          thumbnailImageUrl: dto.thumbnailImageUrl,
-          thumbnailVideoUrl: dto.thumbnailVideoUrl,
-          descriptions: dto.descriptions,
-          tags: dto.tags,
-          categoryId: dto.categoryId,
-          ...(dto.contentImages
-            ? {
-                contentImages: {
-                  create: dto.contentImages.map(ci => ({
-                    imageUrl: ci.imageUrl,
-                    imageTitle: ci.imageTitle,
-                    imageDetail: ci.imageDetail,
-                  })),
-                },
-              }
-            : {}),
-        },
-        include: { category: true, contentImages: true },
-      })
-    );
-
-    const res = await this.prisma.$transaction(tx);
-    const updated = res[res.length - 1];
-    return { success: true, data: updated };
+    return blog;
   }
 
   async remove(id: string) {
     await this.prisma.blog.delete({ where: { id } });
-    return { success: true, message: 'Blog deleted' };
+    return { message: 'Blog deleted' };
   }
 
-  // ---------- User ----------
-  async findAllUser() {
-    const blogs = await this.prisma.blog.findMany({
-      orderBy: { created_at: 'desc' },
-      include: { category: true, contentImages: true },
+  // Update a single content image
+  async updateContentImage(blogId: string, imageId: string, data: { imageTitle?: string; imageDetail?: string; imageUrl?: string }) {
+    // Verify the image belongs to the blog
+    const existingImage = await this.prisma.blogContentImage.findFirst({
+      where: {
+        id: imageId,
+        blogId: blogId,
+      },
     });
-    return { success: true, data: blogs };
-  }
 
-  async findOneUser(id: string) {
-    const blog = await this.prisma.blog.findUnique({
-      where: { id },
-      include: { category: true, contentImages: true },
-    });
-    if (!blog) throw new NotFoundException('Blog not found');
-    return { success: true, data: blog };
-  }
-
-  // helper
-  private assertSingleThumbnail(img?: string, vid?: string) {
-    if (img && vid) {
-      throw new BadRequestException('Provide either thumbnailImageUrl OR thumbnailVideoUrl, not both.');
+    if (!existingImage) {
+      throw new NotFoundException('Content image not found');
     }
+
+    // Update the content image
+    const updatedImage = await this.prisma.blogContentImage.update({
+      where: { id: imageId },
+      data: {
+        imageTitle: data.imageTitle,
+        imageDetail: data.imageDetail,
+        imageUrl: data.imageUrl,
+      },
+    });
+
+    return { success: true, data: updatedImage };
+  }
+
+  // Delete specific content images
+  async deleteContentImages(blogId: string, contentImageIds: string[]) {
+    if (contentImageIds.length === 0) return;
+
+    await this.prisma.blogContentImage.deleteMany({
+      where: {
+        id: { in: contentImageIds },
+        blogId: blogId,
+      },
+    });
+
+    return { message: 'Content images deleted' };
   }
 }

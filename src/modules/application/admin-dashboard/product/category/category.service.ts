@@ -9,15 +9,16 @@ export class CategoryService {
 
 
 
-  async create(data: CreateCategoryDto) {
-    const catagory = this.prisma.category.create({
-      data,
-    });
-    return {
-      success: true,
-      data: catagory,
-    }
-  }
+async create(data: CreateCategoryDto) {
+  const category = await this.prisma.category.create({
+    data,
+  });
+  return {
+    success: true,
+    data: category,
+  };
+}
+
 
   findAll() {
     return `This action returns all category`;
