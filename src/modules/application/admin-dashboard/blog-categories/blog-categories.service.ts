@@ -6,6 +6,8 @@ import { PrismaService } from 'src/prisma/prisma.service';
 @Injectable()
 export class BlogCategoriesService {
   constructor(private prisma: PrismaService) { }
+
+
   //crete blog category
   async create(createBlogCategoryDto: CreateBlogCategoryDto) {
     try {
@@ -23,6 +25,8 @@ export class BlogCategoriesService {
       };
     }
   }
+
+
 
   async findAll() {
     try {
@@ -59,6 +63,9 @@ export class BlogCategoriesService {
     }
   }
 
+
+
+  
   async remove(id: string) {
     try {
       await this.prisma.blogCategory.delete({
