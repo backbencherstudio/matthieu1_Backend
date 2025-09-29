@@ -20,8 +20,16 @@ async create(data: CreateCategoryDto) {
 }
 
 
-  findAll() {
-    return `This action returns all category`;
+ async findAll() {
+     const categories = await this.prisma.category.findMany({
+       include: {
+         products: true, // Include related products  
+        },
+      });
+      return {
+        success: true,
+        data: categories,
+      };
   }
 
   findOne(id: number) {

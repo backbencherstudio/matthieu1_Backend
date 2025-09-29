@@ -1,0 +1,57 @@
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, HttpStatus, HttpException } from '@nestjs/common';
+import { SubcategoryService } from './subcategory.service';
+import { CreateSubcategoryDto } from './dto/create-subcategory.dto';
+import { UpdateSubcategoryDto } from './dto/update-subcategory.dto';
+import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guard/role/roles.guard';
+import { Roles } from 'src/common/guard/role/roles.decorator';
+import { Role } from 'src/common/guard/role/role.enum';
+
+
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.ADMIN) 
+@Controller('subcategory')
+export class SubcategoryController {
+  constructor(private readonly subcategoryService: SubcategoryService) {}
+
+  @Post('create')
+  create(@Body() createSubcategoryDto: CreateSubcategoryDto) {
+    console.log("lala")
+    return this.subcategoryService.create(createSubcategoryDto);
+  }
+  
+
+  @Get('all-subcategory')
+    async findAll() {
+      try {
+        const Subcategories = await this.subcategoryService.findAll();
+        return Subcategories;
+      } catch (error) {
+        throw new HttpException(
+          `Failed to fetch categories: ${error.message}`,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+
+
+  // @Get()
+  // findAll() {
+  //   return this.subcategoryService.findAll();
+  // }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.subcategoryService.findOne(+id);
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() updateSubcategoryDto: UpdateSubcategoryDto) {
+    return this.subcategoryService.update(+id, updateSubcategoryDto);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.subcategoryService.remove(+id);
+  }
+}
