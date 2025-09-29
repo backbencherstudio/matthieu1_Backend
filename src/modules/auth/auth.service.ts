@@ -32,25 +32,25 @@ export class AuthService {
     private readonly notificationService: NotificationService,
     private readonly subscriptionService: SubscriptionService,
     private readonly accountManagementService: AccountManagementService,
-    private readonly notificationGateway: NotificationGateway
-  ) { }
+    private readonly notificationGateway: NotificationGateway,
+  ) {}
 
   async me(userId: string) {
     try {
-      const valid = await this.subscriptionService.checkAlreadySubscription(userId)
-      
+      const valid =
+        await this.subscriptionService.checkAlreadySubscription(userId);
 
       if (!valid) {
         await this.prisma.user.update({
           where: {
-            id: userId
+            id: userId,
           },
           data: {
             subscription_status: 'inactive',
-            subscription_type: "FREE",
+            subscription_type: 'FREE',
             subscripton_end_date: null,
-          }
-        })
+          },
+        });
       }
       const user = await this.prisma.user.findFirst({
         where: {
@@ -118,7 +118,6 @@ export class AuthService {
       const data: any = {};
       if (updateUserDto.name) {
         data.name = updateUserDto.name;
-       
       }
       if (updateUserDto.phone_number) {
         data.phone_number = updateUserDto.phone_number;
@@ -164,7 +163,6 @@ export class AuthService {
           );
         }
 
-       
         const fileName = `${StringHelper.randomString()}${image.originalname}`;
         await FileStorage.put(
           appConfig().storageUrl.avatar + fileName,
@@ -273,10 +271,8 @@ export class AuthService {
       }
 
       if (user.isTwoFactorEnabled) {
-
         const code = Math.floor(100000 + Math.random() * 900000).toString();
         const expiresAt = addMinutes(new Date(), 5);
-
 
         await this.prisma.user.update({
           where: { id: userId },
@@ -288,8 +284,6 @@ export class AuthService {
 
         // STEP 3: Send OTP
         if (user.isTwoFactorEnabled) {
-
-
           await this.mailService.sendOtpCodeToEmail({
             email: user.email,
             name: user.name,
@@ -308,7 +302,11 @@ export class AuthService {
 
       // If 2FA not enabled
       const payload = { email: user.email, sub: user.id, type: user.type };
-      const token = this.jwtService.sign(payload);
+      //const token = this.jwtService.sign(payload);
+      const token = this.jwtService.sign(payload, {
+        secret: process.env.JWT_SECRET,
+        expiresIn: process.env.JWT_EXPIRY, // '1d' works directly
+      });
 
       return {
         success: true,
@@ -378,8 +376,6 @@ export class AuthService {
       return { success: false, message: error.message };
     }
   }
-
-
 
   async register({ email, password }: { email: string; password: string }) {
     try {
@@ -689,7 +685,11 @@ export class AuthService {
   }
 
   //change password for specific user don't need email. user only change his own password
-  async changePasswordForUser(user_id: string, oldPassword: string, newPassword: string) {
+  async changePasswordForUser(
+    user_id: string,
+    oldPassword: string,
+    newPassword: string,
+  ) {
     try {
       const user = await UserRepository.getUserDetails(user_id);
       if (user) {
@@ -954,6 +954,4 @@ export class AuthService {
 
     return { message: '2FA enabled successfully' };
   }
-
-  
 }
