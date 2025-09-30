@@ -6,8 +6,9 @@ import { SubscriptionModule } from './subscription/subscription.module';
 import { GoogleSubscriptionModule } from './google-subscription/google-subscription.module';
 import { BlogModule } from './admin-dashboard/blog/blog.module';
 import { BlogCategoriesModule } from './admin-dashboard/blog-categories/blog-categories.module';
+import { CategoryModule } from './admin-dashboard/product/category/category.module';
 
 @Module({
-  imports: [NotificationModule, ContactModule, FaqModule, SubscriptionModule, GoogleSubscriptionModule, BlogModule, BlogCategoriesModule],
+  imports: [NotificationModule, ContactModule, FaqModule, SubscriptionModule, GoogleSubscriptionModule, BlogModule, BlogCategoriesModule, CategoryModule],
 })
 export class ApplicationModule { }

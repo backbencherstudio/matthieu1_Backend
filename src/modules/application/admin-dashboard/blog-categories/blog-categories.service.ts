@@ -6,6 +6,8 @@ import { PrismaService } from 'src/prisma/prisma.service';
 @Injectable()
 export class BlogCategoriesService {
   constructor(private prisma: PrismaService) { }
+
+
   //crete blog category
   async create(createBlogCategoryDto: CreateBlogCategoryDto) {
     try {
@@ -24,9 +26,13 @@ export class BlogCategoriesService {
     }
   }
 
+
+
   async findAll() {
     try {
-      const blogCategories = await this.prisma.blogCategory.findMany();
+      const blogCategories = await this.prisma.blogCategory.findMany({
+        include: { blogs: true },
+      });
       return {
         success: true,
         data: blogCategories,
@@ -57,6 +63,9 @@ export class BlogCategoriesService {
     }
   }
 
+
+
+  
   async remove(id: string) {
     try {
       await this.prisma.blogCategory.delete({
