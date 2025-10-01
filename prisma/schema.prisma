@@ -388,7 +388,11 @@ model Blog {
   publishedAt       DateTime?
   created_at        DateTime            @default(now())
   updated_at        DateTime            @updatedAt
+  clicks            Int                 @default(0)
 }
+
+
+
 
 model BlogContentImage {
   id          String   @id @default(cuid())

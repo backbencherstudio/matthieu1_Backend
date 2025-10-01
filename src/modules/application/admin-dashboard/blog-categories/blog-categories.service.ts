@@ -31,7 +31,6 @@ export class BlogCategoriesService {
   async findAll() {
     try {
       const blogCategories = await this.prisma.blogCategory.findMany({
-        include: { blogs: true },
       });
       return {
         success: true,
