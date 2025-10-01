@@ -368,18 +368,24 @@ model BlogCategory {
   blogs      Blog[]
 }
 
+enum BlogStatus {
+  DRAFT
+  PUBLISHED
+}
+
 model Blog {
   id                String              @id @default(cuid())
   title             String
   authorName        String
   thumbnailImageUrl String?
   thumbnailVideoUrl String?
-  descriptions      String[]
+  descriptions      BlogDescription[]
   tags              String[]
   categoryId        String
   category          BlogCategory        @relation(fields: [categoryId], references: [id])
   contentImages     BlogContentImage[]
-
+  status            BlogStatus          @default(DRAFT)
+  publishedAt       DateTime?
   created_at        DateTime            @default(now())
   updated_at        DateTime            @updatedAt
 }
@@ -396,6 +402,16 @@ model BlogContentImage {
   updated_at  DateTime @updatedAt
 }
 
+model BlogDescription {
+  id          String   @id @default(cuid())
+  text        String
+
+  blogId      String
+  blog        Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+}
 
 
 model Category {
