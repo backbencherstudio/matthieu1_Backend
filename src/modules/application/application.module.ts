@@ -7,8 +7,10 @@ import { GoogleSubscriptionModule } from './google-subscription/google-subscript
 import { BlogModule } from './admin-dashboard/blog/blog.module';
 import { BlogCategoriesModule } from './admin-dashboard/blog-categories/blog-categories.module';
 import { CategoryModule } from './admin-dashboard/product/category/category.module';
+import { SubcategoryModule } from './admin-dashboard/product/subcategory/subcategory.module';
+import { MainproductModule } from './admin-dashboard/product/mainproduct/mainproduct.module';
 
 @Module({
-  imports: [NotificationModule, ContactModule, FaqModule, SubscriptionModule, GoogleSubscriptionModule, BlogModule, BlogCategoriesModule, CategoryModule],
+  imports: [NotificationModule, ContactModule, FaqModule, SubscriptionModule, GoogleSubscriptionModule, BlogModule, BlogCategoriesModule, CategoryModule, SubcategoryModule, MainproductModule],
 })
 export class ApplicationModule { }

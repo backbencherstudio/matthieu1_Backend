@@ -271,7 +271,7 @@ export class BlogsController {
   constructor(
     private readonly blogsService: BlogsService,
     private readonly blogUpload: BlogUploadService,
-  ) {}
+  ) { }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Post()
@@ -328,31 +328,107 @@ export class BlogsController {
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'thumbnail', maxCount: 1 },
-      { name: 'contentImages', maxCount: 10 },
+      // { name: 'contentImages', maxCount: 10 },
     ]),
   )
+  // async update(
+  //   @Param('id') id: string,
+  //   @Body() body: any,
+  //   @UploadedFiles()
+  //   files: { thumbnail?: Express.Multer.File[]; contentImages?: Express.Multer.File[] },
+  // ) {
+  //   const patch: any = {};
+
+  //   if (body.title !== undefined) patch.title = body.title;
+  //   if (body.authorName !== undefined) patch.authorName = body.authorName;
+  //   if (body.categoryId !== undefined) patch.categoryId = body.categoryId;
+
+  //   if (body['descriptions[]'] !== undefined || body.descriptions !== undefined) {
+  //     patch.descriptions = Array.isArray(body['descriptions[]'] || body.descriptions)
+  //       ? body['descriptions[]'] || body.descriptions
+  //       : [];
+  //   }
+
+  //   if (body['tags[]'] !== undefined || body.tags !== undefined) {
+  //     patch.tags = Array.isArray(body['tags[]'] || body.tags)
+  //       ? body['tags[]'] || body.tags
+  //       : [];
+  //   }
+
+  //   if (files.thumbnail?.[0]) {
+  //     const thumbUrl = await this.blogUpload.uploadOne('blogs/thumbnail', files.thumbnail[0]);
+  //     const isImage = files.thumbnail[0].mimetype.startsWith('image/');
+  //     const isVideo = files.thumbnail[0].mimetype.startsWith('video/');
+  //     patch.thumbnailImageUrl = isImage ? thumbUrl : undefined;
+  //     patch.thumbnailVideoUrl = isVideo ? thumbUrl : undefined;
+  //   }
+
+  //   const contentFiles = files.contentImages || [];
+  //   let contentImagesMeta = [];
+
+  //   try {
+  //     contentImagesMeta = body.contentImagesMeta ? JSON.parse(body.contentImagesMeta) : [];
+  //   } catch (error) {
+  //     throw new BadRequestException('contentImagesMeta must be a valid JSON array');
+  //   }
+
+  //   if (contentFiles.length > 0 || contentImagesMeta.length > 0) {
+  //     const contentImages = [];
+  //     const existingImages = await this.blogsService.getContentImages(id);
+  //     const existingImagesMap = new Map(existingImages.map((img) => [img.id, img]));
+
+  //     if (contentFiles.length > 0) {
+  //       const uploadedImages = await this.blogUpload.uploadMany('blogs/content', contentFiles);
+
+  //       uploadedImages.forEach((url, i) => {
+  //         const meta = contentImagesMeta[i];
+  //         if (meta && meta.id) {
+  //           contentImages.push({
+  //             id: meta.id,
+  //             imageUrl: url,
+  //             imageTitle: meta.imageTitle || '',
+  //             imageDetail: meta.imageDetail || '',
+  //           });
+  //         } else {
+  //           contentImages.push({
+  //             imageUrl: url,
+  //             imageTitle: meta?.imageTitle || '',
+  //             imageDetail: meta?.imageDetail || '',
+  //           });
+  //         }
+  //       });
+  //     }
+
+  //     contentImagesMeta.forEach((meta, i) => {
+  //       if (meta.id && i >= contentFiles.length) {
+  //         const existingImage = existingImagesMap.get(meta.id);
+  //         const imageData = {
+  //           id: meta.id,
+  //           imageUrl: meta.imageUrl || existingImage?.imageUrl || '',
+  //           imageTitle: meta.imageTitle || '',
+  //           imageDetail: meta.imageDetail || '',
+  //         };
+  //         contentImages.push(imageData);
+  //       }
+  //     });
+
+  //     patch.contentImages = contentImages;
+  //   }
+
+  //   return this.blogsService.update(id, patch);
+  // }
   async update(
     @Param('id') id: string,
     @Body() body: any,
-    @UploadedFiles()
-    files: { thumbnail?: Express.Multer.File[]; contentImages?: Express.Multer.File[] },
+    @UploadedFiles() files: { thumbnail?: Express.Multer.File[] },
   ) {
     const patch: any = {};
 
     if (body.title !== undefined) patch.title = body.title;
     if (body.authorName !== undefined) patch.authorName = body.authorName;
     if (body.categoryId !== undefined) patch.categoryId = body.categoryId;
-
-    if (body['descriptions[]'] !== undefined || body.descriptions !== undefined) {
-      patch.descriptions = Array.isArray(body['descriptions[]'] || body.descriptions)
-        ? body['descriptions[]'] || body.descriptions
-        : [];
-    }
-
-    if (body['tags[]'] !== undefined || body.tags !== undefined) {
-      patch.tags = Array.isArray(body['tags[]'] || body.tags)
-        ? body['tags[]'] || body.tags
-        : [];
+    if (body.tags !== undefined) {
+      patch.tags = Array.isArray(body.tags) ? body.tags : [body.tags];
     }
 
     if (files.thumbnail?.[0]) {
@@ -363,60 +439,20 @@ export class BlogsController {
       patch.thumbnailVideoUrl = isVideo ? thumbUrl : undefined;
     }
 
-    const contentFiles = files.contentImages || [];
-    let contentImagesMeta = [];
-
-    try {
-      contentImagesMeta = body.contentImagesMeta ? JSON.parse(body.contentImagesMeta) : [];
-    } catch (error) {
-      throw new BadRequestException('contentImagesMeta must be a valid JSON array');
-    }
-
-    if (contentFiles.length > 0 || contentImagesMeta.length > 0) {
-      const contentImages = [];
-      const existingImages = await this.blogsService.getContentImages(id);
-      const existingImagesMap = new Map(existingImages.map((img) => [img.id, img]));
-
-      if (contentFiles.length > 0) {
-        const uploadedImages = await this.blogUpload.uploadMany('blogs/content', contentFiles);
-
-        uploadedImages.forEach((url, i) => {
-          const meta = contentImagesMeta[i];
-          if (meta && meta.id) {
-            contentImages.push({
-              id: meta.id,
-              imageUrl: url,
-              imageTitle: meta.imageTitle || '',
-              imageDetail: meta.imageDetail || '',
-            });
-          } else {
-            contentImages.push({
-              imageUrl: url,
-              imageTitle: meta?.imageTitle || '',
-              imageDetail: meta?.imageDetail || '',
-            });
-          }
-        });
-      }
-
-      contentImagesMeta.forEach((meta, i) => {
-        if (meta.id && i >= contentFiles.length) {
-          const existingImage = existingImagesMap.get(meta.id);
-          const imageData = {
-            id: meta.id,
-            imageUrl: meta.imageUrl || existingImage?.imageUrl || '',
-            imageTitle: meta.imageTitle || '',
-            imageDetail: meta.imageDetail || '',
-          };
-          contentImages.push(imageData);
-        }
-      });
-
-      patch.contentImages = contentImages;
-    }
-
     return this.blogsService.update(id, patch);
   }
+
+  // Update a specific description
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Patch(':id/descriptions/:descriptionId')
+  async updateDescription(
+    @Param('id') blogId: string,
+    @Param('descriptionId') descriptionId: string,
+    @Body() body: { text: string },
+  ) {
+    return this.blogsService.updateDescription(blogId, descriptionId, body.text);
+  }
+
 
   @UseGuards(JwtAuthGuard)
   @Get()
@@ -441,16 +477,19 @@ export class BlogsController {
   ) {
     let imageUrl: string | undefined;
 
+    // Handle new image upload
     if (files.image?.[0]) {
       imageUrl = await this.blogUpload.uploadOne('blogs/content', files.image[0]);
     }
 
+    // Call service to update content image
     return this.blogsService.updateContentImage(blogId, imageId, {
       imageTitle: body.imageTitle,
       imageDetail: body.imageDetail,
       imageUrl,
     });
   }
+
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Delete(':id/content-images')

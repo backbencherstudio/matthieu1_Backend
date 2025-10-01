@@ -192,7 +192,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class BlogsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   // Create a new blog
   async create(data: any) {
@@ -237,59 +237,59 @@ export class BlogsService {
     };
 
     // ✅ Handle descriptions
-    if (data.descriptions && Array.isArray(data.descriptions)) {
-      await this.prisma.blogDescription.deleteMany({ where: { blogId: id } });
-      updateData.descriptions = {
-        create: data.descriptions.map((d: string) => ({ text: d })),
-      };
-    }
+    // if (data.descriptions && Array.isArray(data.descriptions)) {
+    //   await this.prisma.blogDescription.deleteMany({ where: { blogId: id } });
+    //   updateData.descriptions = {
+    //     create: data.descriptions.map((d: string) => ({ text: d })),
+    //   };
+    // }
 
     // ✅ Handle content images
-    if (data.contentImages && Array.isArray(data.contentImages)) {
-      const existingImages = data.contentImages.filter((img: any) => img.id);
-      const newImages = data.contentImages.filter((img: any) => !img.id);
+    // if (data.contentImages && Array.isArray(data.contentImages)) {
+    //   const existingImages = data.contentImages.filter((img: any) => img.id);
+    //   const newImages = data.contentImages.filter((img: any) => !img.id);
 
-      return await this.prisma.$transaction(
-        async (tx) => {
-          await tx.blog.update({
-            where: { id },
-            data: updateData,
-          });
+    //   return await this.prisma.$transaction(
+    //     async (tx) => {
+    //       await tx.blog.update({
+    //         where: { id },
+    //         data: updateData,
+    //       });
 
-          if (existingImages.length > 0) {
-            await Promise.all(
-              existingImages.map((img: any) =>
-                tx.blogContentImage.update({
-                  where: { id: img.id },
-                  data: {
-                    imageUrl: img.imageUrl,
-                    imageTitle: img.imageTitle,
-                    imageDetail: img.imageDetail,
-                  },
-                }),
-              ),
-            );
-          }
+    //       if (existingImages.length > 0) {
+    //         await Promise.all(
+    //           existingImages.map((img: any) =>
+    //             tx.blogContentImage.update({
+    //               where: { id: img.id },
+    //               data: {
+    //                 imageUrl: img.imageUrl,
+    //                 imageTitle: img.imageTitle,
+    //                 imageDetail: img.imageDetail,
+    //               },
+    //             }),
+    //           ),
+    //         );
+    //       }
 
-          if (newImages.length > 0) {
-            await tx.blogContentImage.createMany({
-              data: newImages.map((img: any) => ({
-                blogId: id,
-                imageUrl: img.imageUrl,
-                imageTitle: img.imageTitle,
-                imageDetail: img.imageDetail,
-              })),
-            });
-          }
+    //       if (newImages.length > 0) {
+    //         await tx.blogContentImage.createMany({
+    //           data: newImages.map((img: any) => ({
+    //             blogId: id,
+    //             imageUrl: img.imageUrl,
+    //             imageTitle: img.imageTitle,
+    //             imageDetail: img.imageDetail,
+    //           })),
+    //         });
+    //       }
 
-          return await tx.blog.findUnique({
-            where: { id },
-            include: { category: true, contentImages: true, descriptions: true },
-          });
-        },
-        { timeout: 10000 },
-      );
-    }
+    //       return await tx.blog.findUnique({
+    //         where: { id },
+    //         include: { category: true, contentImages: true, descriptions: true },
+    //       });
+    //     },
+    //     { timeout: 10000 },
+    //   );
+    // }
 
     return this.prisma.blog.update({
       where: { id },
@@ -297,6 +297,43 @@ export class BlogsService {
       include: { category: true, contentImages: true, descriptions: true },
     });
   }
+
+  // Update a specific description
+  async updateDescription(
+    blogId: string,
+    descriptionId: string,
+    text: string,
+  ) {
+    const description = await this.prisma.blogDescription.findFirst({
+      where: { id: descriptionId, blogId },
+    });
+    if (!description) throw new NotFoundException('Description not found');
+
+    return this.prisma.blogDescription.update({
+      where: { id: descriptionId },
+      data: { text },
+    });
+  }
+
+  // Update a specific content image
+  // Update a specific content image
+  async updateContentImage(
+    blogId: string,
+    imageId: string,
+    data: { imageUrl?: string; imageTitle?: string; imageDetail?: string },
+  ) {
+    const image = await this.prisma.blogContentImage.findFirst({
+      where: { id: imageId, blogId },
+    });
+    if (!image) throw new NotFoundException('Content image not found');
+
+    return this.prisma.blogContentImage.update({
+      where: { id: imageId },
+      data,
+    });
+  }
+
+
 
   async getContentImages(blogId: string) {
     const blog = await this.prisma.blog.findUnique({
@@ -326,28 +363,28 @@ export class BlogsService {
     return { message: 'Blog deleted' };
   }
 
-  async updateContentImage(
-    blogId: string,
-    imageId: string,
-    data: { imageTitle?: string; imageDetail?: string; imageUrl?: string },
-  ) {
-    const existingImage = await this.prisma.blogContentImage.findFirst({
-      where: { id: imageId, blogId },
-    });
+  // async updateContentImage(
+  //   blogId: string,
+  //   imageId: string,
+  //   data: { imageTitle?: string; imageDetail?: string; imageUrl?: string },
+  // ) {
+  //   const existingImage = await this.prisma.blogContentImage.findFirst({
+  //     where: { id: imageId, blogId },
+  //   });
 
-    if (!existingImage) throw new NotFoundException('Content image not found');
+  //   if (!existingImage) throw new NotFoundException('Content image not found');
 
-    const updatedImage = await this.prisma.blogContentImage.update({
-      where: { id: imageId },
-      data: {
-        imageTitle: data.imageTitle,
-        imageDetail: data.imageDetail,
-        imageUrl: data.imageUrl,
-      },
-    });
+  //   const updatedImage = await this.prisma.blogContentImage.update({
+  //     where: { id: imageId },
+  //     data: {
+  //       imageTitle: data.imageTitle,
+  //       imageDetail: data.imageDetail,
+  //       imageUrl: data.imageUrl,
+  //     },
+  //   });
 
-    return { success: true, data: updatedImage };
-  }
+  //   return { success: true, data: updatedImage };
+  // }
 
   async deleteContentImages(blogId: string, contentImageIds: string[]) {
     if (contentImageIds.length === 0) return;

@@ -368,6 +368,11 @@ model BlogCategory {
   blogs      Blog[]
 }
 
+enum BlogStatus {
+  DRAFT
+  PUBLISHED
+}
+
 model Blog {
   id                String              @id @default(cuid())
   title             String
@@ -379,7 +384,8 @@ model Blog {
   categoryId        String
   category          BlogCategory        @relation(fields: [categoryId], references: [id])
   contentImages     BlogContentImage[]
-
+  status            BlogStatus          @default(DRAFT)
+  publishedAt       DateTime?
   created_at        DateTime            @default(now())
   updated_at        DateTime            @updatedAt
 }
