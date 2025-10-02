@@ -199,7 +199,7 @@ model Notification {
   status        String           @default("unread")
   created_at    DateTime         @default(now())
   updated_at    DateTime         @updatedAt
-  post_id       String?
+  post_id       String
   comment_id    String?
   read          Boolean          @default(false)
   friendship_id String? 
