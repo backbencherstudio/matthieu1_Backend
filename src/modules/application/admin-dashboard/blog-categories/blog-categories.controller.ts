@@ -4,9 +4,12 @@ import { CreateBlogCategoryDto } from './dto/create-blog-category.dto';
 import { UpdateBlogCategoryDto } from './dto/update-blog-category.dto';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guard/role/roles.guard';
+import { Role } from 'src/common/guard/role/role.enum';
+import { Roles } from 'src/common/guard/role/roles.decorator';
 
 @Controller('blog-categories')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.ADMIN)
 export class BlogCategoriesController {
   constructor(private readonly blogCategoriesService: BlogCategoriesService) { }
 

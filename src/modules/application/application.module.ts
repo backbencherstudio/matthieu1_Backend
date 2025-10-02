@@ -9,8 +9,10 @@ import { BlogCategoriesModule } from './admin-dashboard/blog-categories/blog-cat
 import { CategoryModule } from './admin-dashboard/product/category/category.module';
 import { SubcategoryModule } from './admin-dashboard/product/subcategory/subcategory.module';
 import { MainproductModule } from './admin-dashboard/product/mainproduct/mainproduct.module';
+import { ContactInfoModule } from './admin-dashboard/contact-info/contact-info.module';
+
 
 @Module({
-  imports: [NotificationModule, ContactModule, FaqModule, SubscriptionModule, GoogleSubscriptionModule, BlogModule, BlogCategoriesModule, CategoryModule, SubcategoryModule, MainproductModule],
+  imports: [NotificationModule, ContactModule, FaqModule, SubscriptionModule, GoogleSubscriptionModule, BlogModule, BlogCategoriesModule, CategoryModule, SubcategoryModule, MainproductModule, ContactInfoModule],
 })
 export class ApplicationModule { }
