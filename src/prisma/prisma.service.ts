@@ -1,34 +1,26 @@
-// external imports
-import {
-  Logger,
-  Injectable,
-  OnModuleInit,
-  OnModuleDestroy,
-} from '@nestjs/common';
-import { Prisma, PrismaClient } from '@prisma/client';
-// internal imports
-import { SoftdeleteMiddleware } from './middleware/softdelete.middleware';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
+import { Prisma, PrismaClient } from "@prisma/client";
+import { SoftdeleteMiddleware } from "./middleware/softdelete.middleware";
 
 @Injectable()
 export class PrismaService
   extends PrismaClient<Prisma.PrismaClientOptions, 'query'>
-  implements OnModuleInit, OnModuleDestroy {
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(PrismaService.name);
-  friendships: any;
-  Subscription: any;
 
   constructor() {
     super({ log: [{ emit: 'event', level: 'query' }] });
 
-    // this.logger.log(`Prisma v${Prisma.prismaVersion.client}`);
-    // this.$on('query', (e) => this.logger.debug(`${e.query} ${e.params}`));
-
-    // comment out this when seeding data using command line
     if (process.env.PRISMA_ENV == '1') {
       console.log('Prisma Middleware not called', process.env.PRISMA_ENV);
     } else {
-      // use middleware here
-      this.$use(SoftdeleteMiddleware);
+      // only if $use exists
+      if (typeof (this as any).$use === 'function') {
+        (this as any).$use(SoftdeleteMiddleware);
+      } else {
+        console.warn('⚠️ Prisma middleware not supported in this Prisma version');
+      }
     }
   }
 
