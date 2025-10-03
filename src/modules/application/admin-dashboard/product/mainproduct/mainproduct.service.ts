@@ -24,7 +24,8 @@ async createProduct(
       discountPrice: Number(createMainproductDto.discountPrice), // convert to Float/Int
       color: createMainproductDto.color,
       size: createMainproductDto.size,
-      category: { connect: { id: createMainproductDto.categoryId } },
+      //category: { connect: { id: createMainproductDto.categoryId } },
+      category: createMainproductDto.category, 
       subcategory: { connect: { id: createMainproductDto.subcategoryId } },
 
       images: images?.length
@@ -36,7 +37,7 @@ async createProduct(
         : undefined,
     },
     include: {
-      category: true,
+      
       subcategory: true,
       images: true,
     },
@@ -51,7 +52,7 @@ async createProduct(
     const product = this.prisma.product.findUnique({
       where: { id: id },
       include: {  
-        category: true,
+        
         subcategory: true,
         images: true,
       },
