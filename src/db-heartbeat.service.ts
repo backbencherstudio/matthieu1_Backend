@@ -9,13 +9,13 @@ export class DbHeartbeatService {
   constructor(private prisma: PrismaService) {}
 
   // Run every 5 minutes
-  @Cron('*/5 * * * *')
-  async keepAlive() {
-    try {
-      await this.prisma.$queryRaw`SELECT 1`;
-      this.logger.debug('DB heartbeat sent ✅');
-    } catch (err) {
-      this.logger.error('DB heartbeat failed ❌', err);
-    }
-  }
+  // @Cron('*/5 * * * *')
+  // async keepAlive() {
+  //   try {
+  //     await this.prisma.$queryRaw`SELECT 1`;
+  //     this.logger.debug('DB heartbeat sent ✅');
+  //   } catch (err) {
+  //     this.logger.error('DB heartbeat failed ❌', err);
+  //   }
+  // }
 }
