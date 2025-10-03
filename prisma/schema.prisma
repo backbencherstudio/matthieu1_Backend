@@ -199,7 +199,7 @@ model Notification {
   status        String           @default("unread")
   created_at    DateTime         @default(now())
   updated_at    DateTime         @updatedAt
-  post_id       String?
+  post_id       String
   comment_id    String?
   read          Boolean          @default(false)
   friendship_id String? 
@@ -356,7 +356,9 @@ model GeneralSetting {
 
 
 
-
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////// BLOG MODELS STARTS/////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 model BlogCategory {
   id         String   @id @default(cuid())
@@ -368,20 +370,27 @@ model BlogCategory {
   blogs      Blog[]
 }
 
+enum BlogStatus {
+  DRAFT
+  PUBLISHED
+}
+
 model Blog {
   id                String              @id @default(cuid())
   title             String
   authorName        String
   thumbnailImageUrl String?
   thumbnailVideoUrl String?
-  descriptions      String[]
+  descriptions      BlogDescription[]
   tags              String[]
   categoryId        String
   category          BlogCategory        @relation(fields: [categoryId], references: [id])
   contentImages     BlogContentImage[]
-
+  status            BlogStatus          @default(DRAFT)
+  publishedAt       DateTime?
   created_at        DateTime            @default(now())
   updated_at        DateTime            @updatedAt
+  clicks            Int                 @default(0)
 }
 
 model BlogContentImage {
@@ -396,6 +405,29 @@ model BlogContentImage {
   updated_at  DateTime @updatedAt
 }
 
+model BlogDescription {
+  id          String   @id @default(cuid())
+  text        String
+
+  blogId      String
+  blog        Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////// BLOG MODELS ENDS///////////////////////////////////////////////// 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+model ContactInformation {
+  id        String     @id @default(cuid())
+  address   String
+  facebook  String? @db.VarChar(255)
+  instagram String? @db.VarChar(255)
+  tiktok    String? @db.VarChar(255)
+  youtube   String? @db.VarChar(255)
+}
 
 
 model Category {
