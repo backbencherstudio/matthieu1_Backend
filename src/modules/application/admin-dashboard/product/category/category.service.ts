@@ -9,28 +9,28 @@ export class CategoryService {
 
 
 
-async create(data: CreateCategoryDto) {
-  const category = await this.prisma.category.create({
-    data,
-  });
-  return {
-    success: true,
-    data: category,
-  };
-}
+// async create(data: CreateCategoryDto) {
+//   const category = await this.prisma.category.create({
+//     data,
+//   });
+//   return {
+//     success: true,
+//     data: category,
+//   };
+// }
 
 
- async findAll() {
-     const categories = await this.prisma.category.findMany({
-       include: {
-         products: true, // Include related products  
-        },
-      });
-      return {
-        success: true,
-        data: categories,
-      };
-  }
+//  async findAll() {
+//      const categories = await this.prisma.category.findMany({
+//        include: {
+//          products: true, // Include related products  
+//         },
+//       });
+//       return {
+//         success: true,
+//         data: categories,
+//       };
+//   }
 
   findOne(id: number) {
     return `This action returns a #${id} category`;

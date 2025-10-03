@@ -430,31 +430,46 @@ model ContactInformation {
 }
 
 
-model Category {
-  id           String    @id @default(cuid())
-  name          String        @unique
-  subcategories Subcategory[] 
-  products      Product[]     
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+// model Category {
+//   id           String    @id @default(cuid())
+//   name          String        @unique
+//   subcategories Subcategory[] 
+//   products      Product[]     
+//   createdAt     DateTime      @default(now())
+//   updatedAt     DateTime      @updatedAt
+// }
+
+enum Category {
+  BY_COLLECTION
+  USED_SADDLES
+  TACK
 }
 
 model Subcategory {
   id         String    @id @default(cuid())
   name       String
-  category   Category  @relation(fields: [categoryId], references: [id])
-  categoryId String
+  // category   Category  @relation(fields: [categoryId], references: [id])
+  // categoryId String
+
+  category   Category
   products   Product[]
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  @@unique([name, categoryId]) 
+  //@@unique([name, categoryId]) 
+}
+
+enum ProductName {
+ JUMPING
+ DRESSAGE
+ CROSS_COUNTRY
+ KIDS
 }
 
 
 model Product {
   id              String    @id @default(cuid())
-  name            String
+  name            ProductName
   sku             String      @unique
   stockQuantity   Int
   benefits        String?
@@ -466,8 +481,9 @@ model Product {
   size            String?
 
   // Relations
-  category        Category    @relation(fields: [categoryId], references: [id])
-  categoryId      String
+  // category        Category    @relation(fields: [categoryId], references: [id])
+  // categoryId      String
+  category        Category    
   subcategory     Subcategory @relation(fields: [subcategoryId], references: [id])
   subcategoryId   String
 

@@ -1,11 +1,13 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { Category } from '@prisma/client';
+import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
+
 
 export class CreateSubcategoryDto {
   @IsString()
   @IsNotEmpty()
   name: string;
 
-  @IsString()
+  @IsEnum(Category)
   @IsNotEmpty()
-  categoryId: string;
+  category: Category
 }

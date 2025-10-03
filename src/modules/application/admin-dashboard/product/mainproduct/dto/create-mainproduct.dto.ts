@@ -1,9 +1,10 @@
 
-import { IsString, IsOptional, IsNumber, IsUUID, IsArray } from 'class-validator';
+import { Category, ProductName } from '@prisma/client';
+import { IsString, IsOptional, IsNumber, IsUUID, IsArray, IsEnum } from 'class-validator';
 
 export class CreateMainproductDto {
-  @IsString()
-  name: string;
+  @IsEnum(ProductName)
+  name: ProductName;
 
   @IsString()
   sku: string;
@@ -38,8 +39,10 @@ export class CreateMainproductDto {
   @IsString()
   size?: string;
 
-  @IsString()
-  categoryId: string;
+
+  @IsEnum(Category)
+category: Category;
+
 
   @IsString()
   subcategoryId: string;
