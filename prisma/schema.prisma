@@ -78,6 +78,8 @@ model User {
   NotificationSent     Notification[] @relation("SenderNotifications")
   NotificationReceived Notification[] @relation("ReceiverNotifications")
 
+  carts                Cart[]
+
   @@map("users")
 }
 
@@ -430,31 +432,46 @@ model ContactInformation {
 }
 
 
-model Category {
-  id           String    @id @default(cuid())
-  name          String        @unique
-  subcategories Subcategory[] 
-  products      Product[]     
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+// model Category {
+//   id           String    @id @default(cuid())
+//   name          String        @unique
+//   subcategories Subcategory[] 
+//   products      Product[]     
+//   createdAt     DateTime      @default(now())
+//   updatedAt     DateTime      @updatedAt
+// }
+
+enum Category {
+  BY_COLLECTION
+  USED_SADDLES
+  TACK
 }
 
 model Subcategory {
   id         String    @id @default(cuid())
   name       String
-  category   Category  @relation(fields: [categoryId], references: [id])
-  categoryId String
+  // category   Category  @relation(fields: [categoryId], references: [id])
+  // categoryId String
+
+  category   Category
   products   Product[]
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  @@unique([name, categoryId]) 
+  //@@unique([name, categoryId]) 
+}
+
+enum ProductName {
+ JUMPING
+ DRESSAGE
+ CROSS_COUNTRY
+ KIDS
 }
 
 
 model Product {
   id              String    @id @default(cuid())
-  name            String
+  name            ProductName
   sku             String      @unique
   stockQuantity   Int
   benefits        String?
@@ -465,12 +482,11 @@ model Product {
   color           String?
   size            String?
 
-  // Relations
-  category        Category    @relation(fields: [categoryId], references: [id])
-  categoryId      String
+  
+  category        Category    
   subcategory     Subcategory @relation(fields: [subcategoryId], references: [id])
   subcategoryId   String
-
+  carts           CartItem[]
   images          ProductImage[]
 
   createdAt       DateTime    @default(now())
@@ -485,6 +501,29 @@ model ProductImage {
   productId String
 }
 
+
+
+model Cart {
+  id        String     @id @default(cuid())
+  user                 User              @relation(fields: [userId], references: [id])
+  userId               String  
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cart      Cart     @relation(fields: [cartId], references: [id])
+  cartId    String
+
+  product   Product  @relation(fields: [productId], references: [id])
+  productId String
+
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 
 
 

@@ -24,28 +24,28 @@ import { Role } from 'src/common/guard/role/role.enum';
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
-  @Post()
-  async create(@Body() createCategoryDto: CreateCategoryDto) {
-    try {
-      const category = await this.categoryService.create(createCategoryDto);
-      return category;
-    } catch (error) {
-      throw new Error(`Failed to create category: ${error.message}`);
-    }
-  }
+  // @Post()
+  // async create(@Body() createCategoryDto: CreateCategoryDto) {
+  //   try {
+  //     const category = await this.categoryService.create(createCategoryDto);
+  //     return category;
+  //   } catch (error) {
+  //     throw new Error(`Failed to create category: ${error.message}`);
+  //   }
+  // }
 
-  @Get('all-category')
-  async findAll() {
-    try {
-      const categories = await this.categoryService.findAll();
-      return categories;
-    } catch (error) {
-      throw new HttpException(
-        `Failed to fetch categories: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
+  // @Get('all-category')
+  // async findAll() {
+  //   try {
+  //     const categories = await this.categoryService.findAll();
+  //     return categories;
+  //   } catch (error) {
+  //     throw new HttpException(
+  //       `Failed to fetch categories: ${error.message}`,
+  //       HttpStatus.INTERNAL_SERVER_ERROR,
+  //     );
+  //   }
+  // }
 
   @Get(':id')
   findOne(@Param('id') id: string) {

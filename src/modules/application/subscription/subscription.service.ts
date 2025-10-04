@@ -356,32 +356,32 @@ export class SubscriptionService {
   }
 
 
-  async handlePaypalSubscriptionSuccess(paypalSubscriptionId: string) {
-    const subscription = await this.prisma.Subscription.findUnique({
-      where: { paypalSubscriptionId },
-    });
+  // async handlePaypalSubscriptionSuccess(paypalSubscriptionId: string) {
+  //   const subscription = await this.prisma.Subscription.findUnique({
+  //     where: { paypalSubscriptionId },
+  //   });
 
-    if (!subscription) {
-      throw new NotFoundException('Subscription not found');
-    }
+  //   if (!subscription) {
+  //     throw new NotFoundException('Subscription not found');
+  //   }
 
-    const paypalSubscriptionDetails =
-      await PaypalPayment.getSubscription(paypalSubscriptionId);
+  //   const paypalSubscriptionDetails =
+  //     await PaypalPayment.getSubscription(paypalSubscriptionId);
 
-    await this.prisma.Subscription.update({
-      where: { id: subscription.id },
-      data: {
-        // status: paypalSubscriptionDetails.status,
-        status: 'ACTIVE',
-        currentPeriodEnd: new Date(
-          paypalSubscriptionDetails.billing_info?.next_billing_time ||
-            Date.now() + 30 * 24 * 60 * 60 * 1000,
-        ),
-      },
-    });
+  //   await this.prisma.Subscription.update({
+  //     where: { id: subscription.id },
+  //     data: {
+  //       // status: paypalSubscriptionDetails.status,
+  //       status: 'ACTIVE',
+  //       currentPeriodEnd: new Date(
+  //         paypalSubscriptionDetails.billing_info?.next_billing_time ||
+  //           Date.now() + 30 * 24 * 60 * 60 * 1000,
+  //       ),
+  //     },
+  //   });
 
-    return { success: true, message: 'PayPal subscription activated.' };
-  }
+  //   return { success: true, message: 'PayPal subscription activated.' };
+  // }
 
   async checkAlreadySubscription(userId: string): Promise<boolean> {
     const subscription = await this.prisma.subscription.findFirst({
