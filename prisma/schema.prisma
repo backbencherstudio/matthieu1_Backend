@@ -257,30 +257,96 @@ model GeneralSetting {
   updatedAt      DateTime @updatedAt
 }
 
+// model BlogCategory {
+//   id         String   @id @default(cuid())
+//   name       String   @unique
+//   created_at DateTime @default(now())
+//   updated_at DateTime @updatedAt
+//   blogs      Blog[]
+// }
+
+// model Blog {
+//   id                String             @id @default(cuid())
+//   title             String
+//   authorName        String
+//   thumbnailImageUrl String?
+//   thumbnailVideoUrl String?
+//   tags              String[]
+//   categoryId        String
+//   created_at        DateTime           @default(now())
+//   updated_at        DateTime           @updatedAt
+//   publishedAt       DateTime?
+//   status            BlogStatus         @default(DRAFT)
+//   clicks            Int                @default(0)
+//   category          BlogCategory       @relation(fields: [categoryId], references: [id])
+//   contentImages     BlogContentImage[]
+//   descriptions      BlogDescription[]
+// }
+
+// model BlogContentImage {
+//   id          String   @id @default(cuid())
+//   imageUrl    String
+//   imageTitle  String
+//   imageDetail String
+//   blogId      String
+//   created_at  DateTime @default(now())
+//   updated_at  DateTime @updatedAt
+//   blog        Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+// }
+
+// model BlogDescription {
+//   id         String   @id @default(cuid())
+//   text       String
+//   blogId     String
+//   created_at DateTime @default(now())
+//   updated_at DateTime @updatedAt
+//   blog       Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+// }
+
+// model ContactInformation {
+//   id        String  @id @default(cuid())
+//   address   String
+//   facebook  String? @db.VarChar(255)
+//   instagram String? @db.VarChar(255)
+//   tiktok    String? @db.VarChar(255)
+//   youtube   String? @db.VarChar(255)
+// }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////// BLOG MODELS STARTS/////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 model BlogCategory {
   id         String   @id @default(cuid())
   name       String   @unique
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+
+  // One category can have many blogs
   blogs      Blog[]
 }
 
+enum BlogStatus {
+  DRAFT
+  PUBLISHED
+}
+
 model Blog {
-  id                String             @id @default(cuid())
+  id                String              @id @default(cuid())
   title             String
   authorName        String
   thumbnailImageUrl String?
   thumbnailVideoUrl String?
+  descriptions      BlogDescription[]
   tags              String[]
   categoryId        String
-  created_at        DateTime           @default(now())
-  updated_at        DateTime           @updatedAt
-  publishedAt       DateTime?
-  status            BlogStatus         @default(DRAFT)
-  clicks            Int                @default(0)
-  category          BlogCategory       @relation(fields: [categoryId], references: [id])
+  category          BlogCategory        @relation(fields: [categoryId], references: [id])
   contentImages     BlogContentImage[]
-  descriptions      BlogDescription[]
+  status            BlogStatus          @default(DRAFT)
+  publishedAt       DateTime?
+  created_at        DateTime            @default(now())
+  updated_at        DateTime            @updatedAt
+  clicks            Int                 @default(0)
 }
 
 model BlogContentImage {
@@ -288,23 +354,44 @@ model BlogContentImage {
   imageUrl    String
   imageTitle  String
   imageDetail String
+
   blogId      String
+  blog        Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
-  blog        Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
 }
 
 model BlogDescription {
-  id         String   @id @default(cuid())
-  text       String
-  blogId     String
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  blog       Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  id          String   @id @default(cuid())
+  text        String
+
+  blogId      String
+  blog        Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////// BLOG MODELS ENDS///////////////////////////////////////////////// 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+model Job {
+  id         String     @id @default(cuid())
+  firstName  String
+  lastName   String
+  email      String
+  phone      String
+  town       String
+  state      String
+  experience String
+  message    String
+  files       String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
 model ContactInformation {
-  id        String  @id @default(cuid())
+  id        String     @id @default(cuid())
   address   String
   facebook  String? @db.VarChar(255)
   instagram String? @db.VarChar(255)
@@ -395,9 +482,4 @@ enum MessageStatus {
   SENT
   DELIVERED
   READ
-}
-
-enum BlogStatus {
-  DRAFT
-  PUBLISHED
 }
