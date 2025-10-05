@@ -13,6 +13,15 @@ CREATE TYPE "public"."NotificationType" AS ENUM ('like', 'comment', 'share', 'co
 -- CreateEnum
 CREATE TYPE "public"."MessageStatus" AS ENUM ('PENDING', 'SENT', 'DELIVERED', 'READ');
 
+-- CreateEnum
+CREATE TYPE "public"."BlogStatus" AS ENUM ('DRAFT', 'PUBLISHED');
+
+-- CreateEnum
+CREATE TYPE "public"."Category" AS ENUM ('BY_COLLECTION', 'USED_SADDLES', 'TACK');
+
+-- CreateEnum
+CREATE TYPE "public"."ProductName" AS ENUM ('JUMPING', 'DRESSAGE', 'CROSS_COUNTRY', 'KIDS');
+
 -- CreateTable
 CREATE TABLE "public"."users" (
     "id" TEXT NOT NULL,
@@ -130,7 +139,7 @@ CREATE TABLE "public"."notifications" (
     "status" TEXT NOT NULL DEFAULT 'unread',
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
-    "post_id" TEXT,
+    "post_id" TEXT NOT NULL,
     "comment_id" TEXT,
     "read" BOOLEAN NOT NULL DEFAULT false,
     "friendship_id" TEXT,
@@ -257,6 +266,149 @@ CREATE TABLE "public"."GeneralSetting" (
     CONSTRAINT "GeneralSetting_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "public"."BlogCategory" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "BlogCategory_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."Blog" (
+    "id" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "authorName" TEXT NOT NULL,
+    "thumbnailImageUrl" TEXT,
+    "thumbnailVideoUrl" TEXT,
+    "tags" TEXT[],
+    "categoryId" TEXT NOT NULL,
+    "status" "public"."BlogStatus" NOT NULL DEFAULT 'DRAFT',
+    "publishedAt" TIMESTAMP(3),
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+    "clicks" INTEGER NOT NULL DEFAULT 0,
+
+    CONSTRAINT "Blog_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."BlogContentImage" (
+    "id" TEXT NOT NULL,
+    "imageUrl" TEXT NOT NULL,
+    "imageTitle" TEXT NOT NULL,
+    "imageDetail" TEXT NOT NULL,
+    "blogId" TEXT NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "BlogContentImage_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."BlogDescription" (
+    "id" TEXT NOT NULL,
+    "text" TEXT NOT NULL,
+    "blogId" TEXT NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "BlogDescription_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."Job" (
+    "id" TEXT NOT NULL,
+    "firstName" TEXT NOT NULL,
+    "lastName" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "phone" TEXT NOT NULL,
+    "town" TEXT NOT NULL,
+    "state" TEXT NOT NULL,
+    "experience" TEXT NOT NULL,
+    "message" TEXT NOT NULL,
+    "files" TEXT NOT NULL,
+
+    CONSTRAINT "Job_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."ContactInformation" (
+    "id" TEXT NOT NULL,
+    "address" TEXT NOT NULL,
+    "facebook" VARCHAR(255),
+    "instagram" VARCHAR(255),
+    "tiktok" VARCHAR(255),
+    "youtube" VARCHAR(255),
+
+    CONSTRAINT "ContactInformation_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."Subcategory" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "category" "public"."Category" NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Subcategory_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."Product" (
+    "id" TEXT NOT NULL,
+    "name" "public"."ProductName" NOT NULL,
+    "sku" TEXT NOT NULL,
+    "stockQuantity" INTEGER NOT NULL,
+    "benefits" TEXT,
+    "description" TEXT,
+    "leatherCareGuide" TEXT,
+    "price" DOUBLE PRECISION NOT NULL,
+    "discountPrice" DOUBLE PRECISION,
+    "color" TEXT,
+    "size" TEXT,
+    "category" "public"."Category" NOT NULL,
+    "subcategoryId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Product_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."ProductImage" (
+    "id" TEXT NOT NULL,
+    "url" TEXT NOT NULL,
+    "productId" TEXT NOT NULL,
+
+    CONSTRAINT "ProductImage_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."Cart" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Cart_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."CartItem" (
+    "id" TEXT NOT NULL,
+    "cartId" TEXT NOT NULL,
+    "productId" TEXT NOT NULL,
+    "quantity" INTEGER NOT NULL DEFAULT 1,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CartItem_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "users_email_key" ON "public"."users"("email");
 
@@ -283,6 +435,12 @@ CREATE UNIQUE INDEX "Subscription_googlePaySubscriptionId_key" ON "public"."Subs
 
 -- CreateIndex
 CREATE UNIQUE INDEX "settings_key_key" ON "public"."settings"("key");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "BlogCategory_name_key" ON "public"."BlogCategory"("name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Product_sku_key" ON "public"."Product"("sku");
 
 -- AddForeignKey
 ALTER TABLE "public"."Subscription" ADD CONSTRAINT "Subscription_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -316,3 +474,27 @@ ALTER TABLE "public"."user_settings" ADD CONSTRAINT "user_settings_user_id_fkey"
 
 -- AddForeignKey
 ALTER TABLE "public"."user_settings" ADD CONSTRAINT "user_settings_setting_id_fkey" FOREIGN KEY ("setting_id") REFERENCES "public"."settings"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Blog" ADD CONSTRAINT "Blog_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "public"."BlogCategory"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."BlogContentImage" ADD CONSTRAINT "BlogContentImage_blogId_fkey" FOREIGN KEY ("blogId") REFERENCES "public"."Blog"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."BlogDescription" ADD CONSTRAINT "BlogDescription_blogId_fkey" FOREIGN KEY ("blogId") REFERENCES "public"."Blog"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Product" ADD CONSTRAINT "Product_subcategoryId_fkey" FOREIGN KEY ("subcategoryId") REFERENCES "public"."Subcategory"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ProductImage" ADD CONSTRAINT "ProductImage_productId_fkey" FOREIGN KEY ("productId") REFERENCES "public"."Product"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Cart" ADD CONSTRAINT "Cart_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."CartItem" ADD CONSTRAINT "CartItem_cartId_fkey" FOREIGN KEY ("cartId") REFERENCES "public"."Cart"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."CartItem" ADD CONSTRAINT "CartItem_productId_fkey" FOREIGN KEY ("productId") REFERENCES "public"."Product"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
