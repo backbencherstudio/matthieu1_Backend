@@ -8,119 +8,187 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+
 model User {
-  id                    String               @id @default(cuid())
-  created_at            DateTime             @default(now())
-  updated_at            DateTime             @default(now())
-  deleted_at            DateTime?
-  status                Int?                 @default(1) @db.SmallInt
-  isActive              Boolean              @default(true)
-  isPrivate             Boolean              @default(false)
-  approved_at           DateTime?
-  availability          String?
-  email                 String?              @unique
-  username              String?
-  name                  String?              @db.VarChar(255)
-  first_name            String?              @db.VarChar(255)
-  last_name             String?              @db.VarChar(255)
-  bio                   String?              @db.VarChar(255)
-  password              String?              @db.VarChar(255)
-  domain                String?              @unique
-  avatar                String?
-  coverPhoto            String?
-  google_id             String?              @unique
-  apple_id              String?              @unique
-  phone_number          String?
-  country               String?
-  state                 String?
-  city                  String?
-  address               String?
-  zip_code              String?
-  gender                String?
-  date_of_birth         DateTime?            @db.Date
-  subscription_status   String?              @default("inactive")
-  subscription_type     SubscriptionType?    @default(FREE)
-  billing_id            String?
-  subscripton_end_date  DateTime?
-  type                  String?              @default("user")
-  email_verified_at     DateTime?
-  isTwoFactorEnabled    Boolean              @default(false)
-  twoFactorMethod       String?
-  twoFactorCode         String?
-  twoFactorExpiresAt    DateTime?
-  admincontrol          admincontrol         @default(active)
-  is_two_factor_enabled Int?                 @default(0)
-  two_factor_secret     String?
-  credit                Float?
-  subscription          Subscription[]
-  NotificationReceived  Notification[]       @relation("ReceiverNotifications")
-  NotificationSent      Notification[]       @relation("SenderNotifications")
-  payment_transactions  PaymentTransaction[]
-  role_users            RoleUser[]
-  roles                 Role[]
-  ucodes                Ucode[]
-  user_payment_methods  UserPaymentMethod[]
-  user_settings         UserSetting[]
+  id         String    @id @default(cuid())
+  created_at DateTime  @default(now())
+  updated_at DateTime  @default(now())
+  deleted_at DateTime?
+  status     Int?      @default(1) @db.SmallInt
+  isActive          Boolean   @default(true)
+  isPrivate         Boolean   @default(false)
+
+
+  approved_at  DateTime?
+  availability String?
+
+  email               String?   @unique
+  username            String?
+  name                String?   @db.VarChar(255)
+  first_name          String?   @db.VarChar(255)
+  last_name           String?   @db.VarChar(255)
+  bio                 String?   @db.VarChar(255)
+  password            String?   @db.VarChar(255)
+  domain              String?   @unique
+  avatar              String?
+  coverPhoto          String?
+
+
+
+  google_id   String? @unique
+  apple_id     String? @unique
+
+  phone_number  String?
+  country       String?
+  state         String?
+  city          String?
+  address       String?
+  zip_code      String?
+  gender        String?
+  date_of_birth DateTime? @db.Date
+
+  subscription_status  String?           @default("inactive")
+  subscription         Subscription[]
+  subscription_type    SubscriptionType? @default(FREE)
+  billing_id           String?
+  subscripton_end_date DateTime?
+
+  type               String?   @default("user")
+  email_verified_at  DateTime?
+
+  isTwoFactorEnabled Boolean   @default(false)
+  twoFactorMethod    String?
+  twoFactorCode      String?
+  twoFactorExpiresAt DateTime?
+
+
+  admincontrol admincontrol @default(active)
+
+  is_two_factor_enabled  Int?         @default(0)
+  two_factor_secret      String? 
+  credit                 Float? 
+
+  user_payment_methods UserPaymentMethod[]
+  user_settings        UserSetting[]
+  ucodes               Ucode[]
+  roles                Role[]
+  role_users           RoleUser[]
+  payment_transactions PaymentTransaction[]
+
+  NotificationSent     Notification[] @relation("SenderNotifications")
+  NotificationReceived Notification[] @relation("ReceiverNotifications")
+
+  carts                Cart[]
 
   @@map("users")
 }
 
-model Subscription {
-  id                      String            @id @default(cuid())
-  userId                  String
-  paypalSubscriptionId    String?           @unique
-  stripeSubscriptionId    String?           @unique
-  appleSubscriptionId     String?           @unique
-  googlePaySubscriptionId String?           @unique
-  status                  Status
-  type                    SubscriptionType?
-  price                   Float?
-  customId                String?
-  currentPeriodEnd        DateTime
-  createdAt               DateTime          @default(now())
-  updatedAt               DateTime          @updatedAt
-  user                    User              @relation(fields: [userId], references: [id])
+enum admincontrol {
+  active
+  suspended
 }
 
+
+
+enum SubscriptionType {
+  FREE
+  PREMIUM_MONTHLY
+  PREMIUM_YEARLY
+}
+enum Status {
+  PENDING
+  COMPLETE
+  CANCELED
+}
+
+model Subscription {
+  id                   String            @id @default(cuid())
+  user                 User              @relation(fields: [userId], references: [id])
+  userId               String            
+  paypalSubscriptionId String?           @unique
+  stripeSubscriptionId String?           @unique
+  appleSubscriptionId  String?           @unique
+  googlePaySubscriptionId String?          @unique
+  status               Status
+  type                 SubscriptionType?
+  price                Float?
+  customId             String?
+  currentPeriodEnd     DateTime
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+}
+
+
+
+
+
+
+
+
+
 model Ucode {
-  id         String    @id @default(cuid())
-  created_at DateTime  @default(now())
-  updated_at DateTime  @default(now())
-  status     Int?      @default(1) @db.SmallInt
-  user_id    String?
+  id         String   @id @default(cuid())
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+  status     Int?     @default(1) @db.SmallInt
+
+  user_id String?
+  user    User?   @relation(fields: [user_id], references: [id])
+
   token      String?
   email      String?
   expired_at DateTime?
-  user       User?     @relation(fields: [user_id], references: [id])
 
   @@map("ucodes")
 }
 
 model Role {
-  id         String     @id @default(cuid())
-  created_at DateTime   @default(now())
-  updated_at DateTime   @default(now())
+  id         String    @id @default(cuid())
+  created_at DateTime  @default(now())
+  updated_at DateTime  @default(now())
   deleted_at DateTime?
-  status     Int?       @default(1) @db.SmallInt
-  title      String?
-  name       String?
-  user_id    String?
+
+  status Int?    @default(1) @db.SmallInt
+  title  String?
+  name   String?
+
+  user_id String?
+  user    User?   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  
   role_users RoleUser[]
-  user       User?      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+ 
 
   @@map("roles")
 }
 
+
+
 model RoleUser {
   created_at DateTime @default(now())
   updated_at DateTime @default(now())
-  role_id    String
-  user_id    String
-  role       Role     @relation(fields: [role_id], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  role_id String
+  role    Role   @relation(fields: [role_id], references: [id], onDelete: Cascade)
+
+  user_id String
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@id([role_id, user_id])
   @@map("role_users")
+}
+
+
+
+enum NotificationType {
+  like
+  comment
+  share
+  comment_reply 
+  friend_request 
+  friend_accept 
+  register 
+  payment 
+  subscription 
 }
 
 model Notification {
@@ -136,98 +204,124 @@ model Notification {
   post_id       String
   comment_id    String?
   read          Boolean          @default(false)
-  friendship_id String?
+  friendship_id String? 
   receiver      User             @relation("ReceiverNotifications", fields: [receiver_id], references: [id])
   sender        User             @relation("SenderNotifications", fields: [sender_id], references: [id])
+
+ 
 
   @@map("notifications")
 }
 
 model UserPaymentMethod {
-  id                String    @id @default(cuid())
-  created_at        DateTime  @default(now())
-  updated_at        DateTime  @default(now())
-  deleted_at        DateTime?
-  user_id           String?
+  id         String    @id @default(cuid())
+  created_at DateTime  @default(now())
+  updated_at DateTime  @default(now())
+  deleted_at DateTime?
+
+  user_id String?
+  user    User?   @relation(fields: [user_id], references: [id])
+
   payment_method_id String?
   checkout_id       String?
-  user              User?     @relation(fields: [user_id], references: [id])
 
   @@map("user_payment_methods")
 }
 
 model PaymentTransaction {
-  id               String    @id @default(cuid())
-  created_at       DateTime  @default(now())
-  updated_at       DateTime  @default(now())
-  deleted_at       DateTime?
-  store_id         String?
-  user_id          String?
+  id         String    @id @default(cuid())
+  created_at DateTime  @default(now())
+  updated_at DateTime  @default(now())
+  deleted_at DateTime?
+
+  store_id String?
+
+  user_id String?
+  user    User?   @relation(fields: [user_id], references: [id])
+
   order_id         String?
-  type             String?   @default("order")
-  withdraw_via     String?   @default("wallet")
+  type             String?  @default("order")
+  withdraw_via     String?  @default("wallet")
   provider         String?
   reference_number String?
-  status           String?   @default("pending")
+  status           String?  @default("pending")
   raw_status       String?
   amount           Decimal?
   currency         String?
   paid_amount      Decimal?
   paid_currency    String?
-  user             User?     @relation(fields: [user_id], references: [id])
 
   @@map("payment_transactions")
 }
+
+
+enum MessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+}
+
 
 model Attachment {
   id         String    @id @default(cuid())
   created_at DateTime  @default(now())
   updated_at DateTime  @default(now())
   deleted_at DateTime?
-  name       String?
-  type       String?
-  size       Int?
-  file       String?
-  file_alt   String?
+
+  name     String?
+  type     String?
+  size     Int?
+  file     String?
+  file_alt String?
+
 
   @@map("attachments")
 }
+
+
 
 model Faq {
   id         String    @id @default(cuid())
   created_at DateTime  @default(now())
   updated_at DateTime  @default(now())
   deleted_at DateTime?
-  status     Int?      @default(1) @db.SmallInt
-  sort_order Int?      @default(0)
+
+  status     Int?    @default(1) @db.SmallInt
+  sort_order Int?    @default(0)
   question   String?
   answer     String?
 
   @@map("faqs")
 }
-
 model Contact {
   id         String   @id @default(cuid())
   created_at DateTime @default(now())
   updated_at DateTime @default(now())
-  name       String?
-  email      String?
-  subject    String
-  message    String?
+  
+
+  name    String?
+  email   String?
+  subject String
+ 
+  message String?
 
   @@map("contacts")
 }
 
+
 model Setting {
-  id            String        @id @default(cuid())
-  created_at    DateTime      @default(now())
-  updated_at    DateTime      @default(now())
-  deleted_at    DateTime?
+  id         String    @id @default(cuid())
+  created_at DateTime  @default(now())
+  updated_at DateTime  @default(now())
+  deleted_at DateTime?
+
   category      String?
   label         String?
   description   String?
-  key           String?       @unique
+  key           String? @unique
   default_value String?
+
   user_settings UserSetting[]
 
   @@map("settings")
@@ -238,14 +332,19 @@ model UserSetting {
   created_at DateTime  @default(now())
   updated_at DateTime  @default(now())
   deleted_at DateTime?
-  user_id    String?
+
+  user_id String?
+  user    User?   @relation(fields: [user_id], references: [id])
+
   setting_id String?
-  value      String?
-  setting    Setting?  @relation(fields: [setting_id], references: [id])
-  user       User?     @relation(fields: [user_id], references: [id])
+  setting    Setting? @relation(fields: [setting_id], references: [id])
+
+  value String?
 
   @@map("user_settings")
 }
+
+
 
 model GeneralSetting {
   id             String   @id @default(cuid())
@@ -257,60 +356,7 @@ model GeneralSetting {
   updatedAt      DateTime @updatedAt
 }
 
-// model BlogCategory {
-//   id         String   @id @default(cuid())
-//   name       String   @unique
-//   created_at DateTime @default(now())
-//   updated_at DateTime @updatedAt
-//   blogs      Blog[]
-// }
 
-// model Blog {
-//   id                String             @id @default(cuid())
-//   title             String
-//   authorName        String
-//   thumbnailImageUrl String?
-//   thumbnailVideoUrl String?
-//   tags              String[]
-//   categoryId        String
-//   created_at        DateTime           @default(now())
-//   updated_at        DateTime           @updatedAt
-//   publishedAt       DateTime?
-//   status            BlogStatus         @default(DRAFT)
-//   clicks            Int                @default(0)
-//   category          BlogCategory       @relation(fields: [categoryId], references: [id])
-//   contentImages     BlogContentImage[]
-//   descriptions      BlogDescription[]
-// }
-
-// model BlogContentImage {
-//   id          String   @id @default(cuid())
-//   imageUrl    String
-//   imageTitle  String
-//   imageDetail String
-//   blogId      String
-//   created_at  DateTime @default(now())
-//   updated_at  DateTime @updatedAt
-//   blog        Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
-// }
-
-// model BlogDescription {
-//   id         String   @id @default(cuid())
-//   text       String
-//   blogId     String
-//   created_at DateTime @default(now())
-//   updated_at DateTime @updatedAt
-//   blog       Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
-// }
-
-// model ContactInformation {
-//   id        String  @id @default(cuid())
-//   address   String
-//   facebook  String? @db.VarChar(255)
-//   instagram String? @db.VarChar(255)
-//   tiktok    String? @db.VarChar(255)
-//   youtube   String? @db.VarChar(255)
-// }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////// BLOG MODELS STARTS/////////////////////////////////////////////////
@@ -376,6 +422,7 @@ model BlogDescription {
 ///////////////////////////////////////////////////// BLOG MODELS ENDS///////////////////////////////////////////////// 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
 model Job {
   id         String     @id @default(cuid())
   firstName  String
@@ -386,9 +433,9 @@ model Job {
   state      String
   experience String
   message    String
-  files       String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  files      String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
 }
 model ContactInformation {
   id        String     @id @default(cuid())
@@ -399,87 +446,106 @@ model ContactInformation {
   youtube   String? @db.VarChar(255)
 }
 
+
+// model Category {
+//   id           String    @id @default(cuid())
+//   name          String        @unique
+//   subcategories Subcategory[] 
+//   products      Product[]     
+//   createdAt     DateTime      @default(now())
+//   updatedAt     DateTime      @updatedAt
+// }
+
+enum Category {
+  BY_COLLECTION
+  USED_SADDLES
+  TACK
+}
+
 model Subcategory {
   id         String    @id @default(cuid())
   name       String
-  categoryId String
+  // category   Category  @relation(fields: [categoryId], references: [id])
+  // categoryId String
+
+  category   Category
+  products   Product[]
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
-  products   Product[]
-  Category   Category  @relation(fields: [categoryId], references: [id])
 
-  @@unique([name, categoryId])
+  //@@unique([name, categoryId]) 
 }
+
+enum ProductName {
+ JUMPING
+ DRESSAGE
+ CROSS_COUNTRY
+ KIDS
+}
+
 
 model Product {
-  id               String         @id @default(cuid())
-  name             String
-  sku              String         @unique
-  stockQuantity    Int
-  benefits         String?
-  description      String?
+  id              String    @id @default(cuid())
+  name            ProductName
+  sku             String      @unique
+  stockQuantity   Int
+  benefits        String?
+  description     String?
   leatherCareGuide String?
-  price            Float
-  discountPrice    Float?
-  color            String?
-  size             String?
-  categoryId       String
-  subcategoryId    String
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  Category         Category       @relation(fields: [categoryId], references: [id])
-  subcategory      Subcategory    @relation(fields: [subcategoryId], references: [id])
-  images           ProductImage[]
+  price           Float
+  discountPrice   Float?
+  color           String?
+  size            String?
+
+  
+  category        Category    
+  subcategory     Subcategory @relation(fields: [subcategoryId], references: [id])
+  subcategoryId   String
+  carts           CartItem[]
+  images          ProductImage[]
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 }
+
 
 model ProductImage {
-  id        String  @id @default(cuid())
+  id        String    @id @default(cuid())
   url       String
-  productId String
   product   Product @relation(fields: [productId], references: [id])
+  productId String
 }
 
-model Category {
-  id          String        @id
-  name        String        @unique
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime
-  Product     Product[]
-  Subcategory Subcategory[]
+
+
+model Cart {
+  id        String     @id @default(cuid())
+  user                 User              @relation(fields: [userId], references: [id])
+  userId               String  
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 }
 
-enum admincontrol {
-  active
-  suspended
+model CartItem {
+  id        String   @id @default(cuid())
+  cart      Cart     @relation(fields: [cartId], references: [id])
+  cartId    String
+
+  product   Product  @relation(fields: [productId], references: [id])
+  productId String
+
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-enum SubscriptionType {
-  FREE
-  PREMIUM_MONTHLY
-  PREMIUM_YEARLY
-}
 
-enum Status {
-  PENDING
-  COMPLETE
-  CANCELED
-}
 
-enum NotificationType {
-  like
-  comment
-  share
-  comment_reply
-  friend_request
-  friend_accept
-  register
-  payment
-  subscription
-}
 
-enum MessageStatus {
-  PENDING
-  SENT
-  DELIVERED
-  READ
-}
+
+
+
+
+
+
