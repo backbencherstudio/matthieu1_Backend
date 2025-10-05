@@ -432,7 +432,7 @@ model Job {
   state      String
   experience String
   message    String
-  file       String?
+  files       String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
