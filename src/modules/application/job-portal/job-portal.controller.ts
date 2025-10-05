@@ -1,0 +1,53 @@
+import { Controller, Get, Post, Body, Param, Delete, UploadedFiles, UseInterceptors, UseGuards } from '@nestjs/common';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guard/role/roles.guard';
+import { Roles } from 'src/common/guard/role/roles.decorator';
+import { Role } from 'src/common/guard/role/role.enum';
+import { JobPortalService } from './job-portal.service';
+import { JobUploadService } from './job-upload.service';
+
+@Controller('job-portal')
+export class JobPortalController {
+  constructor(
+    private readonly jobPortalService: JobPortalService,
+    private readonly jobUploadService: JobUploadService,
+  ) { }
+
+  @Post()
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileFieldsInterceptor([{ name: 'files', maxCount: 10 }]))
+  async create(@Body() body: any, @UploadedFiles() files?: { files?: Express.Multer.File[] }) {
+    let fileUrls: string[] = [];
+
+    if (files?.files) {
+      fileUrls = await this.jobUploadService.uploadMany('job-portal', files.files);
+    }
+
+    return this.jobPortalService.create({
+      firstName: body.firstName,
+      lastName: body.lastName,
+      email: body.email,
+      phone: body.phone,
+      town: body.town,
+      state: body.state,
+      experience: body.experience,
+      message: body.message,
+      files: fileUrls.join(',') || undefined,
+    });
+  }
+
+  @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  findAll() {
+    return this.jobPortalService.findAll();
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  remove(@Param('id') id: string) {
+    return this.jobPortalService.remove(id);
+  }
+}

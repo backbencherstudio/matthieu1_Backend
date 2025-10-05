@@ -15,7 +15,7 @@ export class UpdateContactInfoDto {
   @IsOptional()
   @IsUrl()
   tiktok?: string;
-
+  
   @IsOptional()
   @IsUrl()
   youtube?: string;
