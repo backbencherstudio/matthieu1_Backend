@@ -540,6 +540,18 @@ model CartItem {
   updatedAt DateTime @updatedAt
 }
 
+model CustomerAlert {
+  id           String   @id @default(cuid())
+  alertId      String   @unique
+  customerName String
+  customerEmail String
+  preferences  String
+  priceMin     Float
+  priceMax     Float
+  createdAt    DateTime @default(now())
+}
+
+
 
 
 
