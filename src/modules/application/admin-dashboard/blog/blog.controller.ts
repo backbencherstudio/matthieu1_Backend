@@ -38,7 +38,7 @@ export class BlogsController {
       { name: 'contentImages', maxCount: 10 },
     ], {
       limits: {
-        fileSize: 10 * 1024 * 1024, // 10MB limit
+        fileSize: 100 * 1024 * 1024, // 100MB limit (for videos)
       },
     }),
   )
@@ -95,7 +95,7 @@ export class BlogsController {
       { name: 'contentImages', maxCount: 10 },
     ], {
       limits: {
-        fileSize: 10 * 1024 * 1024, // 10MB limit
+        fileSize: 100 * 1024 * 1024, // 100MB limit (for videos)
       },
     }),
   )
@@ -237,7 +237,7 @@ export class BlogsController {
   @Post(':id/content-images')
   @UseInterceptors(FileFieldsInterceptor([{ name: 'image', maxCount: 1 }], {
     limits: {
-      fileSize: 10 * 1024 * 1024, // 10MB limit
+      fileSize: 100 * 1024 * 1024, // 100MB limit
     },
   }))
   async addContentImage(
@@ -279,7 +279,7 @@ export class BlogsController {
   @Patch(':id/content-images/:imageId')
   @UseInterceptors(FileFieldsInterceptor([{ name: 'image', maxCount: 1 }], {
     limits: {
-      fileSize: 10 * 1024 * 1024, // 10MB limit
+      fileSize: 100 * 1024 * 1024, // 100MB limit
     },
   }))
   async updateContentImage(
