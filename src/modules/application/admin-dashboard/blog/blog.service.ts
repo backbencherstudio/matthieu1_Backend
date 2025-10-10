@@ -1,10 +1,14 @@
 // src/modules/blogs/blogs.service.ts
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { BlogUploadService } from './blog-upload.service';
 
 @Injectable()
 export class BlogsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    private prisma: PrismaService,
+    private blogUpload: BlogUploadService,
+  ) { }
 
   // Create a new blog
   async create(data: any) {
@@ -48,11 +52,21 @@ export class BlogsService {
       categoryId: data.categoryId,
     };
 
-    // Handle thumbnail updates
+    // Handle thumbnail updates - delete old files if replacing
     if (data.thumbnailImageUrl !== undefined) {
+      // If replacing with a new image, delete the old one
+      if (data.thumbnailImageUrl && blog.thumbnailImageUrl && data.thumbnailImageUrl !== blog.thumbnailImageUrl) {
+        // console.log('Deleting old thumbnail image:', blog.thumbnailImageUrl);
+        await this.blogUpload.deleteOne(blog.thumbnailImageUrl);
+      }
       updateData.thumbnailImageUrl = data.thumbnailImageUrl;
     }
     if (data.thumbnailVideoUrl !== undefined) {
+      // If replacing with a new video, delete the old one
+      if (data.thumbnailVideoUrl && blog.thumbnailVideoUrl && data.thumbnailVideoUrl !== blog.thumbnailVideoUrl) {
+        // console.log('Deleting old thumbnail video:', blog.thumbnailVideoUrl);
+        await this.blogUpload.deleteOne(blog.thumbnailVideoUrl);
+      }
       updateData.thumbnailVideoUrl = data.thumbnailVideoUrl;
     }
 
@@ -123,14 +137,21 @@ export class BlogsService {
     });
     if (!image) throw new NotFoundException('Content image not found');
 
-    console.log('Service - updateContentImage received data:', data);
-    console.log('Service - current image data:', image);
+    // console.log('Service - updateContentImage received data:', data);
+    // console.log('Service - current image data:', image);
 
     // Only include fields that are actually provided (not undefined)
     const updateData: any = {};
+
+    // If updating with a new image URL, delete the old image file
     if (data.imageUrl !== undefined && data.imageUrl !== null) {
+      if (data.imageUrl && image.imageUrl && data.imageUrl !== image.imageUrl) {
+        // console.log('Deleting old content image:', image.imageUrl);
+        await this.blogUpload.deleteOne(image.imageUrl);
+      }
       updateData.imageUrl = data.imageUrl;
     }
+
     if (data.imageTitle !== undefined && data.imageTitle !== null) {
       updateData.imageTitle = data.imageTitle;
     }
@@ -138,11 +159,11 @@ export class BlogsService {
       updateData.imageDetail = data.imageDetail;
     }
 
-    console.log('Service - updateContentImage updateData:', updateData);
+    // console.log('Service - updateContentImage updateData:', updateData);
 
     // If no fields to update, return current image
     if (Object.keys(updateData).length === 0) {
-      console.log('Service - No fields to update, returning current image');
+      // console.log('Service - No fields to update, returning current image');
       return image;
     }
 
@@ -151,7 +172,7 @@ export class BlogsService {
       data: updateData,
     });
 
-    console.log('Service - updateContentImage result:', result);
+    // console.log('Service - updateContentImage result:', result);
     return result;
   }
 
@@ -171,7 +192,7 @@ export class BlogsService {
     const blog = await this.prisma.blog.findUnique({ where: { id: blogId } });
     if (!blog) throw new NotFoundException('Blog not found');
 
-    console.log('Service - addContentImage received data:', data);
+    // console.log('Service - addContentImage received data:', data);
 
     const contentImage = await this.prisma.blogContentImage.create({
       data: {
@@ -182,7 +203,7 @@ export class BlogsService {
       },
     });
 
-    console.log('Service - addContentImage result:', contentImage);
+    // console.log('Service - addContentImage result:', contentImage);
     return contentImage;
   }
 
@@ -312,12 +333,45 @@ export class BlogsService {
   }
 
   async remove(id: string) {
+    // Get blog with all related data before deletion
+    const blog = await this.findOne(id);
+
+    console.log(`Deleting blog ${id} with files:`, {
+      thumbnailImage: blog.thumbnailImageUrl,
+      thumbnailVideo: blog.thumbnailVideoUrl,
+      contentImagesCount: blog.contentImages?.length || 0,
+    });
+
+    // Collect all files to delete
+    const filesToDelete: string[] = [];
+
+    if (blog.thumbnailImageUrl) {
+      filesToDelete.push(blog.thumbnailImageUrl);
+    }
+    if (blog.thumbnailVideoUrl) {
+      filesToDelete.push(blog.thumbnailVideoUrl);
+    }
+    if (blog.contentImages && blog.contentImages.length > 0) {
+      blog.contentImages.forEach(img => {
+        if (img.imageUrl) {
+          filesToDelete.push(img.imageUrl);
+        }
+      });
+    }
+
+    // Delete all associated files from storage
+    if (filesToDelete.length > 0) {
+      await this.blogUpload.deleteMany(filesToDelete);
+    }
+
+    // Delete blog from database (will cascade delete contentImages and descriptions)
     await this.prisma.blog.delete({ where: { id } });
-    return { message: 'Blog deleted' };
+
+    return { message: 'Blog and associated files deleted successfully' };
   }
 
   async deleteContentImage(blogId: string, imageId: string) {
-    console.log('Service - deleteContentImage received:', { blogId, imageId });
+    // console.log('Service - deleteContentImage received:', { blogId, imageId });
 
     // First check if the content image exists and belongs to the blog
     const contentImage = await this.prisma.blogContentImage.findFirst({
@@ -328,17 +382,23 @@ export class BlogsService {
       throw new NotFoundException('Content image not found or does not belong to this blog');
     }
 
-    console.log('Service - Found content image to delete:', contentImage);
+    // console.log('Service - Found content image to delete:', contentImage);
 
-    // Delete the specific content image
+    // Delete the image file from storage
+    if (contentImage.imageUrl) {
+      // console.log('Deleting content image file from storage:', contentImage.imageUrl);
+      await this.blogUpload.deleteOne(contentImage.imageUrl);
+    }
+
+    // Delete the specific content image record from database
     await this.prisma.blogContentImage.delete({
       where: { id: imageId },
     });
 
-    console.log('Service - Content image deleted successfully');
+    // console.log('Service - Content image and file deleted successfully');
     return {
       success: true,
-      message: 'Content image deleted successfully',
+      message: 'Content image and file deleted successfully',
       deletedImageId: imageId
     };
   }
@@ -347,13 +407,27 @@ export class BlogsService {
   async deleteContentImages(blogId: string, contentImageIds: string[]) {
     if (contentImageIds.length === 0) return { message: 'No content images to delete' };
 
+    // Get all content images to delete their files
+    const contentImages = await this.prisma.blogContentImage.findMany({
+      where: { id: { in: contentImageIds }, blogId },
+      select: { imageUrl: true },
+    });
+
+    // Delete all image files from storage
+    const imageUrls = contentImages.map(img => img.imageUrl).filter(Boolean);
+    if (imageUrls.length > 0) {
+      // console.log(`Deleting ${imageUrls.length} content image files from storage`);
+      await this.blogUpload.deleteMany(imageUrls);
+    }
+
+    // Delete content image records from database
     const deletedCount = await this.prisma.blogContentImage.deleteMany({
       where: { id: { in: contentImageIds }, blogId },
     });
 
     return {
       success: true,
-      message: `${deletedCount.count} content images deleted successfully`,
+      message: `${deletedCount.count} content images and files deleted successfully`,
       deletedCount: deletedCount.count
     };
   }
