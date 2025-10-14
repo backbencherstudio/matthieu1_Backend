@@ -26,7 +26,6 @@ import { GeneralSettingsModule } from './modules/admin/general-setings/general-s
 import { FirebaseGoogleAuthModule } from './modules/firebase-googleauth/firebase-googleauth.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { DbHeartbeatService } from './db-heartbeat.service';
-import { CustomerAlertModule } from './modules/applications/user-portal/customer-alert/customer-alert.module';
 
 
 
@@ -84,7 +83,6 @@ import { CustomerAlertModule } from './modules/applications/user-portal/customer
    
     GeneralSettingsModule,
     FirebaseGoogleAuthModule,
-    CustomerAlertModule,
   ],
   controllers: [AppController],
   providers: [

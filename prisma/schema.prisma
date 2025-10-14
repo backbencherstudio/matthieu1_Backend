@@ -540,14 +540,34 @@ model CartItem {
   updatedAt DateTime @updatedAt
 }
 
+enum Discpline {
+  JUMPING
+  DRESSAGE
+  CROSS_COUNTRY
+}
+
+enum Color {
+  BLACK
+  LIGHT_BROWN
+  DARK_BROWN
+}
+
 model CustomerAlert {
   id           String   @id @default(cuid())
   alertId      String   @unique
-  customerName String
-  customerEmail String
-  preferences  String
   priceMin     Float
   priceMax     Float
+  brand        String
+  discpline    Discpline
+  seatsSize         String
+  color        Color
+  customerFirstName String
+  customerLastName String
+  customerEmail String
+  phoneNumber String
+  town String
+  state String
+  notes String
   createdAt    DateTime @default(now())
 }
 
