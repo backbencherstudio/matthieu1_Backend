@@ -7,6 +7,7 @@ import { UpdateCustomerAlertDto } from './dto/update-customer-alert.dto';
 export class CustomerAlertController {
   constructor(private readonly customerAlertService: CustomerAlertService) {}
 
+
   @Post()
   create(@Body() createCustomerAlertDto: CreateCustomerAlertDto) {
     return this.customerAlertService.create(createCustomerAlertDto);
