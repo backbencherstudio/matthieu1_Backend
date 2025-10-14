@@ -6,8 +6,9 @@ export class CreateMainproductDto {
   @IsEnum(ProductName)
   name: ProductName;
 
+  @IsOptional()
   @IsString()
-  sku: string;
+  sku?: string;
 
   //@IsNumber()
   stockQuantity: number;
@@ -41,7 +42,7 @@ export class CreateMainproductDto {
 
 
   @IsEnum(Category)
-category: Category;
+  category: Category;
 
 
   @IsString()
@@ -49,5 +50,5 @@ category: Category;
 
   @IsOptional()
   @IsArray()
-  images?: string[]; 
+  images?: string[];
 }

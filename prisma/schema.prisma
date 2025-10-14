@@ -79,6 +79,7 @@ model User {
   NotificationReceived Notification[] @relation("ReceiverNotifications")
 
   carts                Cart[]
+  favorites            Favorite[]
 
   @@map("users")
 }
@@ -503,6 +504,7 @@ model Product {
   subcategoryId   String
   carts           CartItem[]
   images          ProductImage[]
+  favorites       Favorite[]
 
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
@@ -569,6 +571,20 @@ model CustomerAlert {
   state String
   notes String
   createdAt    DateTime @default(now())
+}
+
+model Favorite {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@map("favorites")
 }
 
 

@@ -1,71 +1,139 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { CreateMainproductDto } from './dto/create-mainproduct.dto';
 import { UpdateMainproductDto } from './dto/update-mainproduct.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class MainproductService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
-async createProduct(
-  createMainproductDto: CreateMainproductDto,
-  images: Express.Multer.File[],
-  user_id: string
-) {
-  return this.prisma.product.create({
-    data: {
-      name: createMainproductDto.name,
-      sku: createMainproductDto.sku,
-      stockQuantity: Number(createMainproductDto.stockQuantity), // convert to Int
-      benefits: createMainproductDto.benefits,
-      description: createMainproductDto.description,
-      leatherCareGuide: createMainproductDto.leatherCareGuide,
-      price: Number(createMainproductDto.price), // convert to Float/Int
-      discountPrice: Number(createMainproductDto.discountPrice), // convert to Float/Int
-      color: createMainproductDto.color,
-      size: createMainproductDto.size,
-      //category: { connect: { id: createMainproductDto.categoryId } },
-      category: createMainproductDto.category, 
-      subcategory: { connect: { id: createMainproductDto.subcategoryId } },
+  private generateSku(): string {
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 5; i++) {
+      result += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+    }
+    return `BR${result}`; // e.g., BR7D2NS
+  }
 
-      images: images?.length
-        ? {
+  private async generateUniqueSku(): Promise<string> {
+    let sku = '';
+    let exists = true;
+    while (exists) {
+      sku = this.generateSku();
+      const found = await this.prisma.product.findUnique({ where: { sku } });
+      exists = !!found;
+    }
+    return sku;
+  }
+
+  async createProduct(
+    createMainproductDto: CreateMainproductDto,
+    images: Express.Multer.File[],
+    user_id: string
+  ) {
+    // ALWAYS auto-generate a unique SKU at create time
+    const sku = await this.generateUniqueSku();
+
+    return this.prisma.product.create({
+      data: {
+        name: createMainproductDto.name,
+        sku: sku,
+        stockQuantity: Number(createMainproductDto.stockQuantity), // convert to Int
+        benefits: createMainproductDto.benefits,
+        description: createMainproductDto.description,
+        leatherCareGuide: createMainproductDto.leatherCareGuide,
+        price: Number(createMainproductDto.price), // convert to Float/Int
+        discountPrice: Number(createMainproductDto.discountPrice), // convert to Float/Int
+        color: createMainproductDto.color,
+        size: createMainproductDto.size,
+        //category: { connect: { id: createMainproductDto.categoryId } },
+        category: createMainproductDto.category,
+        subcategory: { connect: { id: createMainproductDto.subcategoryId } },
+
+        images: images?.length
+          ? {
             create: images.map((file) => ({
               url: file.originalname, // replace with actual upload path or cloud URL
             })),
           }
-        : undefined,
-    },
-    include: {
-      
-      subcategory: true,
-      images: true,
-    },
-  });
-}
+          : undefined,
+      },
+      include: {
+        subcategory: true,
+        images: true,
+      },
+    });
+  }
 
   findAll() {
-    return `This action returns all mainproduct`;
+    return this.prisma.product.findMany({
+      include: {
+        subcategory: true,
+        images: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
   }
 
   findOne(id: string) {
     const product = this.prisma.product.findUnique({
       where: { id: id },
-      include: {  
-        
+      include: {
         subcategory: true,
         images: true,
       },
     });
     return product;
-    
+
   }
 
-  update(id: number, updateMainproductDto: UpdateMainproductDto) {
-    return `This action updates a #${id} mainproduct`;
+  async update(id: string, updateMainproductDto: UpdateMainproductDto, images: Express.Multer.File[] = []) {
+    // NOTE: SKU cannot be edited. Any provided sku will be ignored.
+
+    const data: any = {
+      ...(updateMainproductDto.name && { name: updateMainproductDto.name }),
+      // no sku updates here
+      ...(updateMainproductDto.stockQuantity !== undefined && { stockQuantity: Number(updateMainproductDto.stockQuantity) }),
+      ...(updateMainproductDto.benefits !== undefined && { benefits: updateMainproductDto.benefits }),
+      ...(updateMainproductDto.description !== undefined && { description: updateMainproductDto.description }),
+      ...(updateMainproductDto.leatherCareGuide !== undefined && { leatherCareGuide: updateMainproductDto.leatherCareGuide }),
+      ...(updateMainproductDto.price !== undefined && { price: Number(updateMainproductDto.price) }),
+      ...(updateMainproductDto.discountPrice !== undefined && { discountPrice: Number(updateMainproductDto.discountPrice) }),
+      ...(updateMainproductDto.color !== undefined && { color: updateMainproductDto.color }),
+      ...(updateMainproductDto.size !== undefined && { size: updateMainproductDto.size }),
+      ...(updateMainproductDto.category !== undefined && { category: updateMainproductDto.category }),
+      ...(updateMainproductDto.subcategoryId !== undefined && { subcategory: { connect: { id: updateMainproductDto.subcategoryId } } }),
+      ...(images && images.length > 0 && {
+        images: {
+          deleteMany: {}, // delete all existing images
+          create: images.map((file) => ({ url: file.originalname })),
+        },
+      }),
+    };
+
+    try {
+      return await this.prisma.product.update({
+        where: { id },
+        data,
+        include: {
+          subcategory: true,
+          images: true,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        // Unique constraint failed
+        throw new BadRequestException('Unique constraint failed. Please choose different values.');
+      }
+      throw error;
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} mainproduct`;
+  remove(id: string) {
+    return this.prisma.product.delete({ where: { id } });
   }
 }

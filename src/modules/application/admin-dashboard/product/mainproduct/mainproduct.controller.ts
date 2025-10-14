@@ -12,12 +12,12 @@ import { Request } from 'express';
 
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.ADMIN) 
+@Roles(Role.ADMIN)
 @Controller('mainproduct')
 export class MainproductController {
-  constructor(private readonly mainproductService: MainproductService) {}
+  constructor(private readonly mainproductService: MainproductService) { }
 
-   
+
   @Post('create-product')
   @UseInterceptors(
     FileFieldsInterceptor(
@@ -33,10 +33,10 @@ export class MainproductController {
       images?: Express.Multer.File[];
     },
   ) {
-    const user_id = req.user.userId;
+    const user_id = (req as any).user.userId;
     return this.mainproductService.createProduct(
       createMainproductDto,
-      files.images ?? [], 
+      files.images ?? [],
       user_id
     );
   }
@@ -47,25 +47,38 @@ export class MainproductController {
   }
 
   @Get('oneproduct/:id')
-   async findOne(@Param('id') id: string) {
-    try{
-     const oneproduct = await this.mainproductService.findOne(id);
+  async findOne(@Param('id') id: string) {
+    try {
+      const oneproduct = await this.mainproductService.findOne(id);
       return oneproduct;
     }
-    catch(error){
+    catch (error) {
       console.error("Error fetching product:", error);
       throw error;
     }
-    
+
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateMainproductDto: UpdateMainproductDto) {
-    return this.mainproductService.update(+id, updateMainproductDto);
+  @Patch('edit-product/:id')
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [{ name: 'images', maxCount: 10 }],
+      { storage: memoryStorage() },
+    ),
+  )
+  update(
+    @Param('id') id: string,
+    @Body() updateMainproductDto: UpdateMainproductDto,
+    @UploadedFiles()
+    files: {
+      images?: Express.Multer.File[];
+    },
+  ) {
+    return this.mainproductService.update(id, updateMainproductDto, files.images ?? []);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.mainproductService.remove(+id);
+    return this.mainproductService.remove(id);
   }
 }

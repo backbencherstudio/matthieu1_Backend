@@ -14,9 +14,10 @@ import { ProductModule } from './user-portal/product/product.module';
 import { CartModule } from './user-portal/cart/cart.module';
 import { JobPortalModule } from './job-portal/job-portal.module';
 import { SaddleAlertModule } from './saddle-alert/saddle-alert.module';
+import { SavedProductModule } from './admin-dashboard/saved-product/saved-product.module';
 
 
 @Module({
-  imports: [NotificationModule, ContactModule, FaqModule, SubscriptionModule, GoogleSubscriptionModule, BlogModule, BlogCategoriesModule, CategoryModule, SubcategoryModule, MainproductModule, ContactInfoModule, ProductModule, CartModule, JobPortalModule, SaddleAlertModule],
+  imports: [NotificationModule, ContactModule, FaqModule, SubscriptionModule, GoogleSubscriptionModule, BlogModule, BlogCategoriesModule, CategoryModule, SubcategoryModule, MainproductModule, ContactInfoModule, ProductModule, CartModule, JobPortalModule, SaddleAlertModule, SavedProductModule],
 })
 export class ApplicationModule { }
