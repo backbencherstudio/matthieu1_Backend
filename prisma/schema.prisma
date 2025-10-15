@@ -500,8 +500,8 @@ model Product {
 
   
   category        Category    
-  subcategory     Subcategory @relation(fields: [subcategoryId], references: [id])
-  subcategoryId   String
+  subcategory     Subcategory? @relation(fields: [subcategoryId], references: [id])
+  subcategoryId   String?
   carts           CartItem[]
   images          ProductImage[]
   favorites       Favorite[]

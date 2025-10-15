@@ -67,8 +67,39 @@ export class MainproductService {
     });
   }
 
-  findAll() {
-    return this.prisma.product.findMany({
+  async findAll(options?: {
+    page?: number;
+    limit?: number;
+    category?: string;
+    search?: string;
+  }) {
+    const page = options?.page || 1;
+    const limit = options?.limit || 10;
+    const skip = (page - 1) * limit;
+
+    // Build where clause for filtering and search
+    const where: any = {};
+
+    // Category filter
+    if (options?.category) {
+      where.category = options.category;
+    }
+
+    // Keyword search for SKU, Name, and category
+    if (options?.search) {
+      where.OR = [
+        { sku: { contains: options.search, mode: 'insensitive' } },
+        { name: { contains: options.search, mode: 'insensitive' } },
+        { category: { contains: options.search, mode: 'insensitive' } },
+      ];
+    }
+
+    // Get total count for pagination metadata
+    const totalCount = await this.prisma.product.count({ where });
+
+    // Get paginated products
+    const products = await this.prisma.product.findMany({
+      where,
       include: {
         subcategory: true,
         images: true,
@@ -76,7 +107,48 @@ export class MainproductService {
       orderBy: {
         createdAt: 'desc',
       },
+      skip,
+      take: limit,
     });
+
+    // Add stock status and select only required fields
+    const productsWithStockStatus = products.map(product => ({
+      id: product.id,
+      sku: product.sku,
+      name: product.name,
+      category: product.category,
+      price: product.price,
+      stockQuantity: product.stockQuantity,
+      Status: this.getStockStatus(product.stockQuantity),
+      images: product.images
+    }));
+
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(totalCount / limit);
+    const hasNextPage = page < totalPages;
+    const hasPreviousPage = page > 1;
+
+    return {
+      data: productsWithStockStatus,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalCount,
+        limit,
+        hasNextPage,
+        hasPreviousPage,
+      },
+    };
+  }
+
+  private getStockStatus(stockQuantity: number): string {
+    if (stockQuantity === 0) {
+      return 'Out of Stock';
+    } else if (stockQuantity < 10) {
+      return 'Low Stock';
+    } else {
+      return 'In Stock';
+    }
   }
 
   findOne(id: string) {

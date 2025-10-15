@@ -7,7 +7,7 @@ import { Role } from 'src/common/guard/role/role.enum';
 import { Request } from 'express';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.ADMIN)
+@Roles(Role.USER)
 @Controller('saved-product')
 export class SavedProductController {
     constructor(private readonly savedProductService: SavedProductService) { }
