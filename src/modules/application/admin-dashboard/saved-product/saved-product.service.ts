@@ -29,14 +29,11 @@ export class SavedProductService {
             productId: f.productId,
             savedAt: f.createdAt,
             product: {
-                id: f.product.id,
                 name: f.product.name,
-                sku: f.product.sku,
                 price: f.product.price,
                 discountPrice: f.product.discountPrice,
                 color: f.product.color,
                 size: f.product.size,
-                subcategory: f.product.subcategory,
                 images: f.product.images,
             },
         }));

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFiles, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFiles, UseGuards, Req, Query } from '@nestjs/common';
 import { MainproductService } from './mainproduct.service';
 import { CreateMainproductDto } from './dto/create-mainproduct.dto';
 import { UpdateMainproductDto } from './dto/update-mainproduct.dto';
@@ -42,8 +42,21 @@ export class MainproductController {
   }
 
   @Get()
-  findAll() {
-    return this.mainproductService.findAll();
+  findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('category') category?: string,
+    @Query('search') search?: string,
+  ) {
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 10;
+
+    return this.mainproductService.findAll({
+      page: pageNum,
+      limit: limitNum,
+      category,
+      search,
+    });
   }
 
   @Get('oneproduct/:id')
