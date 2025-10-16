@@ -9,35 +9,41 @@ import { Role } from 'src/common/guard/role/role.enum';
 
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.ADMIN) 
+@Roles(Role.ADMIN)
 @Controller('subcategory')
 export class SubcategoryController {
-  constructor(private readonly subcategoryService: SubcategoryService) {}
+  constructor(private readonly subcategoryService: SubcategoryService) { }
 
   @Post('create')
   create(@Body() createSubcategoryDto: CreateSubcategoryDto) {
     return this.subcategoryService.create(createSubcategoryDto);
   }
-  
+
 
   @Get('all-subcategory')
-    async findAll() {
-      try {
-        const Subcategories = await this.subcategoryService.findAll();
-        return Subcategories;
-      } catch (error) {
-        throw new HttpException(
-          `Failed to fetch categories: ${error.message}`,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
+  async findAll() {
+    try {
+      const Subcategories = await this.subcategoryService.findAll();
+      return {
+        success: true,
+        message: 'Subcategories fetched successfully',
+        data: Subcategories.data.map(subcategories => ({
+          id: subcategories.id,
+          name: subcategories.name,
+          categoryId: subcategories.categoryId,
+          categoryName: subcategories.category.name,
+          products: subcategories.products.length,
+        })),
+        
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Subcategory not found',
+      };
     }
+  }
 
-
-  // @Get()
-  // findAll() {
-  //   return this.subcategoryService.findAll();
-  // }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
@@ -46,11 +52,22 @@ export class SubcategoryController {
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateSubcategoryDto: UpdateSubcategoryDto) {
-    return this.subcategoryService.update(+id, updateSubcategoryDto);
+    return this.subcategoryService.update(id, updateSubcategoryDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.subcategoryService.remove(+id);
+  async remove(@Param('id') id: string) {
+    try {
+      const removed = await this.subcategoryService.remove(id);
+      return {
+        success: true,
+        message: `${removed.name} is deleted successfully.`,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Subcategory not found',
+      };
+    }
   }
 }

@@ -1,16 +1,18 @@
 
-import { Category, ProductName } from '@prisma/client';
-import { IsString, IsOptional, IsNumber, IsUUID, IsArray, IsEnum } from 'class-validator';
+import { Category } from '@prisma/client';
+import { IsString, IsOptional, IsNumber, IsUUID, IsArray, IsEnum, IsNotEmpty } from 'class-validator';
 
 export class CreateMainproductDto {
-  @IsEnum(ProductName)
-  name: ProductName;
+  @IsString()
+  @IsNotEmpty()
+  name: string;
 
   @IsOptional()
   @IsString()
   sku?: string;
 
-  //@IsNumber()
+  @IsNotEmpty()
+  // @IsNumber()
   stockQuantity: number;
 
   @IsOptional()
@@ -25,11 +27,12 @@ export class CreateMainproductDto {
   @IsString()
   leatherCareGuide?: string;
 
-  //@IsNumber()
+  @IsNotEmpty()
+  // @IsNumber()
   price: number;
 
   @IsOptional()
-  //@IsNumber()
+  // @IsNumber()
   discountPrice?: number;
 
   @IsOptional()
@@ -41,12 +44,12 @@ export class CreateMainproductDto {
   size?: string;
 
 
-  @IsEnum(Category)
-  category: Category;
-
-
   @IsString()
-  subcategoryId: string;
+  categoryId: string;
+
+  @IsOptional()
+  @IsString()
+  subcategoryId?: string;
 
   @IsOptional()
   @IsArray()

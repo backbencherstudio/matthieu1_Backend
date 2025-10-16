@@ -13,21 +13,21 @@ export class ProductController {
     return this.productService.create(createProductDto);
   }
 
- @Get('categorysubcategoryproduct')
-  async findAll(
-    @Query('subcategoryId') subcategoryId: string,
-    @Query('category') category: string,
-  ) {
-    // convert string to enum
-    if (!Object.values(Category).includes(category as Category)) {
-      throw new Error(`Invalid category: ${category}`);
-    }
+//  @Get('categorysubcategoryproduct')
+//   async findAll(
+//     @Query('subcategoryId') subcategoryId: string,
+//     @Query('category') category: string,
+//   ) {
+//     // convert string to enum
+//     if (!Object.values(Category).includes(category as unknown as Category)) {
+//       throw new Error(`Invalid category: ${category}`);
+//     }
 
-    return this.productService.findAll(
-      subcategoryId,
-      category as Category,
-    );
-  }
+//     return this.productService.findAll(
+//       subcategoryId,
+//       category as Category,
+//     );
+//   }
 
 
    @Get('oneproduct/:id')
