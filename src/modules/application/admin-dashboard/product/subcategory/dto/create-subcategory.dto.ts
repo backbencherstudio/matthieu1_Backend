@@ -7,7 +7,7 @@ export class CreateSubcategoryDto {
   @IsNotEmpty()
   name: string;
 
-  @IsEnum(Category)
+  @IsString()
   @IsNotEmpty()
-  category: Category
+  categoryId: string;
 }

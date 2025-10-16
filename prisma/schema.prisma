@@ -448,28 +448,26 @@ model ContactInformation {
 }
 
 
-// model Category {
-//   id           String    @id @default(cuid())
-//   name          String        @unique
-//   subcategories Subcategory[] 
-//   products      Product[]     
-//   createdAt     DateTime      @default(now())
-//   updatedAt     DateTime      @updatedAt
-// }
-
-enum Category {
-  BY_COLLECTION
-  USED_SADDLES
+enum type {
+  SADDLES
   TACK
+}
+model Category {
+  id           String    @id @default(cuid())
+  name          String
+  type          type
+  subcategories Subcategory[] 
+  products      Product[]     
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  @@unique([name, type])
 }
 
 model Subcategory {
   id         String    @id @default(cuid())
   name       String
-  // category   Category  @relation(fields: [categoryId], references: [id])
-  // categoryId String
-
-  category   Category
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   products   Product[]
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
@@ -477,17 +475,12 @@ model Subcategory {
   //@@unique([name, categoryId]) 
 }
 
-enum ProductName {
- JUMPING
- DRESSAGE
- CROSS_COUNTRY
- KIDS
-}
+// ProductName enum removed; name becomes free-form string, validated in service for SADDLES
 
 
 model Product {
   id              String    @id @default(cuid())
-  name            ProductName
+  name            String
   sku             String      @unique
   stockQuantity   Int
   benefits        String?
@@ -498,10 +491,11 @@ model Product {
   color           String?
   size            String?
 
-  
-  category        Category    
-  subcategory     Subcategory? @relation(fields: [subcategoryId], references: [id])
+  categoryId      String?
+  category        Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   subcategoryId   String?
+  subcategory     Subcategory? @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
+
   carts           CartItem[]
   images          ProductImage[]
   favorites       Favorite[]
@@ -514,7 +508,7 @@ model Product {
 model ProductImage {
   id        String    @id @default(cuid())
   url       String
-  product   Product @relation(fields: [productId], references: [id])
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   productId String
 }
 

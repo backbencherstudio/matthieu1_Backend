@@ -33,6 +33,25 @@ export class MainproductService {
     images: Express.Multer.File[],
     user_id: string
   ) {
+    // Validate main category and enforce name rules based on category type
+    const category = await this.prisma.category.findUnique({
+      where: { id: createMainproductDto.categoryId },
+      select: { id: true, type: true },
+    });
+    if (!category) {
+      throw new BadRequestException('Invalid categoryId');
+    }
+
+    if (category.type === 'SADDLES') {
+      const allowedSaddleNames = ['JUMPING', 'DRESSAGE', 'CROSS_COUNTRY', 'KIDS'];
+      const normalizedName = (createMainproductDto.name || '').trim().toUpperCase();
+      if (!allowedSaddleNames.includes(normalizedName)) {
+        throw new BadRequestException('For SADDLES category, name must be one of: JUMPING, DRESSAGE, CROSS_COUNTRY, KIDS');
+      }
+      // Normalize storage to canonical uppercase values
+      createMainproductDto.name = normalizedName;
+    }
+
     // ALWAYS auto-generate a unique SKU at create time
     const sku = await this.generateUniqueSku();
 
@@ -48,9 +67,8 @@ export class MainproductService {
         discountPrice: Number(createMainproductDto.discountPrice), // convert to Float/Int
         color: createMainproductDto.color,
         size: createMainproductDto.size,
-        //category: { connect: { id: createMainproductDto.categoryId } },
-        category: createMainproductDto.category,
-        subcategory: { connect: { id: createMainproductDto.subcategoryId } },
+        category: { connect: { id: createMainproductDto.categoryId } },
+        ...(createMainproductDto.subcategoryId && { subcategory: { connect: { id: createMainproductDto.subcategoryId } } }),
 
         images: images?.length
           ? {
@@ -102,6 +120,7 @@ export class MainproductService {
       where,
       include: {
         subcategory: true,
+        category: true,
         images: true,
       },
       orderBy: {
@@ -116,7 +135,10 @@ export class MainproductService {
       id: product.id,
       sku: product.sku,
       name: product.name,
-      category: product.category,
+      category: product.category?.id ?? product.categoryId ?? null,
+      categoryName: product.category?.name ?? null,
+      subcategory: product.subcategory?.id ?? product.subcategoryId ?? null,
+      subcategoryName: product.subcategory?.name ?? null,
       price: product.price,
       stockQuantity: product.stockQuantity,
       Status: this.getStockStatus(product.stockQuantity),
@@ -139,6 +161,50 @@ export class MainproductService {
         hasPreviousPage,
       },
     };
+  }
+
+  async findByCollection(options?: { subcategoryId?: string; categoryName?: string }) {
+    const rawName = options?.categoryName ?? 'BY_COLLECTION';
+    const spaced = rawName.replace(/_/g, ' ');
+    const variants = Array.from(new Set([
+      rawName,
+      rawName.toUpperCase(),
+      rawName.toLowerCase(),
+      spaced,
+      spaced.toUpperCase(),
+      spaced.toLowerCase(),
+    ]));
+    const where: any = {
+      category: {
+        name: { in: variants },
+      },
+    };
+    if (options?.subcategoryId) {
+      where.subcategoryId = options.subcategoryId;
+    }
+
+    const products = await this.prisma.product.findMany({
+      where,
+      include: {
+        category: true,
+        subcategory: true,
+        images: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return products.map((product) => ({
+      id: product.id,
+      sku: product.sku,
+      name: product.name,
+      category: product.category?.id ?? product.categoryId ?? null,
+      categoryName: product.category?.name ?? null,
+      subcategory: product.subcategory?.id ?? product.subcategoryId ?? null,
+      subcategoryName: product.subcategory?.name ?? null,
+      price: product.price,
+      stockQuantity: product.stockQuantity,
+      images: product.images,
+    }));
   }
 
   private getStockStatus(stockQuantity: number): string {
@@ -166,6 +232,40 @@ export class MainproductService {
   async update(id: string, updateMainproductDto: UpdateMainproductDto, images: Express.Multer.File[] = []) {
     // NOTE: SKU cannot be edited. Any provided sku will be ignored.
 
+    // If name or categoryId changes, enforce rules based on effective category type
+    if (updateMainproductDto.name !== undefined || updateMainproductDto.categoryId !== undefined) {
+      const current = await this.prisma.product.findUnique({
+        where: { id },
+        select: { name: true, categoryId: true },
+      });
+      if (!current) {
+        throw new BadRequestException('Product not found');
+      }
+      const effectiveCategoryId = updateMainproductDto.categoryId ?? current.categoryId;
+      if (!effectiveCategoryId) {
+        throw new BadRequestException('Invalid categoryId');
+      }
+      const category = await this.prisma.category.findUnique({
+        where: { id: effectiveCategoryId },
+        select: { id: true, type: true },
+      });
+      if (!category) {
+        throw new BadRequestException('Invalid categoryId');
+      }
+
+      if (category.type === 'SADDLES') {
+        const allowedSaddleNames = ['JUMPING', 'DRESSAGE', 'CROSS_COUNTRY', 'KIDS'];
+        const candidateName = updateMainproductDto.name ?? current.name;
+        const normalizedName = (candidateName || '').trim().toUpperCase();
+        if (!allowedSaddleNames.includes(normalizedName)) {
+          throw new BadRequestException('For SADDLES category, name must be one of: JUMPING, DRESSAGE, CROSS_COUNTRY, KIDS');
+        }
+        if (updateMainproductDto.name !== undefined) {
+          updateMainproductDto.name = normalizedName;
+        }
+      }
+    }
+
     const data: any = {
       ...(updateMainproductDto.name && { name: updateMainproductDto.name }),
       // no sku updates here
@@ -177,7 +277,7 @@ export class MainproductService {
       ...(updateMainproductDto.discountPrice !== undefined && { discountPrice: Number(updateMainproductDto.discountPrice) }),
       ...(updateMainproductDto.color !== undefined && { color: updateMainproductDto.color }),
       ...(updateMainproductDto.size !== undefined && { size: updateMainproductDto.size }),
-      ...(updateMainproductDto.category !== undefined && { category: updateMainproductDto.category }),
+      ...(updateMainproductDto.categoryId !== undefined && { category: { connect: { id: updateMainproductDto.categoryId } } }),
       ...(updateMainproductDto.subcategoryId !== undefined && { subcategory: { connect: { id: updateMainproductDto.subcategoryId } } }),
       ...(images && images.length > 0 && {
         images: {

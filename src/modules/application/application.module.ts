@@ -6,7 +6,6 @@ import { SubscriptionModule } from './subscription/subscription.module';
 import { GoogleSubscriptionModule } from './google-subscription/google-subscription.module';
 import { BlogModule } from './admin-dashboard/blog/blog.module';
 import { BlogCategoriesModule } from './admin-dashboard/blog-categories/blog-categories.module';
-import { CategoryModule } from './admin-dashboard/product/category/category.module';
 import { SubcategoryModule } from './admin-dashboard/product/subcategory/subcategory.module';
 import { MainproductModule } from './admin-dashboard/product/mainproduct/mainproduct.module';
 import { ContactInfoModule } from './admin-dashboard/contact-info/contact-info.module';
@@ -15,9 +14,10 @@ import { CartModule } from './user-portal/cart/cart.module';
 import { JobPortalModule } from './job-portal/job-portal.module';
 import { SaddleAlertModule } from './saddle-alert/saddle-alert.module';
 import { SavedProductModule } from './admin-dashboard/saved-product/saved-product.module';
+import { MaincategoryModule } from './admin-dashboard/product/maincategory/maincategory.module';
 
 
 @Module({
-  imports: [NotificationModule, ContactModule, FaqModule, SubscriptionModule, GoogleSubscriptionModule, BlogModule, BlogCategoriesModule, CategoryModule, SubcategoryModule, MainproductModule, ContactInfoModule, ProductModule, CartModule, JobPortalModule, SaddleAlertModule, SavedProductModule],
+  imports: [NotificationModule, ContactModule, FaqModule, SubscriptionModule, GoogleSubscriptionModule, BlogModule, BlogCategoriesModule, SubcategoryModule, MainproductModule, ContactInfoModule, ProductModule, CartModule, JobPortalModule, SaddleAlertModule, SavedProductModule, MaincategoryModule],
 })
 export class ApplicationModule { }
