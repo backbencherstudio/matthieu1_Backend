@@ -21,8 +21,8 @@ export class UpdateMainbaseproductDto {
     @IsOptional()
     @IsArray()
     variantsCreate?: Array<{
-        color?: string;
-        size?: string;
+        colorId?: string;
+        sizeId?: string;
         price: number;
         discountPrice?: number;
         stockQuantity: number;

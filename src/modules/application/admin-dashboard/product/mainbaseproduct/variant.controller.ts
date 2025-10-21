@@ -27,8 +27,8 @@ export class VariantController {
     ) {
         try {
             const dto: any = {
-                ...(body?.color !== undefined && { color: body.color }),
-                ...(body?.size !== undefined && { size: body.size }),
+                ...(body?.colorId !== undefined && { colorId: body.colorId }),
+                ...(body?.sizeId !== undefined && { sizeId: body.sizeId }),
             };
             if (body?.price !== undefined) dto.price = Number(body.price);
             if (body?.stockQuantity !== undefined) dto.stockQuantity = Number(body.stockQuantity);
@@ -66,7 +66,7 @@ export class VariantController {
         @Param('imageId') imageId: string,
     ) {
         try {
-            return{
+            return {
                 message: 'Variant image deleted successfully',
                 data: await this.service.deleteVariantImage(baseProductId, variantId, imageId)
             }
