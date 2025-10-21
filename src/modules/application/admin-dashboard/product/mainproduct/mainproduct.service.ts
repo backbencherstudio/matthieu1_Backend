@@ -163,21 +163,13 @@ export class MainproductService {
     };
   }
 
-  async findByCollection(options?: { subcategoryId?: string; categoryName?: string }) {
-    const rawName = options?.categoryName ?? 'BY_COLLECTION';
-    const spaced = rawName.replace(/_/g, ' ');
-    const variants = Array.from(new Set([
-      rawName,
-      rawName.toUpperCase(),
-      rawName.toLowerCase(),
-      spaced,
-      spaced.toUpperCase(),
-      spaced.toLowerCase(),
-    ]));
+  async findProductsByCategory(options?: { subcategoryId?: string; categoryId?: string }) {
+    if (!options?.categoryId) {
+      throw new BadRequestException('categoryId is required');
+    }
+
     const where: any = {
-      category: {
-        name: { in: variants },
-      },
+      categoryId: options.categoryId,
     };
     if (options?.subcategoryId) {
       where.subcategoryId = options.subcategoryId;
