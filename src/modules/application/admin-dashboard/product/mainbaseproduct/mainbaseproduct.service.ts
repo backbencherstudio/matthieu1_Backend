@@ -90,19 +90,35 @@ export class MainbaseproductService {
           category: { connect: { id: createDto.categoryId } },
           ...(createDto.subcategoryId && { subcategory: { connect: { id: createDto.subcategoryId } } }),
           variants: {
-            create: (createDto.variants || []).map(v => ({
-              color: v.color,
-              size: v.size,
-              price: Number(v.price),
-              discountPrice: v.discountPrice !== undefined ? Number(v.discountPrice) : undefined,
-              stockQuantity: Number(v.stockQuantity),
-              isDefault: !!v.isDefault,
-              images: v.images?.length ? { create: v.images.map(url => ({ url })) } : undefined,
+            create: await Promise.all((createDto.variants || []).map(async v => {
+              let colorName: string | undefined;
+              let sizeName: string | undefined;
+              if (v.colorId) {
+                const color = await this.prisma.color.findUnique({ where: { id: v.colorId }, select: { name: true } });
+                if (!color) throw new BadRequestException('Invalid colorId');
+                
+                colorName = color.name;
+              }
+              if (v.sizeId) {
+                const size = await this.prisma.size.findUnique({ where: { id: v.sizeId }, select: { name: true } });
+                if (!size) throw new BadRequestException('Invalid sizeId');
+                sizeName = size.name;
+              }
+              return {
+                colorId: v.colorId,
+                sizeId: v.sizeId,
+                color: colorName,
+                size: sizeName,
+                price: Number(v.price),
+                stockQuantity: Number(v.stockQuantity),
+                isDefault: !!v.isDefault,
+                images: v.images?.length ? { create: v.images.map(url => ({ url })) } : undefined,
+              };
             })),
           },
         },
         include: {
-          variants: { include: { images: true } },
+          variants: { include: { images: true, colorRef: true, sizeRef: true } },
           category: true,
           subcategory: true,
         },
@@ -146,7 +162,7 @@ export class MainbaseproductService {
         include: {
           category: true,
           subcategory: true,
-          variants: { include: { images: true } },
+          variants: { include: { images: true, colorRef: true, sizeRef: true } },
         },
         orderBy: { createdAt: 'desc' },
         skip,
@@ -182,7 +198,7 @@ export class MainbaseproductService {
         include: {
           category: true,
           subcategory: true,
-          variants: { include: { images: true } },
+          variants: { include: { images: true, colorRef: true, sizeRef: true } },
         },
         orderBy: { createdAt: 'desc' },
       });
@@ -256,13 +272,27 @@ export class MainbaseproductService {
       // Process variant creations
       if (Array.isArray(variantsCreate) && variantsCreate.length > 0) {
         for (const v of variantsCreate) {
+          let colorName: string | undefined;
+          let sizeName: string | undefined;
+          if (v.colorId) {
+            const color = await this.prisma.color.findUnique({ where: { id: v.colorId }, select: { name: true } });
+            if (!color) throw new BadRequestException('Invalid colorId');
+            colorName = color.name;
+          }
+          if (v.sizeId) {
+            const size = await this.prisma.size.findUnique({ where: { id: v.sizeId }, select: { name: true } });
+            if (!size) throw new BadRequestException('Invalid sizeId');
+            sizeName = size.name;
+          }
+
           await this.prisma.variant.create({
             data: {
-              Baseproduct: { connect: { id } },
-              color: v.color,
-              size: v.size,
+              BaseproductId: id,
+              colorId: v.colorId,
+              sizeId: v.sizeId,
+              color: colorName,
+              size: sizeName,
               price: Number(v.price),
-              discountPrice: v.discountPrice !== undefined ? Number(v.discountPrice) : undefined,
               stockQuantity: Number(v.stockQuantity),
               isDefault: !!v.isDefault,
               images: v.images?.length ? { create: v.images.map((url: string) => ({ url })) } : undefined,
@@ -333,16 +363,40 @@ export class MainbaseproductService {
         nestedImages.create = dto.imagesAdd.map((url: string) => ({ url }));
       }
 
+      // Map colorId/sizeId to names if provided
+      const updateData: any = {};
+      if (dto.colorId !== undefined) {
+        if (dto.colorId === null || dto.colorId === '') {
+          updateData.colorId = null;
+          updateData.color = null;
+        } else {
+          const color = await this.prisma.color.findUnique({ where: { id: dto.colorId }, select: { name: true, id: true } });
+          if (!color) throw new BadRequestException('Invalid colorId');
+          updateData.colorId = color.id;
+          updateData.color = color.name;
+        }
+      }
+      if (dto.sizeId !== undefined) {
+        if (dto.sizeId === null || dto.sizeId === '') {
+          updateData.sizeId = null;
+          updateData.size = null;
+        } else {
+          const size = await this.prisma.size.findUnique({ where: { id: dto.sizeId }, select: { name: true, id: true } });
+          if (!size) throw new BadRequestException('Invalid sizeId');
+          updateData.sizeId = size.id;
+          updateData.size = size.name;
+        }
+      }
+
       const updated = await this.prisma.variant.update({
         where: { id: variantId },
         data: {
-          ...(dto.color !== undefined && { color: dto.color }),
-          ...(dto.size !== undefined && { size: dto.size }),
+          ...updateData,
           ...(dto.price !== undefined && { price: Number(dto.price) }),
           ...(dto.stockQuantity !== undefined && { stockQuantity: Number(dto.stockQuantity) }),
           ...(Object.keys(nestedImages).length > 0 && { images: nestedImages }),
         },
-        include: { images: true },
+        include: { images: true, colorRef: true, sizeRef: true },
       });
       return updated;
     } catch (error) {

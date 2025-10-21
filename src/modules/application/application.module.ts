@@ -16,9 +16,10 @@ import { SaddleAlertModule } from './saddle-alert/saddle-alert.module';
 import { SavedProductModule } from './admin-dashboard/saved-product/saved-product.module';
 import { MaincategoryModule } from './admin-dashboard/product/maincategory/maincategory.module';
 import { MainbaseproductModule } from './admin-dashboard/product/mainbaseproduct/mainbaseproduct.module';
+import { ColorSizeModule } from './admin-dashboard/product/color-size/color-size.module';
 
 
 @Module({
-  imports: [NotificationModule, ContactModule, FaqModule, SubscriptionModule, GoogleSubscriptionModule, BlogModule, BlogCategoriesModule, SubcategoryModule, MainproductModule, ContactInfoModule, ProductModule, CartModule, JobPortalModule, SaddleAlertModule, SavedProductModule, MaincategoryModule, MainbaseproductModule],
+  imports: [NotificationModule, ContactModule, FaqModule, SubscriptionModule, GoogleSubscriptionModule, BlogModule, BlogCategoriesModule, SubcategoryModule, MainproductModule, ContactInfoModule, ProductModule, CartModule, JobPortalModule, SaddleAlertModule, SavedProductModule, MaincategoryModule, MainbaseproductModule, ColorSizeModule],
 })
 export class ApplicationModule { }

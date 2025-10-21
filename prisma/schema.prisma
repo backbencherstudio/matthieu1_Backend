@@ -586,6 +586,21 @@ model Favorite {
 
 
 //////////////////////////////////////////////////////Base Product Models/////////////////////////////////////////////////
+model color {
+  id         String   @id @default(cuid())
+  name       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  Variant Variant[]
+}
+model size {
+  id         String   @id @default(cuid())
+  name       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  Variant Variant[]
+}
+
 model BaseProduct {
   id           String        @id @default(cuid())
   name         String
@@ -607,18 +622,26 @@ model Variant {
   BaseproductId     String
   Baseproduct       BaseProduct       @relation(fields: [BaseproductId], references: [id], onDelete: Cascade)
 
+  // FK references to color and size
+  colorId       String?
+  colorRef      color?         @relation(fields: [colorId], references: [id], onDelete: SetNull)
+  sizeId        String?
+  sizeRef       size?          @relation(fields: [sizeId], references: [id], onDelete: SetNull)
+
+  // Optional denormalized names for quick reads
   color         String?
   size          String?
   price         Float
-  discountPrice Float?
   stockQuantity Int
   isDefault     Boolean       @default(false)
   images        VariantImage[]
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  @@unique([BaseproductId, color, size])
+  @@unique([BaseproductId, colorId, sizeId])
   @@index([BaseproductId])
+  @@index([colorId])
+  @@index([sizeId])
 }
 
 model VariantImage {

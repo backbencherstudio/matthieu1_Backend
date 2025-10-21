@@ -4,19 +4,16 @@ import { Type } from 'class-transformer';
 class VariantInputDto {
     @IsOptional()
     @IsString()
-    color?: string;
+    colorId?: string; // Reference to color model
 
     @IsOptional()
     @IsString()
-    size?: string;
+    sizeId?: string; // Reference to size model
 
     @IsNotEmpty()
     // @IsNumber()
     price: number;
 
-    @IsOptional()
-    // @IsNumber()
-    discountPrice?: number;
 
     @IsNotEmpty()
     // @IsNumber()
