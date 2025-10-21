@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, Param } from '@nestjs/common';
 import { MainproductService } from './mainproduct.service';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guard/role/roles.guard';
@@ -12,12 +12,12 @@ import { Role } from 'src/common/guard/role/role.enum';
 export class UserMainproductController {
     constructor(private readonly mainproductService: MainproductService) { }
 
-    @Get('by-collection')
-    async getByCollection(
+    @Get('category/:categoryId')
+    async getProductsByCategory(
+        @Param('categoryId') categoryId: string,
         @Query('subcategoryId') subcategoryId?: string,
-        @Query('categoryName') categoryName?: string,
     ) {
-        const data = await this.mainproductService.findByCollection({ subcategoryId, categoryName });
+        const data = await this.mainproductService.findProductsByCategory({ subcategoryId, categoryId });
         return { data };
     }
 }

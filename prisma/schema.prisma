@@ -458,6 +458,7 @@ model Category {
   type          type
   subcategories Subcategory[] 
   products      Product[]     
+  baseProducts  BaseProduct[]
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   @@unique([name, type])
@@ -469,6 +470,7 @@ model Subcategory {
   categoryId String?
   category   Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   products   Product[]
+  baseProducts BaseProduct[]
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
@@ -583,11 +585,47 @@ model Favorite {
 
 
 
+//////////////////////////////////////////////////////Base Product Models/////////////////////////////////////////////////
+model BaseProduct {
+  id           String        @id @default(cuid())
+  name         String
+  sku          String        @unique
+  benefits        String?
+  description     String?
+  leatherCareGuide String?
+  variants     Variant[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  categoryId      String?
+  category        Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  subcategoryId   String?
+  subcategory     Subcategory? @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
+}
 
+model Variant {
+  id            String        @id @default(cuid())
+  BaseproductId     String
+  Baseproduct       BaseProduct       @relation(fields: [BaseproductId], references: [id], onDelete: Cascade)
 
+  color         String?
+  size          String?
+  price         Float
+  discountPrice Float?
+  stockQuantity Int
+  isDefault     Boolean       @default(false)
+  images        VariantImage[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
+  @@unique([BaseproductId, color, size])
+  @@index([BaseproductId])
+}
 
+model VariantImage {
+  id        String   @id @default(cuid())
+  url       String
+  variantId String
+  variant   Variant  @relation(fields: [variantId], references: [id], onDelete: Cascade)
+}
 
-
-
-
+//////////////////////////////////////////////////////Base Product Models End/////////////////////////////////////////////////
