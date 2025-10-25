@@ -500,7 +500,6 @@ model Product {
 
   carts           CartItem[]
   images          ProductImage[]
-  favorites       Favorite[]
 
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
@@ -576,10 +575,10 @@ model Favorite {
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  productId  String
-  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  baseProductId String
+  baseProduct   BaseProduct @relation(fields: [baseProductId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, productId])
+  @@unique([userId, baseProductId])
   @@map("favorites")
 }
 
@@ -615,6 +614,8 @@ model BaseProduct {
   category        Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   subcategoryId   String?
   subcategory     Subcategory? @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
+
+  Favorite Favorite[]
 }
 
 model Variant {

@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Delete, Param, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Param, UseGuards, Req, Body } from '@nestjs/common';
 import { SavedProductService } from './saved-product.service';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guard/role/roles.guard';
@@ -10,23 +10,26 @@ import { Request } from 'express';
 @Roles(Role.USER)
 @Controller('saved-product')
 export class SavedProductController {
-    constructor(private readonly savedProductService: SavedProductService) { }
+  constructor(private readonly savedProductService: SavedProductService) {}
 
-    @Post(':productId')
-    add(@Param('productId') productId: string, @Req() req: Request) {
-        const userId = (req as any).user.userId;
-        return this.savedProductService.addFavorite(userId, productId);
-    }
+  // Save a product to favorites
+  @Post()
+  add(@Body('baseProductId') baseProductId: string, @Req() req: Request) {
+    const userId = (req as any).user.userId;
+    return this.savedProductService.addFavorite(userId, baseProductId);
+  }
 
-    @Get()
-    list(@Req() req: Request) {
-        const userId = (req as any).user.userId;
-        return this.savedProductService.listFavorites(userId);
-    }
+  // Get all favorites for the logged-in user
+  @Get()
+  list(@Req() req: Request) {
+    const userId = (req as any).user.userId;
+    return this.savedProductService.listFavorites(userId);
+  }
 
-    @Delete(':productId')
-    remove(@Param('productId') productId: string, @Req() req: Request) {
-        const userId = (req as any).user.userId;
-        return this.savedProductService.removeFavorite(userId, productId);
-    }
+  //Remove a product from favorites
+  @Delete(':baseProductId')
+  remove(@Param('baseProductId') baseProductId: string, @Req() req: Request) {
+    const userId = (req as any).user.userId;
+    return this.savedProductService.removeFavorite(userId, baseProductId);
+  }
 }

@@ -96,7 +96,7 @@ export class MainbaseproductService {
               if (v.colorId) {
                 const color = await this.prisma.color.findUnique({ where: { id: v.colorId }, select: { name: true } });
                 if (!color) throw new BadRequestException('Invalid colorId');
-                
+
                 colorName = color.name;
               }
               if (v.sizeId) {
@@ -160,17 +160,42 @@ export class MainbaseproductService {
       const baseProducts = await this.prisma.baseProduct.findMany({
         where,
         include: {
-          category: true,
-          subcategory: true,
-          variants: { include: { images: true, colorRef: true, sizeRef: true } },
+          category: { select: { name: true } },
+          subcategory: { select: { name: true } },
+          variants: {
+            include: { images: true, colorRef: true, sizeRef: true },
+          },
         },
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
       });
 
+      // Transform response
+      const formattedData = baseProducts.map((product) => ({
+        id: product.id,
+        name: product.name,
+        sku: product.sku,
+        categoryId: product.categoryId,
+        subcategoryId: product.subcategoryId,
+        category: product.category
+          ? `${product.category.name} → ${product.subcategory?.name || ''}`
+          : null,
+        Total_variant: product.variants?.length || 0,
+        created_at: product.createdAt,
+        variants: product.variants.map((variant) => ({
+          id: variant.id,
+          color: variant.color,
+          size: variant.size,
+          price: variant.price,
+          stockQuantity: variant.stockQuantity,
+          isDefault: variant.isDefault,
+          images: variant.images.map((image) => ({ id: image.id, url: image.url })),
+        })),
+      }));
+
       return {
-        data: baseProducts,
+        data: formattedData,
         pagination: {
           currentPage: page,
           totalPages: Math.ceil(totalCount / limit),
@@ -185,26 +210,133 @@ export class MainbaseproductService {
     }
   }
 
-  async findByCategory(options: { subcategoryId?: string; categoryId: string }) {
+
+  // async findByCategory(options: { subcategoryId?: string; categoryId: string }) {
+  //   if (!options?.categoryId) {
+  //     throw new BadRequestException('categoryId is required');
+  //   }
+  //   const where: any = { categoryId: options.categoryId };
+  //   if (options?.subcategoryId) where.subcategoryId = options.subcategoryId;
+
+  //   try {
+  //     const baseProducts = await this.prisma.baseProduct.findMany({
+  //       where,
+  //       include: {
+  //         category: true,
+  //         subcategory: true,
+  //         variants: { select: { isDefault: true, price: true } },
+  //       },
+  //       orderBy: { createdAt: 'desc' },
+  //     });
+
+  //     const formatted = baseProducts.map((product) => {
+  //       const defaultVariant = product.variants.find((v) => v.isDefault);
+
+  //       // 🚨 Validation: if category.type = 'SADDLES' and subcategoryId exists, hide price
+  //       const shouldHidePrice =
+  //         product.category?.type === 'SADDLES' && product.subcategory?.id;
+
+  //       return {
+  //         id: product.id,
+  //         name: product.name,
+  //         sku: product.sku,
+  //         categoryId: product.categoryId,
+  //         categoryName: product.category ? product.category.name : null,
+  //         subcategoryId: product.subcategoryId,
+  //         subcategoryName: product.subcategory ? product.subcategory.name : null,
+  //         price: shouldHidePrice ? null : defaultVariant?.price ?? null,
+  //       };
+  //     });
+  //     return formatted;
+  //   } catch (error) {
+  //     throw new BadRequestException('Failed to fetch base products by category');
+  //   }
+  // }
+
+  async findByCategory(options: {
+    subcategoryId?: string;
+    categoryId: string;
+    minPrice?: number;
+    maxPrice?: number;
+    sizeId?: string;
+    colorId?: string;
+  }) {
     if (!options?.categoryId) {
       throw new BadRequestException('categoryId is required');
     }
-    const where: any = { categoryId: options.categoryId };
-    if (options?.subcategoryId) where.subcategoryId = options.subcategoryId;
+
+    const where: any = {
+      categoryId: options.categoryId,
+    };
+
+    // optional filters
+    if (options.subcategoryId) where.subcategoryId = options.subcategoryId;
+
 
     try {
       const baseProducts = await this.prisma.baseProduct.findMany({
         where,
         include: {
-          category: true,
-          subcategory: true,
-          variants: { include: { images: true, colorRef: true, sizeRef: true } },
+          category: { select: { id: true, name: true, type: true } },
+          subcategory: { select: { id: true, name: true } },
+          variants: {
+            where: {
+              ...(options.colorId && { colorId: options.colorId }),
+              ...(options.sizeId && { sizeId: options.sizeId }),
+              ...(options.minPrice !== undefined || options.maxPrice !== undefined
+                ? {
+                  price: {
+                    ...(options.minPrice !== undefined && { gte: Number(options.minPrice) }),
+                    ...(options.maxPrice !== undefined && { lte: Number(options.maxPrice) }),
+                  },
+                }
+                : {}),
+            },
+            select: { id: true, isDefault: true, price: true, color: true, size: true, images: true },
+          },
         },
         orderBy: { createdAt: 'desc' },
       });
-      return baseProducts;
+
+      const formatted = baseProducts.map((product) => {
+        const defaultVariant = product.variants.find((v) => v.isDefault);
+
+        // 🚨 Validation: if category.type = 'SADDLES' and subcategoryId exists, hide price
+        const shouldHidePrice =
+          product.category?.type === 'SADDLES' && product.subcategory?.id;
+
+        return {
+          id: product.id,
+          name: product.name,
+          sku: product.sku,
+          categoryId: product.categoryId,
+          categoryName: product.category ? product.category.name : null,
+          subcategoryId: product.subcategoryId,
+          subcategoryName: product.subcategory ? product.subcategory.name : null,
+          price: shouldHidePrice ? null : defaultVariant?.price ?? null,
+          variants: product.variants.map((v) => ({
+            id: v.id,
+            color: v.color,
+            size: v.size,
+            price: v.price,
+          })),
+        };
+      });
+
+      return formatted;
     } catch (error) {
       throw new BadRequestException('Failed to fetch base products by category');
+    }
+  }
+
+
+  private getStockStatus(stockQuantity: number): string {
+    if (stockQuantity === 0) {
+      return 'Out of Stock';
+    } else if (stockQuantity < 10) {
+      return 'Low Stock';
+    } else {
+      return 'In Stock';
     }
   }
 
@@ -215,14 +347,86 @@ export class MainbaseproductService {
         include: {
           category: true,
           subcategory: true,
-          variants: { include: { images: true } },
+          variants: { include: { images: true, colorRef: true, sizeRef: true } },
         },
       });
-      return baseProduct;
+      if (!baseProduct) {
+        throw new BadRequestException('Base product not found');
+      }
+
+      return {
+        id: baseProduct.id,
+        name: baseProduct.name,
+        sku: baseProduct.sku,
+        description: baseProduct.description,
+        benefits: baseProduct.benefits,
+        leatherCareGuide: baseProduct.leatherCareGuide,
+        category: baseProduct.category
+          ? `${baseProduct.category.name} → ${baseProduct.subcategory?.name || ''}`
+          : null,
+        variants: baseProduct.variants.map((variant) => ({
+          id: variant.id,
+          color: variant.color,
+          size: variant.size,
+          price: variant.price,
+          stockQuantity: variant.stockQuantity,
+          status: this.getStockStatus(variant.stockQuantity),
+          isDefault: variant.isDefault,
+          images: variant.images.map((image) => ({ id: image.id, url: image.url })),
+        })),
+      };
     } catch (error) {
       throw new BadRequestException('Failed to fetch base product');
     }
   }
+
+  //find the product  default variant for user....
+
+  async findOnebyuser(id: string) {
+    try {
+      const baseProduct = await this.prisma.baseProduct.findUnique({
+        where: { id },
+        include: {
+          category: true,
+          subcategory: true,
+          variants: { include: { images: true, colorRef: true, sizeRef: true } },
+        },
+      });
+
+      if (!baseProduct) {
+        throw new BadRequestException('Base product not found');
+      }
+
+      const defaultVariants = baseProduct.variants.filter(v => v.isDefault === true);
+
+      return {
+        id: baseProduct.id,
+        name: baseProduct.name,
+        sku: baseProduct.sku,
+        description: baseProduct.description,
+        benefits: baseProduct.benefits,
+        leatherCareGuide: baseProduct.leatherCareGuide,
+        category: baseProduct.category
+          ? `${baseProduct.category.name} → ${baseProduct.subcategory?.name || ''}`
+          : null,
+        variants: defaultVariants.map((variant) => ({
+          id: variant.id,
+          colorId: variant.colorRef?.id,
+          color: variant.color,
+          sizeId: variant.sizeRef?.id,
+          size: variant.size,
+          price: variant.price,
+          stockQuantity: variant.stockQuantity,
+          status: this.getStockStatus(variant.stockQuantity),
+          isDefault: variant.isDefault,
+          images: variant.images.map((image) => ({ id: image.id, url: image.url })),
+        })),
+      };
+    } catch (error) {
+      throw new BadRequestException('Failed to fetch base product');
+    }
+  }
+
 
   async update(id: string, updateDto: UpdateMainbaseproductDto) {
     // Load current to validate with its existing category
@@ -406,6 +610,53 @@ export class MainbaseproductService {
       throw error;
     }
   }
+
+  async setDefaultVariantByColorAndSize(baseProductId: string, colorId: string, sizeId: string) {
+    try {
+      // find all variants for this product
+      const variants = await this.prisma.variant.findMany({
+        where: { BaseproductId: baseProductId },
+      });
+
+      if (!variants || variants.length === 0) {
+        throw new BadRequestException('No variants found for this base product');
+      }
+
+      // find the target variant
+      const targetVariant = variants.find(
+        (v) => v.colorId === colorId && v.sizeId === sizeId,
+      );
+
+      if (!targetVariant) {
+        throw new BadRequestException('No variant found with the given color and size');
+      }
+
+      // update all variants in a single transaction
+      await this.prisma.$transaction(async (tx) => {
+        // make all variants isDefault = false
+        await tx.variant.updateMany({
+          where: { BaseproductId: baseProductId },
+          data: { isDefault: false },
+        });
+
+        // set target variant isDefault = true
+        await tx.variant.update({
+          where: { id: targetVariant.id },
+          data: { isDefault: true },
+        });
+      });
+
+      return {
+        message: 'Default variant updated successfully',
+        variantId: targetVariant.id,
+        colorId,
+        sizeId,
+      };
+    } catch (error) {
+      throw new BadRequestException('Failed to update default variant');
+    }
+  }
+
 
   async deleteVariant(baseProductId: string, variantId: string) {
     await this.ensureVariantBelongsToBase(baseProductId, variantId);
