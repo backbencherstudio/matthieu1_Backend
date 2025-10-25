@@ -82,7 +82,7 @@ export class MainbaseproductController {
   }
 
   @Get('list')
-  findAll(
+  async findAll(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('category') category?: string,
@@ -91,7 +91,8 @@ export class MainbaseproductController {
     try {
       const pageNum = page ? parseInt(page, 10) : 1;
       const limitNum = limit ? parseInt(limit, 10) : 10;
-      return this.mainbaseproductService.findAll({ page: pageNum, limit: limitNum, category, search });
+
+      return await this.mainbaseproductService.findAll({ page: pageNum, limit: limitNum, category, search });
     } catch (error) {
       return { message: 'Failed to list base products', error: String(error?.message || error) };
     }
