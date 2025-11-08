@@ -7,6 +7,7 @@ import { UserModule } from './user/user.module';
 import { NotificationModule } from './notification/notification.module';
 import { GeneralSettingsModule } from './general-setings/general-setings.module';
 import { SystemSettingsModule } from './system-setings/system-setings.module';
+import { TeamsModule } from './teams/teams.module';
 
 
 
@@ -20,6 +21,7 @@ import { SystemSettingsModule } from './system-setings/system-setings.module';
     NotificationModule,
     GeneralSettingsModule,
     SystemSettingsModule,
+    TeamsModule,
 
   ],
 })
