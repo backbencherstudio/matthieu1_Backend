@@ -23,6 +23,9 @@ import { AccountManagementService } from './account-management/account-managemen
 import { SubscriptionService } from '../application/subscription/subscription.service';
 import { NotificationGateway } from '../application/notification/notification.gateway';
 
+import * as geoip from 'geoip-lite';
+
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -33,7 +36,7 @@ export class AuthService {
     private readonly subscriptionService: SubscriptionService,
     private readonly accountManagementService: AccountManagementService,
     private readonly notificationGateway: NotificationGateway,
-  ) {}
+  ) { }
 
   async me(userId: string) {
     try {
@@ -258,7 +261,7 @@ export class AuthService {
     }
   }
 
-  async login({ email, userId }) {
+  async login({ email, userId }, req: any) {
     try {
       const user = await UserRepository.getUserDetails(userId);
 
@@ -269,6 +272,19 @@ export class AuthService {
       if (user.isActive === false) {
         await this.accountManagementService.reactivateAccount(userId);
       }
+      // ----- LOCATION DETECTION -----
+        // const ip =
+        //   req.headers['x-forwarded-for']?.toString().split(',')[0] ||
+        //   req.socket.remoteAddress;
+        const ip = '8.8.8.8';
+        const geo = geoip.lookup(ip);
+        const location = {
+          ip,
+          country: geo?.country || null,
+          city: geo?.city || null,
+          timezone: geo?.timezone || null,
+          loginAt: new Date(),
+        };
 
       if (user.isTwoFactorEnabled) {
         const code = Math.floor(100000 + Math.random() * 900000).toString();
@@ -281,6 +297,10 @@ export class AuthService {
             twoFactorExpiresAt: expiresAt,
           },
         });
+
+
+
+        
 
         // STEP 3: Send OTP
         if (user.isTwoFactorEnabled) {
@@ -308,8 +328,14 @@ export class AuthService {
         expiresIn: process.env.JWT_EXPIRY, // '1d' works directly
       });
 
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { country: location.country },
+      });
+
       return {
         success: true,
+        location: location,
         message: 'Logged in successfully',
         authorization: {
           token,

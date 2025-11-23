@@ -107,10 +107,13 @@ export class AuthController {
 
       const user_email = req.user.email;
 
-      const response = await this.authService.login({
-        userId: user_id,
-        email: user_email,
-      });
+      const response = await this.authService.login(
+        {
+          userId: user_id,
+          email: user_email,
+        },
+        req,
+      );
 
       return response;
     } catch (error) {
