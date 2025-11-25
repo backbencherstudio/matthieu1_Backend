@@ -653,3 +653,15 @@ model VariantImage {
 }
 
 //////////////////////////////////////////////////////Base Product Models End/////////////////////////////////////////////////
+
+model Team {
+  id         String   @id @default(cuid())
+  name       String
+  designation String?
+  image      String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("teams")
+}
