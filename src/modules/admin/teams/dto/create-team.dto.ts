@@ -1,9 +1,12 @@
 import { IsOptional, IsString } from "class-validator";
 
 export class CreateTeamDto {
-    @IsString()
+  @IsString()
   name: string;
+
+  @IsString()
   designation?: string;
+  
   @IsOptional()
   @IsString()
   image?: string;
