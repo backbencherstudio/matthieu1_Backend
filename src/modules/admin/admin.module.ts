@@ -10,8 +10,8 @@ import { SystemSettingsModule } from './system-setings/system-setings.module';
 import { TeamsModule } from './teams/teams.module';
 import { AmbassadorModule } from './ambassador/ambassador.module';
 import { CompetitionModule } from './competition/competition.module';
-import { ContactInfoModule } from './contact-info/contact-info.module';
 import { ContactUsModule } from './contact_us/contact_us.module';
+import { ContactInfosModule } from './contact-infos/contact-infos.module';
 
 
 
@@ -28,8 +28,8 @@ import { ContactUsModule } from './contact_us/contact_us.module';
     TeamsModule,
     AmbassadorModule,
     CompetitionModule,
-    ContactInfoModule,
     ContactUsModule,
+    ContactInfosModule,
 
   ],
 })

@@ -5,7 +5,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url= env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
 
@@ -690,7 +690,7 @@ model competition {
   @@map("competitions") 
 }
 
-model contact_info{
+model contact_infos{
   id         String   @id @default(cuid())
   address    String
   fb_link    String?
@@ -699,7 +699,7 @@ model contact_info{
   youtube_link String?
   updated_at DateTime @updatedAt
 
-  @@map("contact_info")
+  @@map("contact_infos")
 }
 
 model contact_us{
