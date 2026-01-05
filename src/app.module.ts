@@ -5,7 +5,6 @@ import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
 
-// internal imports
 import appConfig from './config/app.config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -17,7 +16,6 @@ import { MailModule } from './mail/mail.module';
 import { ApplicationModule } from './modules/application/application.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { PaymentModule } from './modules/payment/payment.module';
-//import { PaypalModule } from './modules/payment/paypal/paypal.module';
 import { SubscriptionModule } from './modules/application/subscription/subscription.module';
 import { NotificationModule } from './modules/application/notification/notification.module';
 

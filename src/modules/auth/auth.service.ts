@@ -22,7 +22,6 @@ import { NotificationService } from '../application/notification/notification.se
 import { AccountManagementService } from './account-management/account-management.service';
 import { SubscriptionService } from '../application/subscription/subscription.service';
 import { NotificationGateway } from '../application/notification/notification.gateway';
-
 import * as geoip from 'geoip-lite';
 
 

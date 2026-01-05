@@ -8,6 +8,10 @@ import { NotificationModule } from './notification/notification.module';
 import { GeneralSettingsModule } from './general-setings/general-setings.module';
 import { SystemSettingsModule } from './system-setings/system-setings.module';
 import { TeamsModule } from './teams/teams.module';
+import { AmbassadorModule } from './ambassador/ambassador.module';
+import { CompetitionModule } from './competition/competition.module';
+import { ContactUsModule } from './contact_us/contact_us.module';
+import { ContactInfosModule } from './contact-infos/contact-infos.module';
 
 
 
@@ -22,6 +26,10 @@ import { TeamsModule } from './teams/teams.module';
     GeneralSettingsModule,
     SystemSettingsModule,
     TeamsModule,
+    AmbassadorModule,
+    CompetitionModule,
+    ContactUsModule,
+    ContactInfosModule,
 
   ],
 })
