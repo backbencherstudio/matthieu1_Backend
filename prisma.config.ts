@@ -12,7 +12,7 @@ import 'dotenv/config'; // ensures .env variables are loaded
 import { defineConfig, env } from '@prisma/config';
 
 export default defineConfig({
-  schema: 'prisma/schema.prisma', // path to your schema
+  schema: 'prisma/schema.prisma', // path to your- schema
   datasource: {
     url: env('DATABASE_URL'), // safer than process.env
   },
