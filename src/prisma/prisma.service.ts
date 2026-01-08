@@ -4,7 +4,7 @@ import { SoftdeleteMiddleware } from "./middleware/softdelete.middleware";
 
 @Injectable()
 export class PrismaService
-  extends PrismaClient<Prisma.PrismaClientOptions, 'query'>
+  extends PrismaClient<Prisma.PrismaClientOptions, 'query'>  
   implements OnModuleInit, OnModuleDestroy
 {
   private readonly logger = new Logger(PrismaService.name);
