@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Patch,
   Post,
+  Query,
   Req,
   UploadedFile,
   UploadedFiles,
@@ -26,17 +27,14 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-
-
+import { RolesGuard } from 'src/common/guard/role/roles.guard';
+import { Roles } from 'src/common/guard/role/roles.decorator';
+import { Role } from 'src/common/guard/role/role.enum';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private authService: AuthService,
-
-  
-  ) { }
+  constructor(private authService: AuthService) {}
 
   @ApiOperation({ summary: 'Get user details' })
   @ApiBearerAuth()
@@ -57,8 +55,6 @@ export class AuthController {
     }
   }
 
-  
-
   @ApiOperation({ summary: 'Register a user' })
   @Post('register')
   async create(@Body() data: CreateUserDto) {
@@ -73,7 +69,6 @@ export class AuthController {
         };
       }
 
-
       if (!password) {
         return {
           success: false,
@@ -85,7 +80,6 @@ export class AuthController {
       const response = await this.authService.register({ email, password });
 
       return response; // Return the unified response
-
     } catch (error) {
       return {
         success: false,
@@ -95,6 +89,35 @@ export class AuthController {
     }
   }
 
+  @ApiOperation({ summary: 'Get all users (type: user)' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @Get('users')
+  // async getAllUsers() {
+  //   try {
+  //     return await this.authService.getAllUsers();
+  //   } catch (error) {
+  //     return {
+  //       success: false,
+  //       statusCode: 500,
+  //       message: error?.message || 'Something went wrong',
+  //     };
+  //   }
+  // }
+  async getUsers(@Query('page') page = '1', @Query('limit') limit = '10') {
+    try {
+      return await this.authService.getUsersWithPagination(
+        Number(page),
+        Number(limit),
+      );
+    } catch (error) {
+      return {
+        success: false,
+        statusCode: 500,
+        message: error?.message || 'Something went wrong',
+      };
+    }
+  }
 
   // login user
   @ApiOperation({ summary: 'Login user' })
@@ -102,7 +125,6 @@ export class AuthController {
   @Post('login')
   async login(@Req() req: Request) {
     try {
-
       const user_id = req.user.id;
 
       const user_email = req.user.email;
@@ -222,10 +244,9 @@ export class AuthController {
         throw new HttpException('Token not provided', HttpStatus.UNAUTHORIZED);
       }
 
-
       // ✅ Decode token (without verification)
       const decoded: any = jwt.decode(String(token));
-      console.log("Decoded JWT payload:", decoded);
+      console.log('Decoded JWT payload:', decoded);
 
       return await this.authService.verifyEmail({
         email: email,
@@ -333,8 +354,6 @@ export class AuthController {
 
   // --------------end change password---------
 
-
-
   // -------change email address------
   @ApiOperation({ summary: 'request email change' })
   @ApiBearerAuth()
@@ -372,12 +391,22 @@ export class AuthController {
       const oldPassword = data.old_password;
       const newPassword = data.new_password;
       if (!oldPassword) {
-        throw new HttpException('Old password not provided', HttpStatus.UNAUTHORIZED);
+        throw new HttpException(
+          'Old password not provided',
+          HttpStatus.UNAUTHORIZED,
+        );
       }
       if (!newPassword) {
-        throw new HttpException('New password not provided', HttpStatus.UNAUTHORIZED);
+        throw new HttpException(
+          'New password not provided',
+          HttpStatus.UNAUTHORIZED,
+        );
       }
-      return await this.authService.changePasswordForUser(user_id, oldPassword, newPassword);
+      return await this.authService.changePasswordForUser(
+        user_id,
+        oldPassword,
+        newPassword,
+      );
     } catch (error) {
       return {
         success: false,
@@ -385,7 +414,6 @@ export class AuthController {
       };
     }
   }
-
 
   @ApiOperation({ summary: 'Change email address' })
   @ApiBearerAuth()
@@ -420,10 +448,6 @@ export class AuthController {
   }
   // -------end change email address------
 
- 
-
- 
-
   // Tohidul 2FA ------------------------------------------------------------
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
@@ -442,10 +466,5 @@ export class AuthController {
     return this.authService.verify2FACode(req.user.userId, code);
   }
 
-
-
-
   //apple Oauth
- 
 }
-
