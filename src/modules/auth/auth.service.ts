@@ -24,7 +24,6 @@ import { SubscriptionService } from '../application/subscription/subscription.se
 import { NotificationGateway } from '../application/notification/notification.gateway';
 import * as geoip from 'geoip-lite';
 
-
 @Injectable()
 export class AuthService {
   constructor(
@@ -35,7 +34,7 @@ export class AuthService {
     private readonly subscriptionService: SubscriptionService,
     private readonly accountManagementService: AccountManagementService,
     private readonly notificationGateway: NotificationGateway,
-  ) { }
+  ) {}
 
   async me(userId: string) {
     try {
@@ -272,18 +271,18 @@ export class AuthService {
         await this.accountManagementService.reactivateAccount(userId);
       }
       // ----- LOCATION DETECTION -----
-        // const ip =
-        //   req.headers['x-forwarded-for']?.toString().split(',')[0] ||
-        //   req.socket.remoteAddress;
-        const ip = '8.8.8.8';
-        const geo = geoip.lookup(ip);
-        const location = {
-          ip,
-          country: geo?.country || null,
-          city: geo?.city || null,
-          timezone: geo?.timezone || null,
-          loginAt: new Date(),
-        };
+      // const ip =
+      //   req.headers['x-forwarded-for']?.toString().split(',')[0] ||
+      //   req.socket.remoteAddress;
+      const ip = '8.8.8.8';
+      const geo = geoip.lookup(ip);
+      const location = {
+        ip,
+        country: geo?.country || null,
+        city: geo?.city || null,
+        timezone: geo?.timezone || null,
+        loginAt: new Date(),
+      };
 
       if (user.isTwoFactorEnabled) {
         const code = Math.floor(100000 + Math.random() * 900000).toString();
@@ -296,10 +295,6 @@ export class AuthService {
             twoFactorExpiresAt: expiresAt,
           },
         });
-
-
-
-        
 
         // STEP 3: Send OTP
         if (user.isTwoFactorEnabled) {
@@ -477,6 +472,102 @@ export class AuthService {
         success: false,
         statusCode: 500,
         message: error?.message || 'Something went wrong',
+      };
+    }
+  }
+
+  //   async getAllUsers() {
+  //   try {
+  //     const users = await this.prisma.user.findMany({
+  //       where: {
+  //         type: 'user',
+  //         deleted_at: null,
+  //       },
+  //       select: {
+  //         id: true,
+  //         email: true,
+  //         username: true,
+  //         name: true,
+  //         avatar: true,
+  //         country: true,
+  //         city: true,
+  //         status: true,
+  //         isActive: true,
+  //         created_at: true,
+  //       },
+  //       orderBy: {
+  //         created_at: 'desc',
+  //       },
+  //     });
+
+  //     return {
+  //       success: true,
+  //       statusCode: 200,
+  //       message: 'Users fetched successfully',
+  //       data: users,
+  //     };
+  //   } catch (error) {
+  //     return {
+  //       success: false,
+  //       statusCode: 500,
+  //       message: error?.message || 'Failed to fetch users',
+  //     };
+  //   }
+  // }
+
+  async getUsersWithPagination(page = 1, limit = 10) {
+    try {
+      const skip = (page - 1) * limit;
+
+      const [users, total] = await Promise.all([
+        this.prisma.user.findMany({
+          where: {
+            type: 'user',
+            deleted_at: null,
+          },
+          skip,
+          take: limit,
+          orderBy: {
+            created_at: 'desc',
+          },
+          select: {
+            id: true,
+            email: true,
+            username: true,
+            name: true,
+            avatar: true,
+            country: true,
+            city: true,
+            isActive: true,
+            status: true,
+            created_at: true,
+          },
+        }),
+        this.prisma.user.count({
+          where: {
+            type: 'user',
+            deleted_at: null,
+          },
+        }),
+      ]);
+
+      return {
+        success: true,
+        statusCode: 200,
+        message: 'Users fetched successfully',
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+        data: users,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        statusCode: 500,
+        message: error?.message || 'Failed to fetch users',
       };
     }
   }
