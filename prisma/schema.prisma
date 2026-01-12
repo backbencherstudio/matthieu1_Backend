@@ -720,3 +720,17 @@ model contact_us{
 
   @@map("contact_us")
 }
+
+model Expert{
+  id         String   @id @default(cuid())
+  name       String
+  email      String
+  phone      String?
+  country    String?
+  region     String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("experts")
+}
