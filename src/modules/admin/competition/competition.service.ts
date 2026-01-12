@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateCompetitionDto } from './dto/create-competition.dto';
 import { UpdateCompetitionDto } from './dto/update-competition.dto';
@@ -6,7 +10,7 @@ import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class CompetitionService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   private parseDate(dateStr: string): Date {
     // Input format: dd/mm/yy
@@ -35,8 +39,9 @@ export class CompetitionService {
 
     await this.prisma.competition.create({ data });
     return {
-      success: true, message: 'Competition created successfully',
-      data: { ...data }
+      success: true,
+      message: 'Competition created successfully',
+      data: { ...data },
     };
   }
 
@@ -81,7 +86,13 @@ export class CompetitionService {
   //   };
   // }
 
-  async findAll(page: number, limit: number, search?: string, location?: string, discipline?: string) {
+  async findAll(
+    page: number,
+    limit: number,
+    search?: string,
+    location?: string,
+    discipline?: string,
+  ) {
     const where: any = {};
 
     if (search) {
@@ -120,8 +131,6 @@ export class CompetitionService {
       },
     };
   }
-
-
 
   async findOne(id: string) {
     const result = await this.prisma.competition.findUnique({ where: { id } });
@@ -169,7 +178,6 @@ export class CompetitionService {
       },
     };
   }
-
 
   async remove(id: string) {
     await this.findOne(id);
