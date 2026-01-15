@@ -18,9 +18,10 @@ import { MaincategoryModule } from './admin-dashboard/product/maincategory/mainc
 import { MainbaseproductModule } from './admin-dashboard/product/mainbaseproduct/mainbaseproduct.module';
 import { ColorSizeModule } from './admin-dashboard/product/color-size/color-size.module';
 import { ExpertsModule } from './experts/experts.module';
+import { SadllesModule } from './sadlles/sadlles.module';
 
 
 @Module({
-  imports: [NotificationModule, ContactModule, FaqModule, SubscriptionModule, GoogleSubscriptionModule, BlogModule, BlogCategoriesModule, SubcategoryModule, MainproductModule, ContactInfoModule, ProductModule, CartModule, JobPortalModule, SaddleAlertModule, SavedProductModule, MaincategoryModule, MainbaseproductModule, ColorSizeModule, ExpertsModule],
+  imports: [NotificationModule, ContactModule, FaqModule, SubscriptionModule, GoogleSubscriptionModule, BlogModule, BlogCategoriesModule, SubcategoryModule, MainproductModule, ContactInfoModule, ProductModule, CartModule, JobPortalModule, SaddleAlertModule, SavedProductModule, MaincategoryModule, MainbaseproductModule, ColorSizeModule, ExpertsModule, SadllesModule],
 })
 export class ApplicationModule { }
