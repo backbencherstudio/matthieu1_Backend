@@ -34,15 +34,11 @@ export class SaddleAlertController {
   }
 
 
-
   @Roles(Role.ADMIN)
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.saddleAlertService.findOneAlert(id);
   }
-
-
-
 
   @Roles(Role.ADMIN)
   @Delete(':id')
