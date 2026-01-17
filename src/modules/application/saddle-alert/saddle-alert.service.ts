@@ -7,18 +7,13 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class SaddleAlertService {
   constructor(private prisma: PrismaService) { }
 
-  /**
-   * Generate a unique alert ID with ALT- prefix
-   * Format: ALT-XXXXXXXX (8 random digits)
-   */
+
   private generateAlertId(): string {
     const randomDigits = Math.floor(Math.random() * 100000000).toString().padStart(8, '0');
     return `ALT-${randomDigits}`;
   }
 
-  /**
-   * Ensure the generated alert ID is unique
-   */
+
   private async generateUniqueAlertId(): Promise<string> {
     let alertId: string;
     let isUnique = false;
@@ -34,9 +29,6 @@ export class SaddleAlertService {
     return alertId;
   }
 
-  /**
-   * Build efficient search conditions with word-based matching
-   */
   private buildSearchConditions(search: string) {
     const searchWords = search.trim().split(/\s+/).filter(word => word.length > 0);
     const searchUpper = search.toUpperCase();
@@ -146,6 +138,8 @@ export class SaddleAlertService {
     const alert = await this.prisma.customerAlert.findUnique({
       where: { id },
     });
+
+    console.log('Retrieved alert:', alert);
 
     if (!alert) {
       return null;
