@@ -1,34 +1,86 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Body,
+  UploadedFiles,
+  UseInterceptors,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { SadllesService } from './sadlles.service';
 import { CreateSadlleDto } from './dto/create-sadlle.dto';
 import { UpdateSadlleDto } from './dto/update-sadlle.dto';
+import { SaddleUploadService } from './saddle-upload.service';
+import { saddleSubcategory } from '@prisma/client';
+import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guard/role/roles.guard';
+import { Roles } from 'src/common/guard/role/roles.decorator';
+import { Role } from 'src/common/guard/role/role.enum';
 
 @Controller('sadlles')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class SadllesController {
-  constructor(private readonly sadllesService: SadllesService) {}
+  constructor(
+    private readonly sadllesService: SadllesService,
+    private readonly saddleUploadService: SaddleUploadService,
+  ) {}
 
   @Post()
-  create(@Body() createSadlleDto: CreateSadlleDto) {
-    return this.sadllesService.create(createSadlleDto);
-  }
+  @Roles(Role.ADMIN)
+  @UseInterceptors(FilesInterceptor('images'))
+  async create(
+    @Body() body: CreateSadlleDto,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    const saddle = await this.sadllesService.create(body);
 
-  @Get()
-  findAll() {
-    return this.sadllesService.findAll();
-  }
+    if (files?.length) {
+      const urls = await this.saddleUploadService.uploadMany(
+        'saddles/images',
+        files,
+      );
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.sadllesService.findOne(+id);
+      await this.sadllesService.addImages(saddle.id, urls);
+    }
+
+    return saddle;
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateSadlleDto: UpdateSadlleDto) {
-    return this.sadllesService.update(+id, updateSadlleDto);
+  @Roles(Role.ADMIN)
+  @UseInterceptors(FilesInterceptor('images'))
+  async update(
+    @Param('id') id: string,
+    @Body() body: UpdateSadlleDto,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    const saddle = await this.sadllesService.update(id, body);
+
+    if (files?.length) {
+      const urls = await this.saddleUploadService.uploadMany(
+        'saddles/images',
+        files,
+      );
+
+      await this.sadllesService.addImages(id, urls);
+    }
+
+    return saddle;
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.sadllesService.remove(+id);
+  @Get()
+  @Roles(Role.USER)
+  findAll(@Query('subcategory') subcategory?: saddleSubcategory) {
+    return this.sadllesService.findAll(subcategory);
+  }
+
+  @Get(':id')
+  @Roles(Role.USER)
+  findOne(@Param('id') id: string) {
+    return this.sadllesService.findOne(id);
   }
 }

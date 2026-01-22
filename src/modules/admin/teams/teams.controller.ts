@@ -75,7 +75,7 @@ export class TeamsController {
   }
 
   @Get()
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.USER)
   findAll(
     @Query('page') page?: string,
     @Query('limit') limit?: string,

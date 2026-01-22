@@ -575,10 +575,14 @@ model Favorite {
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  baseProductId String
-  baseProduct   BaseProduct @relation(fields: [baseProductId], references: [id], onDelete: Cascade)
+  baseProductId String?
+  baseProduct   BaseProduct? @relation(fields: [baseProductId], references: [id], onDelete: Cascade)
+
+  saddleProductId String?
+  saddleProduct   SaddlesProduct? @relation(fields: [saddleProductId], references: [id], onDelete: Cascade)
 
   @@unique([userId, baseProductId])
+  @@unique([userId, saddleProductId])
   @@map("favorites")
 }
 
@@ -734,3 +738,62 @@ model Expert{
 
   @@map("experts")
 }
+
+// ---------------------------------saddles product part starts--------------------------------
+
+enum productcategory {
+  SADDLES
+  TACK
+  LEADLINE
+  USED
+}
+
+enum saddleSubcategory {
+  ATLAS
+  ARION
+  ATHENA
+}
+
+enum tackSubcategory {
+  BRIDLES
+  REINS
+  MARTINGALES
+  GRITHSF
+  STIRRUP_LEATHERS
+  PADS
+  RIDER_APPAREL
+  BOOTS
+  ACCESSORIES
+}
+
+
+model SaddlesProduct {
+  id              String    @id @default(cuid())
+  name            String
+  sku             String      @unique
+  header_title    String?
+  header_description String?
+  price           String
+  description     String?
+  category        productcategory
+  subcategory     saddleSubcategory
+  images          SaddleProductImage[]
+  colors              String[]  
+  piping_color        String[]      
+  leather_type        String[]        
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  Favorite Favorite[]
+
+  @@map("saddles_products")
+}
+
+model SaddleProductImage {
+  id        String    @id @default(cuid())
+  url       String
+  saddleproduct   SaddlesProduct @relation(fields: [SaddlesProductId], references: [id], onDelete: Cascade)
+  SaddlesProductId String
+}
+
+// ---------------------------------saddles product part ends----------------------------------
