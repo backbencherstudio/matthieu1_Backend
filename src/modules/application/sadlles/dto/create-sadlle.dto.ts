@@ -93,4 +93,6 @@ export class CreateSadlleDto {
 
   @IsEnum(saddleSubcategory)
   subcategory: saddleSubcategory;
+
+  images?: string[];
 }

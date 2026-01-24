@@ -675,6 +675,8 @@ model Ambassador {
   name       String
   social_links String?
   image      String?
+  country    String?
+  flag_image String?
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -754,6 +756,12 @@ enum saddleSubcategory {
   ATHENA
 }
 
+enum leadline_size{
+   SIZE_12_5
+   SIZE_14_5
+}
+
+
 enum tackSubcategory {
   BRIDLES
   REINS
@@ -774,13 +782,14 @@ model SaddlesProduct {
   header_title    String?
   header_description String?
   price           String
+  size            leadline_size?
   description     String?
   category        productcategory
   subcategory     saddleSubcategory
   images          SaddleProductImage[]
   colors              String[]  
   piping_color        String[]      
-  leather_type        String[]        
+  leather_type        String[] 
 
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
