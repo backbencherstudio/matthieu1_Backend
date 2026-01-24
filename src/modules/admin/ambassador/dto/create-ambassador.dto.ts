@@ -10,4 +10,12 @@ export class CreateAmbassadorDto {
   @IsOptional()
   @IsString()
   image?: string;
+
+  @IsOptional()
+  @IsString()
+  country?: string;
+
+  @IsOptional()
+  @IsString()
+  flag_image?: string;
 }

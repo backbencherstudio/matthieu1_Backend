@@ -36,4 +36,9 @@ export class UpdateSadlleDto {
   @Transform(normalizeArray)
   @IsArray()
   leather_type?: string[];
+
+  @IsOptional()
+  @Transform(normalizeArray)
+  @IsArray()
+  images?: string[];
 }
