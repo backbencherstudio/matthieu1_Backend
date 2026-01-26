@@ -5,16 +5,20 @@ import { JobUploadService } from './job-upload.service';
 
 @Injectable()
 export class JobPortalService {
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly jobUploadService: JobUploadService,
-  ) { }
+  ) {}
 
   async create(createJobPortalDto: CreateJobPortalDto) {
-    return this.prisma.job.create({
+    await this.prisma.job.create({
       data: createJobPortalDto,
     });
+    return {
+      message: 'Job application submitted successfully',
+      success: true,
+      data: true,
+    };
   }
 
   async findAll(page: number = 1, limit: number = 10) {
@@ -57,7 +61,6 @@ export class JobPortalService {
 
     return job;
   }
-
 
   async remove(id: string) {
     // Check if job exists first
