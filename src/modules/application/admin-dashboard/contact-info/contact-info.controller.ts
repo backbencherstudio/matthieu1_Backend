@@ -8,18 +8,28 @@ import { Role } from 'src/common/guard/role/role.enum';
 
 @Controller('contact-info')
 export class ContactInfoController {
-  constructor(private readonly service: ContactInfoService) { }
+  constructor(private readonly service: ContactInfoService) {}
 
   @UseGuards(JwtAuthGuard)
   @Get()
   async getContactInfo() {
-    return this.service.getContactInfo();
+    const data = await this.service.getContactInfo();
+    return {
+      success: true,
+      message: 'Contact info fetched successfully',
+      data,
+    };
   }
-  
+
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Put()
   async updateContactInfo(@Body() dto: UpdateContactInfoDto) {
-    return this.service.updateContactInfo(dto);
+    const data = await this.service.updateContactInfo(dto);
+    return {
+      success: true,
+      message: 'Contact info updated successfully',
+      data,
+    };
   }
 }

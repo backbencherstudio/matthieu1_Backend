@@ -24,45 +24,75 @@ export class ExpertsController {
 
   @Post()
   @Roles(Role.ADMIN)
-  create(@Body() dto: CreateExpertDto) {
-    return this.expertsService.create(dto);
+  async create(@Body() dto: CreateExpertDto) {
+    const data = await this.expertsService.create(dto);
+    return {
+      success: true,
+      message: 'Expert created successfully',
+      data,
+    };
   }
 
   @Get()
   @Roles(Role.ADMIN)
-  findAll(
+  async findAll(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('search') search?: string,
   ) {
-    return this.expertsService.findAll(
+    const data = await this.expertsService.findAll(
       page ? Number(page) : 1,
       limit ? Number(limit) : 10,
       search,
     );
+    return {
+      success: true,
+      message: 'Experts fetched successfully',
+      data,
+    };
   }
 
   @Get(':id')
   @Roles(Role.ADMIN)
-  findOne(@Param('id') id: string) {
-    return this.expertsService.findOne(id);
+  async findOne(@Param('id') id: string) {
+    const data = await this.expertsService.findOne(id);
+    return {
+      success: true,
+      message: 'Expert fetched successfully',
+      data,
+    };
   }
 
   @Patch(':id')
   @Roles(Role.ADMIN)
-  update(@Param('id') id: string, @Body() dto: UpdateExpertDto) {
-    return this.expertsService.update(id, dto);
+  async update(@Param('id') id: string, @Body() dto: UpdateExpertDto) {
+    const data = await this.expertsService.update(id, dto);
+    return {
+      success: true,
+      message: 'Expert updated successfully',
+      data,
+    };
   }
 
   @Delete(':id')
   @Roles(Role.ADMIN)
-  remove(@Param('id') id: string) {
-    return this.expertsService.remove(id);
+  async remove(@Param('id') id: string) {
+    const data = await this.expertsService.remove(id);
+    return {
+      success: true,
+      message: 'Expert deleted successfully',
+      data,
+    };
   }
 
   @Get('country/:country')
   @Roles(Role.USER)
-  findByCountry(@Param('country') country: string) {
-    return this.expertsService.findByCountry(country);
+  async findByCountry(@Param('country') country: string) {
+    const data = await this.expertsService.findByCountry(country);
+    return {
+      success: true,
+      message: 'Experts fetched successfully',
+      data,
+    };
   }
 }

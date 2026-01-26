@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Param, Delete, UploadedFiles, UseInterceptors, UseGuards, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  UploadedFiles,
+  UseInterceptors,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guard/role/roles.guard';
@@ -12,19 +23,25 @@ export class JobPortalController {
   constructor(
     private readonly jobPortalService: JobPortalService,
     private readonly jobUploadService: JobUploadService,
-  ) { }
+  ) {}
 
   @Post()
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileFieldsInterceptor([{ name: 'files', maxCount: 10 }]))
-  async create(@Body() body: any, @UploadedFiles() files?: { files?: Express.Multer.File[] }) {
+  async create(
+    @Body() body: any,
+    @UploadedFiles() files?: { files?: Express.Multer.File[] },
+  ) {
     let fileUrls: string[] = [];
 
     if (files?.files) {
-      fileUrls = await this.jobUploadService.uploadMany('job-portal', files.files);
+      fileUrls = await this.jobUploadService.uploadMany(
+        'job-portal',
+        files.files,
+      );
     }
 
-    return this.jobPortalService.create({
+    const data = await this.jobPortalService.create({
       firstName: body.firstName,
       lastName: body.lastName,
       email: body.email,
@@ -35,25 +52,38 @@ export class JobPortalController {
       message: body.message,
       files: fileUrls.join(',') || undefined,
     });
+
+    return {
+      success: true,
+      message: 'Job application created successfully',
+      data,
+    };
   }
 
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
-  findAll(
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-  ) {
+  async findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
     const pageNumber = page ? parseInt(page, 10) : 1;
     const limitNumber = limit ? parseInt(limit, 10) : 10;
-    return this.jobPortalService.findAll(pageNumber, limitNumber);
+    const data = await this.jobPortalService.findAll(pageNumber, limitNumber);
+    return {
+      success: true,
+      message: 'Job applications fetched successfully',
+      data,
+    };
   }
 
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
-  findOne(@Param('id') id: string) {
-    return this.jobPortalService.findOne(id);
+  async findOne(@Param('id') id: string) {
+    const data = await this.jobPortalService.findOne(id);
+    return {
+      success: true,
+      message: 'Job application fetched successfully',
+      data,
+    };
   }
 
   @Delete(':id')
