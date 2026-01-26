@@ -756,10 +756,6 @@ enum saddleSubcategory {
   ATHENA
 }
 
-enum leadline_size{
-   SIZE_12_5
-   SIZE_14_5
-}
 
 
 enum tackSubcategory {
@@ -782,10 +778,10 @@ model SaddlesProduct {
   header_title    String?
   header_description String?
   price           String
-  size            leadline_size?
+  sizes           String[]
   description     String?
   category        productcategory
-  subcategory     saddleSubcategory
+  subcategory     saddleSubcategory?
   images          SaddleProductImage[]
   colors              String[]  
   piping_color        String[]      

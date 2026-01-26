@@ -1,53 +1,11 @@
-// import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
-// import { productcategory, saddleSubcategory } from '@prisma/client';
-
-// export class CreateSadlleDto {
-//   @IsString()
-//   name: string;
-
-//   @IsOptional()
-//   @IsString()
-//   sku?: string;
-
-//   @IsOptional()
-//   @IsString()
-//   header_title?: string;
-
-//   @IsOptional()
-//   @IsString()
-//   header_description?: string;
-
-//   @IsString()
-//   price: string;
-
-//   @IsOptional()
-//   @IsString()
-//   description?: string;
-
-//   @IsOptional()
-//   @IsString()
-//   colors?: string;
-
-//   @IsOptional()
-//   @IsString()
-//   piping_color?: string;
-
-//   @IsOptional()
-//   @IsString()
-//   leather_type?: string;
-
-//   // optional input, but FORCED to SADDLES
-//   @IsOptional()
-//   @IsEnum(productcategory)
-//   category?: productcategory;
-
-//   @IsEnum(saddleSubcategory)
-//   subcategory: saddleSubcategory;
-// }
-
 import { IsArray, IsEnum, IsOptional, IsString } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { productcategory, saddleSubcategory } from '@prisma/client';
+
+const normalizeArray = ({ value }: { value: any }) => {
+  if (value === undefined || value === null) return undefined;
+  return Array.isArray(value) ? value : [value];
+};
 
 export class CreateSadlleDto {
   @IsString()
@@ -63,6 +21,12 @@ export class CreateSadlleDto {
 
   @IsString()
   price: string;
+
+  @IsOptional()
+  @Transform(normalizeArray)
+  @IsArray()
+  @IsString({ each: true })
+  sizes?: string[];
 
   @IsOptional()
   @IsString()
@@ -87,12 +51,12 @@ export class CreateSadlleDto {
   @Type(() => String)
   leather_type?: string[];
 
-  @IsOptional()
   @IsEnum(productcategory)
-  category?: productcategory;
+  category: productcategory;
 
+  @IsOptional()
   @IsEnum(saddleSubcategory)
-  subcategory: saddleSubcategory;
+  subcategory?: saddleSubcategory;
 
   images?: string[];
 }
