@@ -48,7 +48,11 @@ export class SadllesController {
       await this.sadllesService.addImages(saddle.id, urls);
     }
 
-    return saddle;
+    return {
+      success: true,
+      message: 'Saddle created successfully',
+      data: saddle,
+    };
   }
 
   // ================= UPDATE =================
@@ -70,34 +74,65 @@ export class SadllesController {
       await this.sadllesService.addImages(id, urls);
     }
 
-    return saddle;
+    return {
+      success: true,
+      message: 'Saddle updated successfully',
+      data: saddle,
+    };
   }
 
   // ================= DELETE IMAGE =================
   @Delete('images/:imageId')
   @Roles(Role.ADMIN)
   deleteImage(@Param('imageId') imageId: string) {
-    return this.sadllesService.deleteImage(imageId);
+    return this.sadllesService.deleteImage(imageId).then((data) => ({
+      success: true,
+      message: 'Image deleted successfully',
+      data,
+    }));
   }
 
   // ================= DELETE =================
   @Delete(':id')
   @Roles(Role.ADMIN)
   delete(@Param('id') id: string) {
-    return this.sadllesService.delete(id);
+    return this.sadllesService.delete(id).then((data) => ({
+      success: true,
+      message: 'Saddle deleted successfully',
+      data,
+    }));
   }
 
   // ================= FIND ALL =================
   @Get()
   @Roles(Role.USER)
   findAll(@Query('subcategory') subcategory?: saddleSubcategory) {
-    return this.sadllesService.findAll(subcategory);
+    return this.sadllesService.findAll(subcategory).then((data) => ({
+      success: true,
+      message: 'Saddles retrieved successfully',
+      data,
+    }));
   }
 
   // ================= FIND ONE =================
   @Get(':id')
   @Roles(Role.USER)
   findOne(@Param('id') id: string) {
-    return this.sadllesService.findOne(id);
+    return this.sadllesService.findOne(id).then((data) => ({
+      success: true,
+      message: 'Saddle retrieved successfully',
+      data,
+    }));
+  }
+
+  // ================= GET LEADLINE =================
+  @Get('leadline/product')
+  @Roles(Role.USER, Role.ADMIN)
+  getLeadline() {
+    return this.sadllesService.getLeadlineProduct().then((data) => ({
+      success: true,
+      message: 'Leadline product retrieved successfully',
+      data,
+    }));
   }
 }
