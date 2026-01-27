@@ -363,14 +363,29 @@ model GeneralSetting {
 ///////////////////////////////////////////////////// BLOG MODELS STARTS/////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-model BlogCategory {
-  id         String   @id @default(cuid())
-  name       String   @unique
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+enum BlogCategory {
+  ALL
+  RIDER_SPOTLIGHTS
+  SPORT_HIGHLIGHTS
+  ON_THE_ROAD
+  ARION_WORLD
+}
 
-  // One category can have many blogs
-  blogs      Blog[]
+model Blog {
+  id                String        @id @default(cuid())
+  title             String
+  authorName        String
+  description       String        @default("")
+  thumbnailImageUrl String?
+  thumbnailVideoUrl String?
+  tags              String[]
+  category          BlogCategory
+  contentImages     BlogContentImage[]
+  status            BlogStatus    @default(DRAFT)
+  publishedAt       DateTime?
+  created_at        DateTime      @default(now())
+  updated_at        DateTime      @updatedAt
+  clicks            Int           @default(0)
 }
 
 enum BlogStatus {
@@ -378,43 +393,15 @@ enum BlogStatus {
   PUBLISHED
 }
 
-model Blog {
-  id                String              @id @default(cuid())
-  title             String
-  authorName        String
-  thumbnailImageUrl String?
-  thumbnailVideoUrl String?
-  descriptions      BlogDescription[]
-  tags              String[]
-  categoryId        String
-  category          BlogCategory        @relation(fields: [categoryId], references: [id])
-  contentImages     BlogContentImage[]
-  status            BlogStatus          @default(DRAFT)
-  publishedAt       DateTime?
-  created_at        DateTime            @default(now())
-  updated_at        DateTime            @updatedAt
-  clicks            Int                 @default(0)
-}
-
 model BlogContentImage {
   id          String   @id @default(cuid())
   imageUrl    String
   imageTitle  String
   imageDetail String
+  imageDescription String
 
   blogId      String
   blog        Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
-}
-
-model BlogDescription {
-  id          String   @id @default(cuid())
-  text        String
-
-  blogId      String
-  blog        Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
-
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
 }
