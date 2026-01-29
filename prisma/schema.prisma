@@ -363,16 +363,13 @@ model GeneralSetting {
 ///////////////////////////////////////////////////// BLOG MODELS STARTS/////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-model BlogCategory {
-  id         String   @id @default(cuid())
-  name       String   @unique
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
 
-  // One category can have many blogs
-  blogs      Blog[]
+enum Blog_Category {
+  RIDER_SPOTLIGHTS
+  SPORT_HIGHLIGHTS
+  ON_THE_ROAD
+  ARION_WORLD
 }
-
 enum BlogStatus {
   DRAFT
   PUBLISHED
@@ -384,10 +381,9 @@ model Blog {
   authorName        String
   thumbnailImageUrl String?
   thumbnailVideoUrl String?
-  descriptions      BlogDescription[]
+  descriptions      String?
   tags              String[]
-  categoryId        String
-  category          BlogCategory        @relation(fields: [categoryId], references: [id])
+  category          Blog_Category
   contentImages     BlogContentImage[]
   status            BlogStatus          @default(DRAFT)
   publishedAt       DateTime?
@@ -401,6 +397,7 @@ model BlogContentImage {
   imageUrl    String
   imageTitle  String
   imageDetail String
+  imageDescription String
 
   blogId      String
   blog        Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
@@ -408,16 +405,7 @@ model BlogContentImage {
   updated_at  DateTime @updatedAt
 }
 
-model BlogDescription {
-  id          String   @id @default(cuid())
-  text        String
 
-  blogId      String
-  blog        Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
-
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
-}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////// BLOG MODELS ENDS///////////////////////////////////////////////// 
