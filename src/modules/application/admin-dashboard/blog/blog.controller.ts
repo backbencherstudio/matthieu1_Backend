@@ -19,39 +19,47 @@ import { BlogUploadService } from './blog-upload.service';
 import { BlogsService } from './blog.service';
 import { Roles } from 'src/common/guard/role/roles.decorator';
 import { Role } from 'src/common/guard/role/role.enum';
+import { Blog_Category, BlogStatus } from '@prisma/client';
 
 @Controller('blogs')
 export class BlogsController {
   constructor(
     private readonly blogsService: BlogsService,
     private readonly blogUpload: BlogUploadService,
-  ) { }
+  ) {}
 
-
-  // Create a new blog
+  // =========================
+  // CREATE BLOG
+  // =========================
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Post()
   @UseInterceptors(
-    FileFieldsInterceptor([
-      { name: 'thumbnail', maxCount: 1 },
-      { name: 'contentImages', maxCount: 10 },
-    ], {
-      limits: {
-        fileSize: 100 * 1024 * 1024, // 100MB limit (for videos)
-      },
-    }),
+    FileFieldsInterceptor(
+      [
+        { name: 'thumbnail', maxCount: 1 },
+        { name: 'contentImages', maxCount: 10 },
+      ],
+      { limits: { fileSize: 100 * 1024 * 1024 } },
+    ),
   )
   async create(
     @Body() body: any,
     @UploadedFiles()
-    files: { thumbnail?: Express.Multer.File[]; contentImages?: Express.Multer.File[] },
+    files: {
+      thumbnail?: Express.Multer.File[];
+      contentImages?: Express.Multer.File[];
+    },
   ) {
     let thumbnailImageUrl: string | undefined;
     let thumbnailVideoUrl: string | undefined;
 
+    // Thumbnail upload
     if (files.thumbnail?.[0]) {
-      const thumbUrl = await this.blogUpload.uploadOne('blogs/thumbnail', files.thumbnail[0]);
+      const thumbUrl = await this.blogUpload.uploadOne(
+        'blogs/thumbnail',
+        files.thumbnail[0],
+      );
       if (files.thumbnail[0].mimetype.startsWith('image/')) {
         thumbnailImageUrl = thumbUrl;
       } else {
@@ -59,8 +67,11 @@ export class BlogsController {
       }
     }
 
-    const contentFiles = files.contentImages || [];
-    const uploadedImages = await this.blogUpload.uploadMany('blogs/content', contentFiles);
+    // Content images upload
+    const uploadedImages = await this.blogUpload.uploadMany(
+      'blogs/content',
+      files.contentImages || [],
+    );
 
     const contentImagesMeta = body.contentImagesMeta
       ? JSON.parse(body.contentImagesMeta)
@@ -70,112 +81,99 @@ export class BlogsController {
       imageUrl: url,
       imageTitle: contentImagesMeta[i]?.imageTitle || '',
       imageDetail: contentImagesMeta[i]?.imageDetail || '',
+      imageDescription: contentImagesMeta[i]?.imageDescription || '',
     }));
 
     return this.blogsService.create({
       title: body.title,
       authorName: body.authorName,
-      descriptions: Array.isArray(body.descriptions) ? body.descriptions : [body.descriptions],
+      descriptions: body.descriptions,
       tags: Array.isArray(body.tags) ? body.tags : [body.tags],
-      categoryId: body.categoryId,
+      category: body.category as Blog_Category,
       thumbnailImageUrl,
       thumbnailVideoUrl,
       contentImages,
-      status: body.status || 'DRAFT', // <-- include status
+      status: (body.status as BlogStatus) || BlogStatus.DRAFT,
     });
   }
 
-  // Update a blog
+  // =========================
+  // UPDATE BLOG
+  // =========================
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Patch(':id')
   @UseInterceptors(
-    FileFieldsInterceptor([
-      { name: 'thumbnail', maxCount: 1 },
-      { name: 'contentImages', maxCount: 10 },
-    ], {
-      limits: {
-        fileSize: 100 * 1024 * 1024, // 100MB limit (for videos)
-      },
-    }),
+    FileFieldsInterceptor(
+      [
+        { name: 'thumbnail', maxCount: 1 },
+        { name: 'contentImages', maxCount: 10 },
+      ],
+      { limits: { fileSize: 100 * 1024 * 1024 } },
+    ),
   )
   async update(
     @Param('id') id: string,
     @Body() body: any,
     @UploadedFiles()
-    files: { thumbnail?: Express.Multer.File[]; contentImages?: Express.Multer.File[] },
+    files: {
+      thumbnail?: Express.Multer.File[];
+      contentImages?: Express.Multer.File[];
+    },
   ) {
-    try {
-      const patch: any = {};
+    const patch: any = {};
 
-      if (body.title !== undefined) patch.title = body.title;
-      if (body.authorName !== undefined) patch.authorName = body.authorName;
-      if (body.categoryId !== undefined) patch.categoryId = body.categoryId;
+    if (body.title !== undefined) patch.title = body.title;
+    if (body.authorName !== undefined) patch.authorName = body.authorName;
+    if (body.category !== undefined) patch.category = body.category;
+    if (body.descriptions !== undefined) patch.descriptions = body.descriptions;
 
-      if (body.tags !== undefined) {
-        patch.tags = Array.isArray(body.tags) ? body.tags : [body.tags];
-      }
-
-      if (body.status !== undefined) {
-        patch.status = body.status;
-      }
-
-      // ✅ Handle thumbnail
-      if (files.thumbnail?.[0]) {
-        const thumbUrl = await this.blogUpload.uploadOne('blogs/thumbnail', files.thumbnail[0]);
-        const isImage = files.thumbnail[0].mimetype.startsWith('image/');
-        const isVideo = files.thumbnail[0].mimetype.startsWith('video/');
-        patch.thumbnailImageUrl = isImage ? thumbUrl : undefined;
-        patch.thumbnailVideoUrl = isVideo ? thumbUrl : undefined;
-      }
-
-      // ✅ Handle new descriptions
-      if (body.descriptions) {
-        patch.descriptions = Array.isArray(body.descriptions)
-          ? body.descriptions
-          : [body.descriptions];
-      }
-
-      // ✅ Handle new content images (upload + metadata)
-      const contentFiles = files.contentImages || [];
-      let contentImagesMeta: any[] = [];
-      try {
-        contentImagesMeta = body.contentImagesMeta ? JSON.parse(body.contentImagesMeta) : [];
-      } catch (error) {
-        throw new BadRequestException('contentImagesMeta must be a valid JSON array');
-      }
-
-      if (contentFiles.length > 0) {
-        const uploadedImages = await this.blogUpload.uploadMany('blogs/content', contentFiles);
-
-        patch.contentImages = uploadedImages.map((url, i) => ({
-          imageUrl: url,
-          imageTitle: contentImagesMeta[i]?.imageTitle || '',
-          imageDetail: contentImagesMeta[i]?.imageDetail || '',
-        }));
-      }
-
-      return this.blogsService.update(id, patch);
-    } catch (error) {
-      console.error('Blog update error:', error);
-      throw error;
+    if (body.tags !== undefined) {
+      patch.tags = Array.isArray(body.tags) ? body.tags : [body.tags];
     }
+
+    if (body.status !== undefined) {
+      patch.status = body.status;
+    }
+
+    // Thumbnail update
+    if (files.thumbnail?.[0]) {
+      const url = await this.blogUpload.uploadOne(
+        'blogs/thumbnail',
+        files.thumbnail[0],
+      );
+      if (files.thumbnail[0].mimetype.startsWith('image/')) {
+        patch.thumbnailImageUrl = url;
+      } else {
+        patch.thumbnailVideoUrl = url;
+      }
+    }
+
+    // New content images
+    if (files.contentImages?.length) {
+      const uploaded = await this.blogUpload.uploadMany(
+        'blogs/content',
+        files.contentImages,
+      );
+
+      const meta = body.contentImagesMeta
+        ? JSON.parse(body.contentImagesMeta)
+        : [];
+
+      patch.contentImages = uploaded.map((url, i) => ({
+        imageUrl: url,
+        imageTitle: meta[i]?.imageTitle || '',
+        imageDetail: meta[i]?.imageDetail || '',
+        imageDescription: meta[i]?.imageDescription || '',
+      }));
+    }
+
+    return this.blogsService.update(id, patch);
   }
 
-
-  // Update a specific description
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN)
-  @Patch(':id/descriptions/:descriptionId')
-  async updateDescription(
-    @Param('id') blogId: string,
-    @Param('descriptionId') descriptionId: string,
-    @Body() body: { text: string },
-  ) {
-    return this.blogsService.updateDescription(blogId, descriptionId, body.text);
-  }
-
-  // Delete a blog
+  // =========================
+  // DELETE BLOG
+  // =========================
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Delete(':id')
@@ -183,8 +181,9 @@ export class BlogsController {
     return this.blogsService.remove(id);
   }
 
-
-  // Get all blogs info for Admin (paginated + searchable)
+  // =========================
+  // FIND ALL (ADMIN)
+  // =========================
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Get()
@@ -192,183 +191,108 @@ export class BlogsController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('search') search?: string,
-    @Query('status') status?: 'PUBLISHED' | 'DRAFT',
-    @Query('categoryId') categoryId?: string,
-    @Query('year') year?: string,
-    @Query('month') month?: string,
-    @Query('monthYear') monthYear?: string, // e.g. 10/2025
+    @Query('status') status?: BlogStatus,
+    @Query('category') category?: Blog_Category,
   ) {
     return this.blogsService.findAll({
       page: page ? Number(page) : undefined,
       limit: limit ? Number(limit) : undefined,
       search,
       status,
-      categoryId,
-      year: year ? Number(year) : undefined,
-      month: month ? Number(month) : undefined,
+      category,
     });
   }
 
-  // Get only published blogs (public view)
-  @UseGuards(JwtAuthGuard)
+  // =========================
+  // PUBLISHED BLOGS
+  // =========================
   @Get('published')
-  async findPublished() {
+  findPublished() {
     return this.blogsService.findPublished();
   }
 
-  // Get one published blog (public view)
   @Get('published/:id')
-  async findPublishedOne(@Param('id') id: string) {
+  findPublishedOne(@Param('id') id: string) {
     return this.blogsService.findPublishedOne(id);
   }
 
-
-
-  // Get a specific blog
-  @UseGuards(JwtAuthGuard)
+  // =========================
+  // FIND ONE
+  // =========================
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.blogsService.findOne(id);
   }
 
-  // Add new content image to existing blog
+  // =========================
+  // ADD CONTENT IMAGE
+  // =========================
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Post(':id/content-images')
-  @UseInterceptors(FileFieldsInterceptor([{ name: 'image', maxCount: 1 }], {
-    limits: {
-      fileSize: 100 * 1024 * 1024, // 100MB limit
-    },
-  }))
+  @UseInterceptors(FileFieldsInterceptor([{ name: 'image', maxCount: 1 }]))
   async addContentImage(
     @Param('id') blogId: string,
-    @Body() body: { imageTitle: string; imageDetail: string },
+    @Body() body: any,
     @UploadedFiles() files: { image?: Express.Multer.File[] },
   ) {
-    console.log('=== ADD CONTENT IMAGE START ===');
-    console.log('Received data:', {
-      blogId,
-      body,
-      hasImageFile: !!files.image?.[0],
-    });
-
     if (!files.image?.[0]) {
       throw new BadRequestException('Image file is required');
     }
 
-    // Upload the image
-    const imageUrl = await this.blogUpload.uploadOne('blogs/content', files.image[0]);
-    console.log('Uploaded image URL:', imageUrl);
+    const imageUrl = await this.blogUpload.uploadOne(
+      'blogs/content',
+      files.image[0],
+    );
 
-    // Create the content image
-    const contentImage = await this.blogsService.addContentImage(blogId, {
+    return this.blogsService.addContentImage(blogId, {
       imageUrl,
-      imageTitle: body.imageTitle?.trim() || '',
-      imageDetail: body.imageDetail?.trim() || '',
+      imageTitle: body.imageTitle || '',
+      imageDetail: body.imageDetail || '',
+      imageDescription: body.imageDescription || '',
     });
-
-    console.log('Created content image:', contentImage);
-    console.log('=== ADD CONTENT IMAGE END ===');
-
-    return contentImage;
   }
 
-  // Update a specific content image
+  // =========================
+  // UPDATE CONTENT IMAGE
+  // =========================
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Patch(':id/content-images/:imageId')
-  @UseInterceptors(FileFieldsInterceptor([{ name: 'image', maxCount: 1 }], {
-    limits: {
-      fileSize: 100 * 1024 * 1024, // 100MB limit
-    },
-  }))
+  @UseInterceptors(FileFieldsInterceptor([{ name: 'image', maxCount: 1 }]))
   async updateContentImage(
     @Param('id') blogId: string,
     @Param('imageId') imageId: string,
     @Body() body: any,
     @UploadedFiles() files: { image?: Express.Multer.File[] },
   ) {
-    console.log('=== UPDATE CONTENT IMAGE START ===');
-    console.log('Received data:', {
-      blogId,
-      imageId,
-      body,
-      bodyKeys: Object.keys(body),
-      bodyValues: Object.values(body),
-      hasImageFile: !!files.image?.[0],
-      fileInfo: files.image?.[0] ? {
-        originalname: files.image[0].originalname,
-        mimetype: files.image[0].mimetype,
-        size: files.image[0].size
-      } : null
-    });
-
     let imageUrl: string | undefined;
 
-    // Handle new image upload
     if (files.image?.[0]) {
-      console.log('Uploading new image file...');
-      imageUrl = await this.blogUpload.uploadOne('blogs/content', files.image[0]);
-      console.log('New image URL:', imageUrl);
+      imageUrl = await this.blogUpload.uploadOne(
+        'blogs/content',
+        files.image[0],
+      );
     }
 
-    // Extract and clean the data - handle both string and array formats
-    let imageTitle: string | undefined;
-    let imageDetail: string | undefined;
-
-    // Handle imageTitle
-    if (body.imageTitle !== undefined) {
-      if (Array.isArray(body.imageTitle)) {
-        imageTitle = body.imageTitle[0]?.trim();
-      } else {
-        imageTitle = body.imageTitle?.trim();
-      }
-    }
-
-    // Handle imageDetail
-    if (body.imageDetail !== undefined) {
-      if (Array.isArray(body.imageDetail)) {
-        imageDetail = body.imageDetail[0]?.trim();
-      } else {
-        imageDetail = body.imageDetail?.trim();
-      }
-    }
-
-    const updateData = {
-      imageTitle: imageTitle || undefined,
-      imageDetail: imageDetail || undefined,
+    return this.blogsService.updateContentImage(blogId, imageId, {
       imageUrl,
-    };
-
-    console.log('Processed update data:', updateData);
-    console.log('=== CALLING SERVICE ===');
-
-    // Call service to update content image
-    const result = await this.blogsService.updateContentImage(blogId, imageId, updateData);
-
-    console.log('=== UPDATE RESULT ===');
-    console.log('Updated content image:', result);
-    console.log('=== UPDATE CONTENT IMAGE END ===');
-
-    return result;
+      imageTitle: body.imageTitle,
+      imageDetail: body.imageDetail,
+      imageDescription: body.imageDescription,
+    });
   }
 
-
-  // Delete a specific content image
+  // =========================
+  // DELETE CONTENT IMAGE
+  // =========================
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Delete(':id/content-images/:imageId')
-  deleteContentImage(@Param('id') blogId: string, @Param('imageId') imageId: string) {
-    console.log('=== DELETE CONTENT IMAGE START ===');
-    console.log('Deleting content image:', { blogId, imageId });
-
-    const result = this.blogsService.deleteContentImage(blogId, imageId);
-
-    console.log('=== DELETE CONTENT IMAGE END ===');
-    return result;
+  deleteContentImage(
+    @Param('id') blogId: string,
+    @Param('imageId') imageId: string,
+  ) {
+    return this.blogsService.deleteContentImage(blogId, imageId);
   }
-
-
 }
-
-
