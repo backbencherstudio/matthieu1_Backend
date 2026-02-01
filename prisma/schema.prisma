@@ -789,4 +789,41 @@ model SaddleProductImage {
   SaddlesProductId String
 }
 
+
+
 // ---------------------------------saddles product part ends----------------------------------
+
+
+// ---------------------------------user saddles product part start----------------------------------
+
+enum TrialPeriod {
+  NO_TRIAL
+  TRIAL_7_DAYS
+  TRIAL_14_DAYS
+}
+
+
+model UsedSaddle {
+  id          String   @id @default(cuid())
+  sku         String      @unique
+  title       String
+  description       String
+  seatSize    String
+  category    productcategory 
+  usedsaddlecategory String
+  basePrice   Int      // example: 4300 (USD cents না, direct dollars ধরছি)
+
+  isAvailable Boolean  @default(true)
+
+  images      UsedSaddleImage[]
+
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+}
+
+model UsedSaddleImage {
+  id        String    @id @default(cuid())
+  url       String
+  usedsaddle   UsedSaddle @relation(fields: [UsedSaddleId], references: [id], onDelete: Cascade)
+  UsedSaddleId String
+}
