@@ -137,6 +137,7 @@ export class BlogsService {
       imageDescription?: string;
     },
   ) {
+    
     const image = await this.prisma.blogContentImage.findFirst({
       where: { id: imageId, blogId },
     });
