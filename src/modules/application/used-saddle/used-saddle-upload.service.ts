@@ -9,7 +9,10 @@ export class UsedSaddleUploadService {
   }
 
   async uploadOne(prefix: string, file: Express.Multer.File) {
-    if (!file) throw new BadRequestException('File missing');
+    if (!file) {
+      throw new BadRequestException('File missing');
+    }
+
     const key = this.buildKey(prefix, file);
     await FileStorage.put(key, file.buffer);
     return FileStorage.url(key);
@@ -17,15 +20,20 @@ export class UsedSaddleUploadService {
 
   async uploadMany(prefix: string, files: Express.Multer.File[]) {
     const urls: string[] = [];
-    for (const f of files || []) {
-      urls.push(await this.uploadOne(prefix, f));
+
+    for (const file of files || []) {
+      urls.push(await this.uploadOne(prefix, file));
     }
+
     return urls;
   }
 
   async deleteOne(url: string) {
     if (!url) return;
+
     const key = url.split('/storage/')[1];
-    if (key) await FileStorage.delete(key);
+    if (key) {
+      await FileStorage.delete(key);
+    }
   }
 }
