@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { BlogUploadService } from './blog-upload.service';
 import { Blog_Category, BlogStatus } from '@prisma/client';
@@ -18,110 +19,154 @@ export class BlogsService {
   // CREATE BLOG
   // =========================
   async create(data: any) {
+    // Validate required fields
+    const requiredFields = [
+      'title',
+      'authorName',
+      'thumbnailImageUrl',
+      'category',
+    ];
+    const missingFields = requiredFields.filter((field) => !data[field]);
+
+    if (missingFields.length > 0) {
+      throw new BadRequestException(
+        `Missing required fields: ${missingFields.join(', ')}`,
+      );
+    }
+
     const isPublished = data.status === BlogStatus.PUBLISHED;
 
-    return this.prisma.blog.create({
-      data: {
-        title: data.title,
-        authorName: data.authorName,
-        thumbnailImageUrl: data.thumbnailImageUrl,
-        thumbnailVideoUrl: data.thumbnailVideoUrl,
-        descriptions: data.descriptions ?? null,
-        tags: data.tags,
-        category: data.category as Blog_Category,
-        status: data.status ?? BlogStatus.DRAFT,
-        publishedAt: isPublished ? new Date() : null,
-        contentImages: {
-          create: (data.contentImages || []).map((ci) => ({
-            imageUrl: ci.imageUrl,
-            imageTitle: ci.imageTitle,
-            imageDetail: ci.imageDetail,
-            imageDescription: ci.imageDescription ?? '',
-          })),
+    try {
+      return await this.prisma.blog.create({
+        data: {
+          title: data.title,
+          authorName: data.authorName,
+          thumbnailImageUrl: data.thumbnailImageUrl,
+          thumbnailVideoUrl: data.thumbnailVideoUrl,
+          descriptions: data.descriptions ?? null,
+          tags: data.tags,
+          category: data.category as Blog_Category,
+          status: data.status ?? BlogStatus.DRAFT,
+          publishedAt: isPublished ? new Date() : null,
+          contentImages: {
+            create: (data.contentImages || []).map((ci) => ({
+              imageUrl: ci.imageUrl,
+              imageTitle: ci.imageTitle,
+              imageDetail: ci.imageDetail,
+              imageDescription: ci.imageDescription ?? '',
+            })),
+          },
         },
-      },
-      include: { contentImages: true },
-    });
+        include: { contentImages: true },
+      });
+    } catch (error: any) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        throw new BadRequestException(error.message);
+      }
+      if (error?.name === 'PrismaClientValidationError') {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
   }
 
   // =========================
   // UPDATE BLOG
   // =========================
   async update(id: string, data: any) {
-    const blog = await this.prisma.blog.findUnique({ where: { id } });
-    if (!blog) throw new NotFoundException('Blog not found');
+    try {
+      const blog = await this.prisma.blog.findUnique({ where: { id } });
+      if (!blog) throw new NotFoundException('Blog not found');
 
-    const updateData: any = {
-      title: data.title,
-      authorName: data.authorName,
-      tags: data.tags,
-      descriptions: data.descriptions,
-      category: data.category,
-    };
-
-    // Thumbnail image update
-    if (data.thumbnailImageUrl !== undefined) {
-      if (
-        data.thumbnailImageUrl &&
-        blog.thumbnailImageUrl &&
-        data.thumbnailImageUrl !== blog.thumbnailImageUrl
-      ) {
-        await this.blogUpload.deleteOne(blog.thumbnailImageUrl);
-      }
-      updateData.thumbnailImageUrl = data.thumbnailImageUrl;
-    }
-
-    // Thumbnail video update
-    if (data.thumbnailVideoUrl !== undefined) {
-      if (
-        data.thumbnailVideoUrl &&
-        blog.thumbnailVideoUrl &&
-        data.thumbnailVideoUrl !== blog.thumbnailVideoUrl
-      ) {
-        await this.blogUpload.deleteOne(blog.thumbnailVideoUrl);
-      }
-      updateData.thumbnailVideoUrl = data.thumbnailVideoUrl;
-    }
-
-    // Status handling
-    if (data.status) {
-      if (
-        blog.status === BlogStatus.PUBLISHED &&
-        data.status === BlogStatus.DRAFT
-      ) {
-        throw new BadRequestException(
-          'Cannot change status from PUBLISHED to DRAFT',
-        );
-      }
-
-      if (
-        blog.status === BlogStatus.DRAFT &&
-        data.status === BlogStatus.PUBLISHED
-      ) {
-        updateData.status = BlogStatus.PUBLISHED;
-        updateData.publishedAt = new Date();
-      } else {
-        updateData.status = data.status;
-      }
-    }
-
-    // Add new content images if provided
-    if (Array.isArray(data.contentImages) && data.contentImages.length > 0) {
-      updateData.contentImages = {
-        create: data.contentImages.map((ci) => ({
-          imageUrl: ci.imageUrl,
-          imageTitle: ci.imageTitle,
-          imageDetail: ci.imageDetail,
-          imageDescription: ci.imageDescription ?? '',
-        })),
+      const updateData: any = {
+        title: data.title,
+        authorName: data.authorName,
+        tags: data.tags,
+        descriptions: data.descriptions,
+        category: data.category,
       };
-    }
 
-    return this.prisma.blog.update({
-      where: { id },
-      data: updateData,
-      include: { contentImages: true },
-    });
+      // Thumbnail image update
+      if (data.thumbnailImageUrl !== undefined) {
+        if (
+          data.thumbnailImageUrl &&
+          blog.thumbnailImageUrl &&
+          data.thumbnailImageUrl !== blog.thumbnailImageUrl
+        ) {
+          await this.blogUpload.deleteOne(blog.thumbnailImageUrl);
+        }
+        updateData.thumbnailImageUrl = data.thumbnailImageUrl;
+      }
+
+      // Thumbnail video update
+      if (data.thumbnailVideoUrl !== undefined) {
+        if (
+          data.thumbnailVideoUrl &&
+          blog.thumbnailVideoUrl &&
+          data.thumbnailVideoUrl !== blog.thumbnailVideoUrl
+        ) {
+          await this.blogUpload.deleteOne(blog.thumbnailVideoUrl);
+        }
+        updateData.thumbnailVideoUrl = data.thumbnailVideoUrl;
+      }
+
+      // Status handling
+      if (data.status) {
+        if (
+          blog.status === BlogStatus.PUBLISHED &&
+          data.status === BlogStatus.DRAFT
+        ) {
+          throw new BadRequestException(
+            'Cannot change status from PUBLISHED to DRAFT',
+          );
+        }
+
+        if (
+          blog.status === BlogStatus.DRAFT &&
+          data.status === BlogStatus.PUBLISHED
+        ) {
+          updateData.status = BlogStatus.PUBLISHED;
+          updateData.publishedAt = new Date();
+        } else {
+          updateData.status = data.status;
+        }
+      }
+
+      // Add new content images if provided
+      if (Array.isArray(data.contentImages) && data.contentImages.length > 0) {
+        updateData.contentImages = {
+          create: data.contentImages.map((ci) => ({
+            imageUrl: ci.imageUrl,
+            imageTitle: ci.imageTitle,
+            imageDetail: ci.imageDetail,
+            imageDescription: ci.imageDescription ?? '',
+          })),
+        };
+      }
+
+      return await this.prisma.blog.update({
+        where: { id },
+        data: updateData,
+        include: { contentImages: true },
+      });
+    } catch (error: any) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        throw new BadRequestException(error.message);
+      }
+      if (error?.name === 'PrismaClientValidationError') {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
   }
 
   // =========================
@@ -137,7 +182,6 @@ export class BlogsService {
       imageDescription?: string;
     },
   ) {
-    
     const image = await this.prisma.blogContentImage.findFirst({
       where: { id: imageId, blogId },
     });
