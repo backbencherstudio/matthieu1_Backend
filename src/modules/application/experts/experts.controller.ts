@@ -34,7 +34,7 @@ export class ExpertsController {
   }
 
   @Get()
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN,Role.USER)
   async findAll(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
