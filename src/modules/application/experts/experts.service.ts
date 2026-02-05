@@ -75,7 +75,7 @@ export class ExpertsService {
   constructor(private readonly prisma: PrismaService) {}
 
   create(data: CreateExpertDto) {
-    return this.prisma.expert.create({ data });
+    return this.prisma.expert.create({ data }); 
   }
 
   async findAll(page = 1, limit = 10, search?: string) {
