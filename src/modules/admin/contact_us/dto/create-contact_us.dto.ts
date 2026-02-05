@@ -24,15 +24,8 @@ export class CreateContactUsDto {
 
     @IsString()
     @IsNotEmpty()
-    subject: string;
+    address: string;
 
-    @IsString()
-    @IsNotEmpty()
-    address1: string;
-
-    @IsString()
-    @IsNotEmpty()
-    address2: string;
 
     @IsString()
     @IsNotEmpty()
