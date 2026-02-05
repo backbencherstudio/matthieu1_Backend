@@ -23,12 +23,12 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       '/api/auth/reset-password',
       '/api/auth/verify-email',
       '/api/firebase-auth/google',
-      
+      '/api/contact-us',
     ];
 
     // Check if the route is public
     if (publicRoutes.includes(request.path)) {
-      console.log("public route")
+      console.log('public route');
       return true;
     }
 
@@ -37,12 +37,11 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   }
 
   handleRequest(err, user, info) {
-
     // You can throw an exception based on either "info" or "err" arguments
     //console.log(err, user, info);
 
     if (err || !user) {
-      throw err || new UnauthorizedException("Token is expired or invalid");
+      throw err || new UnauthorizedException('Token is expired or invalid');
     }
     return { ...user, isPrivate: user.isPrivate, type: user.type };
   }
