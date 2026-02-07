@@ -61,8 +61,16 @@
 //   trialPeriod: TrialPeriod;
 // }
 
-import { IsEnum, IsInt, IsNotEmpty, IsString, Min } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 import { productcategory, TrialPeriod } from '@prisma/client';
+import { Type } from 'class-transformer';
 
 export class CreateUsedSaddleDto {
   @IsString()
@@ -86,12 +94,16 @@ export class CreateUsedSaddleDto {
   @IsNotEmpty({ message: 'Used saddle category is required' })
   usedsaddlecategory: string;
 
-  @IsInt({ message: 'Base price must be a number' })
-  @Min(1, { message: 'Base price must be greater than 0' })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
   basePrice: number;
 
-  @IsEnum(TrialPeriod, {
-    message: 'Trial period must be NO_TRIAL | TRIAL_7_DAYS | TRIAL_14_DAYS',
-  })
-  trialPeriod: TrialPeriod;
+  // @IsEnum(TrialPeriod, {
+  //   message: 'Trial period must be NO_TRIAL | TRIAL_7_DAYS | TRIAL_14_DAYS',
+  // })
+  // trialPeriod: TrialPeriod;
+
+  @IsOptional()
+  images?: any;
 }
