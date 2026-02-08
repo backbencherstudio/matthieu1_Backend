@@ -98,19 +98,19 @@ export class SavedProductService {
   // ---------------- ADD FAVORITE ----------------
   async addFavorite(
     userId: string,
-    baseProductId?: string,
+    tackProductId?: string,
     saddleProductId?: string,
   ) {
     // BASE PRODUCT
-    if (baseProductId) {
+    if (tackProductId) {
       try {
         return await this.prisma.favorite.create({
-          data: { userId, baseProductId },
+          data: { userId, tackProductId },
           include: {
-            baseProduct: {
+            tackProduct: {
               include: {
-                category: true,
-                subcategory: true,
+                // category: true,
+                // subcategory: true,
                 variants: {
                   where: { isDefault: true },
                   include: { images: true },
@@ -161,10 +161,10 @@ export class SavedProductService {
       where: { userId },
       orderBy: { createdAt: 'desc' },
       include: {
-        baseProduct: {
+        tackProduct: {
           include: {
-            category: true,
-            subcategory: true,
+            // category: true,
+            // subcategory: true,
             variants: {
               where: { isDefault: true },
               include: { images: true },
@@ -183,19 +183,19 @@ export class SavedProductService {
 
     return favorites.map((fav) => {
       // BASE PRODUCT
-      if (fav.baseProduct) {
-        const variant = fav.baseProduct.variants[0];
+      if (fav.tackProduct) {
+        const variant = fav.tackProduct.variants[0];
 
         return {
           id: fav.id,
-          type: 'BASE_PRODUCT',
+          type: 'TACK_PRODUCT',
           savedAt: fav.createdAt,
           product: {
-            id: fav.baseProduct.id,
-            name: fav.baseProduct.name,
-            sku: fav.baseProduct.sku,
-            category: fav.baseProduct.category?.name || null,
-            subcategory: fav.baseProduct.subcategory?.name || null,
+            id: fav.tackProduct.id,
+            name: fav.tackProduct.name,
+            sku: fav.tackProduct.sku,
+            category: fav.tackProduct.category || null,
+            subcategory: fav.tackProduct.subcategory|| null,
             image: variant?.images[0]?.url || null,
           },
         };

@@ -1,66 +1,83 @@
-import { IsArray, IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested, ArrayMinSize } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  ValidateNested,
+  ArrayMinSize,
+  IsEnum,
+} from 'class-validator';
 import { Type } from 'class-transformer';
+import { productcategory, tackSubcategory } from '@prisma/client';
 
 class VariantInputDto {
-    @IsOptional()
-    @IsString()
-    colorId?: string; // Reference to color model
+  @IsOptional()
+  @IsString()
+  colorId?: string; // Reference to color model
 
-    @IsOptional()
-    @IsString()
-    sizeId?: string; // Reference to size model
+  @IsOptional()
+  @IsString()
+  sizeId?: string; // Reference to size model
 
-    @IsNotEmpty()
-    // @IsNumber()
-    price: number;
+  @IsNotEmpty()
+  // @IsNumber()
+  price: number;
 
+  @IsNotEmpty()
+  // @IsNumber()
+  stockQuantity: number;
 
-    @IsNotEmpty()
-    // @IsNumber()
-    stockQuantity: number;
+  @IsOptional()
+  @IsBoolean()
+  isDefault?: boolean;
 
-    @IsOptional()
-    @IsBoolean()
-    isDefault?: boolean;
-
-    @IsOptional()
-    @IsArray()
-    images?: string[]; // array of image URLs for the variant
+  @IsOptional()
+  @IsArray()
+  images?: string[]; // array of image URLs for the variant
 }
 
 export class CreateMainbaseproductDto {
-    @IsString()
-    @IsNotEmpty()
-    name: string;
+  @IsString()
+  @IsNotEmpty()
+  name: string;
 
-    @IsOptional()
-    @IsString()
-    sku?: string;
+  @IsOptional()
+  @IsString()
+  sku?: string;
 
-    @IsString()
-    @IsNotEmpty()
-    categoryId: string;
+  // @IsString()
+  // @IsNotEmpty()
+  // categoryId: string;
 
-    @IsOptional()
-    @IsString()
-    subcategoryId?: string;
+  // @IsOptional()
+  // @IsString()
+  // subcategoryId?: string;
 
-    @IsOptional()
-    @IsString()
-    benefits?: string;
+  @IsEnum(productcategory)
+  category: productcategory;
 
-    @IsOptional()
-    @IsString()
-    description?: string;
+  @IsOptional()
+  @IsEnum(tackSubcategory)
+  subcategory?: tackSubcategory;
 
-    @IsOptional()
-    @IsString()
-    leatherCareGuide?: string;
+  @IsOptional()
+  @IsString()
+  benefits?: string;
 
-    @IsArray()
-    @IsNotEmpty()
-    @ValidateNested({ each: true })
-    @Type(() => VariantInputDto)
-    @ArrayMinSize(1)
-    variants: VariantInputDto[];
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsString()
+  leatherCareGuide?: string;
+
+  @IsArray()
+  @IsNotEmpty()
+  @ValidateNested({ each: true })
+  @Type(() => VariantInputDto)
+  @ArrayMinSize(1)
+  variants: VariantInputDto[];
 }
