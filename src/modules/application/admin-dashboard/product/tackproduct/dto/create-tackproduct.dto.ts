@@ -38,7 +38,7 @@ class VariantInputDto {
   images?: string[]; // array of image URLs for the variant
 }
 
-export class CreateMainbaseproductDto {
+export class CreateTackproductDto {
   @IsString()
   @IsNotEmpty()
   name: string;
@@ -46,14 +46,6 @@ export class CreateMainbaseproductDto {
   @IsOptional()
   @IsString()
   sku?: string;
-
-  // @IsString()
-  // @IsNotEmpty()
-  // categoryId: string;
-
-  // @IsOptional()
-  // @IsString()
-  // subcategoryId?: string;
 
   @IsEnum(productcategory)
   category: productcategory;
@@ -80,4 +72,8 @@ export class CreateMainbaseproductDto {
   @Type(() => VariantInputDto)
   @ArrayMinSize(1)
   variants: VariantInputDto[];
+
+  @IsOptional()
+  @IsString()
+  thumbnailImage?: string;
 }

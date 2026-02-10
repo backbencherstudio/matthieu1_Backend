@@ -15,7 +15,7 @@ import { JobPortalModule } from './job-portal/job-portal.module';
 import { SaddleAlertModule } from './saddle-alert/saddle-alert.module';
 import { SavedProductModule } from './admin-dashboard/saved-product/saved-product.module';
 import { MaincategoryModule } from './admin-dashboard/product/maincategory/maincategory.module';
-import { MainbaseproductModule } from './admin-dashboard/product/mainbaseproduct/mainbaseproduct.module';
+import { TackproductModule } from './admin-dashboard/product/tackproduct/tackproduct.module';
 import { ColorSizeModule } from './admin-dashboard/product/color-size/color-size.module';
 import { ExpertsModule } from './experts/experts.module';
 import { SadllesModule } from './sadlles/sadlles.module';
@@ -38,7 +38,7 @@ import { UsedSaddleModule } from './used-saddle/used-saddle.module';
     SaddleAlertModule,
     SavedProductModule,
     MaincategoryModule,
-    MainbaseproductModule,
+    TackproductModule,
     ColorSizeModule,
     ExpertsModule,
     SadllesModule,

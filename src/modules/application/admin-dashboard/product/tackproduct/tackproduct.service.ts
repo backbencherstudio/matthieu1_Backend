@@ -1,12 +1,12 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { CreateMainbaseproductDto } from './dto/create-mainbaseproduct.dto';
-import { UpdateMainbaseproductDto } from './dto/update-mainbaseproduct.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma, productcategory, tackSubcategory } from '@prisma/client';
 import { ProductUploadService } from './product-upload.service';
+import { CreateTackproductDto } from './dto/create-tackproduct.dto';
+import { UpdateTackproductDto } from './dto/update-tackproduct.dto';
 
 @Injectable()
-export class MainbaseproductService {
+export class TackproductService {
   constructor(
     private prisma: PrismaService,
     private fileSvc: ProductUploadService,
@@ -42,7 +42,7 @@ export class MainbaseproductService {
 
   /* ---------------- CREATE ---------------- */
 
-  async create(createDto: CreateMainbaseproductDto) {
+  async create(createDto: CreateTackproductDto) {
     if (!Array.isArray(createDto.variants) || createDto.variants.length === 0) {
       throw new BadRequestException('At least one variant is required');
     }
@@ -87,7 +87,7 @@ export class MainbaseproductService {
           description: createDto.description,
           leatherCareGuide: createDto.leatherCareGuide,
 
-          // ✅ ENUM BASED
+          thumbnailImage: createDto.thumbnailImage,
           category: createDto.category,
           subcategory: createDto.subcategory,
 
@@ -195,6 +195,7 @@ export class MainbaseproductService {
           ? `${product.category} → ${product.subcategory}`
           : product.category,
         Total_variant: product.variants.length,
+        thumbnailImage: product.thumbnailImage,
         created_at: product.createdAt,
         variants: product.variants.map((variant) => ({
           id: variant.id,
@@ -221,9 +222,50 @@ export class MainbaseproductService {
           hasPreviousPage: page > 1,
         },
       };
-    } catch {
-      throw new BadRequestException('Failed to list base products');
+    } catch (error) {
+      throw new BadRequestException('Failed to list tack products');
     }
+  }
+
+  async getProductsGroupedBySubcategoryForUser(category: productcategory) {
+    const products = await this.prisma.tackProduct.findMany({
+      where: { category },
+      include: {
+        variants: {
+          where: { isDefault: true }, // 👈 user only default variant
+          include: { images: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // 🔹 group by subcategory
+    const grouped: Record<string, any[]> = {};
+
+    for (const product of products) {
+      const subcat = product.subcategory ?? 'OTHERS';
+
+      if (!grouped[subcat]) {
+        grouped[subcat] = [];
+      }
+
+      const defaultVariant = product.variants[0];
+
+      grouped[subcat].push({
+        id: product.id,
+        name: product.name,
+        sku: product.sku,
+        price: defaultVariant?.price ?? null,
+        // image: defaultVariant?.images?.[0]?.url ?? null,
+        thumbnailImage: product.thumbnailImage,
+      });
+    }
+
+    // 🔹 format response
+    return Object.entries(grouped).map(([subcategory, items]) => ({
+      subcategory,
+      products: items,
+    }));
   }
 
   /* ---------------- FIND ONE ---------------- */
@@ -240,7 +282,7 @@ export class MainbaseproductService {
       });
 
       if (!product) {
-        throw new BadRequestException('Base product not found');
+        throw new BadRequestException('Tack product not found');
       }
 
       return {
@@ -250,6 +292,7 @@ export class MainbaseproductService {
         description: product.description,
         benefits: product.benefits,
         leatherCareGuide: product.leatherCareGuide,
+        thumbnailImage: product.thumbnailImage,
         category: product.subcategory
           ? `${product.category} → ${product.subcategory}`
           : product.category,
@@ -273,59 +316,57 @@ export class MainbaseproductService {
   }
 
   async getProductForUser(
-  productId: string,
-  colorId?: string,
-  sizeId?: string,
-) {
-  const product = await this.prisma.tackProduct.findUnique({
-    where: { id: productId },
-    include: {
-      variants: {
-        include: { images: true, colorRef: true, sizeRef: true },
+    productId: string,
+    colorId?: string,
+    sizeId?: string,
+  ) {
+    const product = await this.prisma.tackProduct.findUnique({
+      where: { id: productId },
+      include: {
+        variants: {
+          include: { images: true, colorRef: true, sizeRef: true },
+        },
       },
-    },
-  });
+    });
 
-  if (!product) {
-    throw new BadRequestException('Product not found');
+    if (!product) {
+      throw new BadRequestException('Product not found');
+    }
+
+    let variant;
+
+    if (colorId && sizeId) {
+      variant = product.variants.find(
+        (v) => v.colorId === colorId && v.sizeId === sizeId,
+      );
+    }
+
+    if (!variant) {
+      variant = product.variants.find((v) => v.isDefault);
+    }
+
+    if (!variant) {
+      throw new BadRequestException('No variant available');
+    }
+
+    return {
+      id: product.id,
+      name: product.name,
+      sku: product.sku,
+      description: product.description,
+      category: product.subcategory
+        ? `${product.category} → ${product.subcategory}`
+        : product.category,
+      variant: {
+        id: variant.id,
+        color: variant.color,
+        size: variant.size,
+        price: variant.price,
+        stockQuantity: variant.stockQuantity,
+        images: variant.images.map((img) => img.url),
+      },
+    };
   }
-
-  let variant;
-
-  if (colorId && sizeId) {
-    variant = product.variants.find(
-      (v) => v.colorId === colorId && v.sizeId === sizeId,
-    );
-  }
-
-  if (!variant) {
-    variant = product.variants.find((v) => v.isDefault);
-  }
-
-  if (!variant) {
-    throw new BadRequestException('No variant available');
-  }
-
-  return {
-    id: product.id,
-    name: product.name,
-    sku: product.sku,
-    description: product.description,
-    category: product.subcategory
-      ? `${product.category} → ${product.subcategory}`
-      : product.category,
-    variant: {
-      id: variant.id,
-      color: variant.color,
-      size: variant.size,
-      price: variant.price,
-      stockQuantity: variant.stockQuantity,
-      images: variant.images.map((img) => img.url),
-    },
-  };
-}
-
-
 
   /* ---------------- UPDATE / DELETE / VARIANT METHODS ---------------- */
   /* 🔒 BELOW THIS LINE — ZERO CHANGES TO YOUR LOGIC 🔒 */
@@ -336,13 +377,21 @@ export class MainbaseproductService {
     return 'In Stock';
   }
 
-  async update(id: string, updateDto: UpdateMainbaseproductDto) {
+
+  async update(id: string, updateDto: UpdateTackproductDto) {
     const current = await this.prisma.tackProduct.findUnique({
       where: { id },
-      select: { name: true, category: true },
+      select: {
+        category: true,
+        thumbnailImage: true,
+      },
     });
-    if (!current) throw new BadRequestException('Base product not found');
 
+    if (!current) {
+      throw new BadRequestException('Tack product not found');
+    }
+
+    // 🔒 SADDLES name rule (UNCHANGED)
     if (updateDto.name && current.category === productcategory.SADDLES) {
       const allowed = ['JUMPING', 'DRESSAGE', 'CROSS_COUNTRY', 'KIDS'];
       const normalized = updateDto.name.trim().toUpperCase();
@@ -352,13 +401,34 @@ export class MainbaseproductService {
       updateDto.name = normalized;
     }
 
+    // 🔥 thumbnail handling
+    let thumbnailImage: string | undefined;
+
+    if (updateDto.thumbnailFile) {
+      // delete old thumbnail
+      if (current.thumbnailImage) {
+        await this.fileSvc.deleteOne(current.thumbnailImage);
+      }
+
+      // upload new thumbnail
+      thumbnailImage = await this.fileSvc.uploadOne(
+        'tack-products',
+        updateDto.thumbnailFile,
+      );
+    }
+
     return this.prisma.tackProduct.update({
       where: { id },
       data: {
-        name: updateDto.name,
-        benefits: updateDto.benefits,
-        description: updateDto.description,
-        leatherCareGuide: updateDto.leatherCareGuide,
+        ...(updateDto.name && { name: updateDto.name }),
+        ...(updateDto.benefits && { benefits: updateDto.benefits }),
+        ...(updateDto.description && {
+          description: updateDto.description,
+        }),
+        ...(updateDto.leatherCareGuide && {
+          leatherCareGuide: updateDto.leatherCareGuide,
+        }),
+        ...(thumbnailImage && { thumbnailImage }), // ✅ HERE
       },
       include: { variants: true },
     });
@@ -395,6 +465,97 @@ export class MainbaseproductService {
         'Variant does not belong to the specified product',
       );
     }
+  }
+
+  async createVariant(tackProductId: string, dto: any) {
+    // 🔒 ensure product exists
+    const product = await this.prisma.tackProduct.findUnique({
+      where: { id: tackProductId },
+    });
+
+    if (!product) {
+      throw new BadRequestException('Tack product not found');
+    }
+
+    // ❌ prevent duplicate variant (color + size)
+    const exists = await this.prisma.variant.findFirst({
+      where: {
+        TackProductId: tackProductId,
+        colorId: dto.colorId ?? null,
+        sizeId: dto.sizeId ?? null,
+      },
+    });
+
+    if (exists) {
+      throw new BadRequestException(
+        'Variant with same color and size already exists',
+      );
+    }
+
+    let colorName: string | undefined;
+    let sizeName: string | undefined;
+
+    if (dto.colorId) {
+      const color = await this.prisma.color.findUnique({
+        where: { id: dto.colorId },
+        select: { name: true },
+      });
+      if (!color) throw new BadRequestException('Invalid colorId');
+      colorName = color.name;
+    }
+
+    if (dto.sizeId) {
+      const size = await this.prisma.size.findUnique({
+        where: { id: dto.sizeId },
+        select: { name: true },
+      });
+      if (!size) throw new BadRequestException('Invalid sizeId');
+      sizeName = size.name;
+    }
+
+    // 🔁 if isDefault → reset others
+    if (dto.isDefault) {
+      await this.prisma.variant.updateMany({
+        where: { TackProductId: tackProductId },
+        data: { isDefault: false },
+      });
+    }
+
+    // ✅ create variant
+    const createdVariant = await this.prisma.variant.create({
+      data: {
+        TackProductId: tackProductId,
+        colorId: dto.colorId,
+        sizeId: dto.sizeId,
+        color: colorName,
+        size: sizeName,
+        price: Number(dto.price),
+        stockQuantity: Number(dto.stockQuantity),
+        isDefault: !!dto.isDefault,
+        images: dto.images?.length
+          ? {
+              create: dto.images.map((url: string) => ({ url })),
+            }
+          : undefined,
+      },
+      include: {
+        images: true,
+        colorRef: true,
+        sizeRef: true,
+      },
+    });
+
+    // 🔥 sync thumbnail if default variant
+    if (createdVariant.isDefault && createdVariant.images.length > 0) {
+      await this.prisma.tackProduct.update({
+        where: { id: tackProductId },
+        data: {
+          thumbnailImage: createdVariant.images[0].url,
+        },
+      });
+    }
+
+    return createdVariant;
   }
 
   async updateVariant(tackProductId: string, variantId: string, dto: any) {
@@ -449,7 +610,25 @@ export class MainbaseproductService {
     });
   }
 
+  async setDefaultVariant(tackProductId: string, variantId: string) {
+    await this.ensureVariantBelongsToBase(tackProductId, variantId);
 
+    await this.prisma.$transaction([
+      this.prisma.variant.updateMany({
+        where: { TackProductId: tackProductId },
+        data: { isDefault: false },
+      }),
+      this.prisma.variant.update({
+        where: { id: variantId },
+        data: { isDefault: true },
+      }),
+    ]);
+
+    return {
+      message: 'Default variant set successfully',
+      variantId,
+    };
+  }
 
   async deleteVariant(tackProductId: string, variantId: string) {
     await this.ensureVariantBelongsToBase(tackProductId, variantId);
@@ -485,5 +664,4 @@ export class MainbaseproductService {
     await this.fileSvc.deleteOne(image.url);
     return this.prisma.variantImage.delete({ where: { id: imageId } });
   }
-
 }

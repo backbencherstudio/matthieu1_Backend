@@ -11,9 +11,6 @@ import {
   UseInterceptors,
   UploadedFiles,
 } from '@nestjs/common';
-import { MainbaseproductService } from './mainbaseproduct.service';
-import { CreateMainbaseproductDto } from './dto/create-mainbaseproduct.dto';
-import { UpdateMainbaseproductDto } from './dto/update-mainbaseproduct.dto';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guard/role/roles.guard';
 import { Roles } from 'src/common/guard/role/roles.decorator';
@@ -22,12 +19,15 @@ import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { ProductUploadService } from './product-upload.service';
 import { productcategory, tackSubcategory } from '@prisma/client';
+import { CreateTackproductDto } from './dto/create-tackproduct.dto';
+import { UpdateTackproductDto } from './dto/update-tackproduct.dto';
+import { TackproductService } from './tackproduct.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('mainbaseproduct')
-export class MainbaseproductController {
+@Controller('tackproduct')
+export class TackproductController {
   constructor(
-    private readonly mainbaseproductService: MainbaseproductService,
+    private readonly tackproductService: TackproductService,
     private readonly uploadService: ProductUploadService,
   ) {}
 
@@ -40,35 +40,45 @@ export class MainbaseproductController {
     @UploadedFiles() files: Express.Multer.File[],
   ) {
     try {
-      let dto: CreateMainbaseproductDto;
+      let thumbnailImage: string | undefined;
 
-      if (typeof body === 'object' && body !== null) {
-        // variants may come as JSON string
-        let variants: any = body.variants;
-        if (typeof body.variants === 'string') {
-          try {
-            variants = JSON.parse(body.variants);
-          } catch {
-            return { message: 'Invalid JSON in variants field' };
-          }
+      // 🔹 handle thumbnail upload
+      if (files?.length) {
+        const thumbnailFile = files.find(
+          (file) => file.fieldname === 'thumbnail',
+        );
+
+        if (thumbnailFile) {
+          thumbnailImage = await this.uploadService.uploadOne(
+            'tack-products',
+            thumbnailFile,
+          );
         }
-
-        dto = {
-          name: body.name,
-          category: body.category as productcategory,
-          subcategory: body.subcategory as tackSubcategory,
-          benefits: body.benefits,
-          description: body.description,
-          leatherCareGuide: body.leatherCareGuide,
-          variants: Array.isArray(variants) ? variants : [],
-        } as CreateMainbaseproductDto;
-      } else {
-        dto = body as CreateMainbaseproductDto;
       }
 
-      // attach uploaded images → variants[index].images
+      // 🔹 parse variants
+      let variants: any = body.variants;
+      if (typeof body.variants === 'string') {
+        try {
+          variants = JSON.parse(body.variants);
+        } catch {
+          return { message: 'Invalid JSON in variants field' };
+        }
+      }
+
+      const dto: CreateTackproductDto = {
+        name: body.name,
+        category: body.category as productcategory,
+        subcategory: body.subcategory as tackSubcategory,
+        benefits: body.benefits,
+        description: body.description,
+        leatherCareGuide: body.leatherCareGuide,
+        thumbnailImage,
+        variants: Array.isArray(variants) ? variants : [],
+      };
+
+      // 🔹 attach variant images
       if (files?.length) {
-        const bucketPrefix = 'base-products';
         const imageMap: Record<number, string[]> = {};
         const regex = /^variants\[(\d+)\]\.images$/;
 
@@ -78,7 +88,10 @@ export class MainbaseproductController {
 
           const idx = Number(match[1]);
           if (!imageMap[idx]) imageMap[idx] = [];
-          const url = await this.uploadService.uploadOne(bucketPrefix, file);
+          const url = await this.uploadService.uploadOne(
+            'variant-images',
+            file,
+          );
           imageMap[idx].push(url);
         }
 
@@ -92,10 +105,10 @@ export class MainbaseproductController {
         });
       }
 
-      return await this.mainbaseproductService.create(dto);
+      return await this.tackproductService.create(dto);
     } catch (error) {
       return {
-        message: 'Failed to create base product',
+        message: 'Failed to create tack product',
         error: String(error?.message || error),
       };
     }
@@ -111,7 +124,7 @@ export class MainbaseproductController {
     @Query('search') search?: string,
   ) {
     try {
-      return await this.mainbaseproductService.findAll({
+      return await this.tackproductService.findAll({
         page: page ? parseInt(page, 10) : 1,
         limit: limit ? parseInt(limit, 10) : 10,
         category,
@@ -119,10 +132,19 @@ export class MainbaseproductController {
       });
     } catch (error) {
       return {
-        message: 'Failed to list base products',
+        message: 'Failed to list tack products',
         error: String(error?.message || error),
       };
     }
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.USER)
+  @Get('user/show-all/:category')
+  async showAllForUser(@Param('category') category: productcategory) {
+    return this.tackproductService.getProductsGroupedBySubcategoryForUser(
+      category,
+    );
   }
 
   /* ---------------- FIND ONE ---------------- */
@@ -131,10 +153,10 @@ export class MainbaseproductController {
   @Get('oneproduct/:id')
   async findOne(@Param('id') id: string) {
     try {
-      return await this.mainbaseproductService.findOne(id);
+      return await this.tackproductService.findOne(id);
     } catch (error) {
       return {
-        message: 'Failed to fetch base product',
+        message: 'Failed to fetch tack product',
         error: String(error?.message || error),
       };
     }
@@ -148,7 +170,7 @@ export class MainbaseproductController {
     @Query('colorId') colorId?: string,
     @Query('sizeId') sizeId?: string,
   ) {
-    return this.mainbaseproductService.getProductForUser(id, colorId, sizeId);
+    return this.tackproductService.getProductForUser(id, colorId, sizeId);
   }
 
   /* ---------------- UPDATE ---------------- */
@@ -162,7 +184,7 @@ export class MainbaseproductController {
     @UploadedFiles() files: Express.Multer.File[],
   ) {
     try {
-      let dto: UpdateMainbaseproductDto;
+      let dto: UpdateTackproductDto;
 
       let variantsCreate: any = body.variantsCreate;
       if (typeof variantsCreate === 'string') {
@@ -173,6 +195,11 @@ export class MainbaseproductController {
         }
       }
 
+      // ✅ find thumbnail file
+      const thumbnailFile = files?.find(
+        (file) => file.fieldname === 'thumbnail',
+      );
+
       dto = {
         name: body.name,
         benefits: body.benefits,
@@ -181,11 +208,12 @@ export class MainbaseproductController {
         variantsCreate: Array.isArray(variantsCreate)
           ? variantsCreate
           : undefined,
-      } as UpdateMainbaseproductDto;
+        thumbnailFile, // 👈 pass file to service
+      } as UpdateTackproductDto & { thumbnailFile?: Express.Multer.File };
 
-      // attach uploaded images → variantsCreate[index].images
+      // 🔹 attach uploaded images → variantsCreate[index].images (UNCHANGED)
       if (files?.length && Array.isArray(dto.variantsCreate)) {
-        const bucketPrefix = 'base-products';
+        const bucketPrefix = 'tack-products';
         const map: Record<number, string[]> = {};
         const regex = /^variantsCreate\[(\d+)\]\.images$/;
 
@@ -209,10 +237,10 @@ export class MainbaseproductController {
         });
       }
 
-      return await this.mainbaseproductService.update(id, dto);
+      return await this.tackproductService.update(id, dto);
     } catch (error) {
       return {
-        message: 'Failed to update base product',
+        message: 'Failed to update tack product',
         error: String(error?.message || error),
       };
     }
@@ -225,12 +253,12 @@ export class MainbaseproductController {
   async remove(@Param('id') id: string) {
     try {
       return {
-        message: 'Base product deleted successfully',
-        data: await this.mainbaseproductService,
+        message: 'Tack product deleted successfully',
+        data: await this.tackproductService.remove(id),
       };
     } catch (error) {
       return {
-        message: 'Failed to delete base product',
+        message: 'Failed to delete tack product',
         error: String(error?.message || error),
       };
     }
