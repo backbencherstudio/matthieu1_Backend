@@ -446,7 +446,6 @@ model Category {
   type          type
   subcategories Subcategory[] 
   products      Product[]     
-  baseProducts  BaseProduct[]
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   @@unique([name, type])
@@ -458,7 +457,6 @@ model Subcategory {
   categoryId String?
   category   Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   products   Product[]
-  baseProducts BaseProduct[]
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
@@ -563,20 +561,20 @@ model Favorite {
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  baseProductId String?
-  baseProduct   BaseProduct? @relation(fields: [baseProductId], references: [id], onDelete: Cascade)
+  tackProductId String?
+  tackProduct   TackProduct? @relation(fields: [tackProductId], references: [id], onDelete: Cascade)
 
   saddleProductId String?
   saddleProduct   SaddlesProduct? @relation(fields: [saddleProductId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, baseProductId])
+  @@unique([userId, tackProductId])
   @@unique([userId, saddleProductId])
   @@map("favorites")
 }
 
 
 
-//////////////////////////////////////////////////////Base Product Models/////////////////////////////////////////////////
+///////////////////////////////////////////////////// Tack Product Models/////////////////////////////////////////////////
 model color {
   id         String   @id @default(cuid())
   name       String
@@ -592,28 +590,29 @@ model size {
   Variant Variant[]
 }
 
-model BaseProduct {
+model TackProduct {
   id           String        @id @default(cuid())
   name         String
   sku          String        @unique
   benefits        String?
   description     String?
   leatherCareGuide String?
+  thumbnailImage  String?
   variants     Variant[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
-  categoryId      String?
-  category        Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  subcategoryId   String?
-  subcategory     Subcategory? @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
+  category     productcategory 
+  // category        Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  subcategory   tackSubcategory?
+  // subcategory     Subcategory? @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
 
   Favorite Favorite[]
 }
 
 model Variant {
   id            String        @id @default(cuid())
-  BaseproductId     String
-  Baseproduct       BaseProduct       @relation(fields: [BaseproductId], references: [id], onDelete: Cascade)
+  TackProductId     String
+  Tackproduct       TackProduct       @relation(fields: [TackProductId], references: [id], onDelete: Cascade)
 
   // FK references to color and size
   colorId       String?
@@ -631,8 +630,8 @@ model Variant {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  @@unique([BaseproductId, colorId, sizeId])
-  @@index([BaseproductId])
+  @@unique([TackProductId, colorId, sizeId])
+  @@index([TackProductId])
   @@index([colorId])
   @@index([sizeId])
 }
