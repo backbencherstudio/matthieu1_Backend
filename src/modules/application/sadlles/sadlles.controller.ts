@@ -105,7 +105,7 @@ export class SadllesController {
 
   // ================= FIND ALL =================
   @Get()
-  @Roles(Role.USER)
+  @Roles(Role.USER, Role.ADMIN)
   findAll(@Query('subcategory') subcategory?: saddleSubcategory) {
     return this.sadllesService.findAll(subcategory).then((data) => ({
       success: true,
