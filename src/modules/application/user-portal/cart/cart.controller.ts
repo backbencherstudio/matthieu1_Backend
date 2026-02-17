@@ -1,45 +1,54 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { CartService } from './cart.service';
-import { CreateCartDto } from './dto/create-cart.dto';
-import { UpdateCartDto } from './dto/update-cart.dto';
-import { ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
-import { Request } from 'express';
+import { RolesGuard } from 'src/common/guard/role/roles.guard';
+import { Roles } from 'src/common/guard/role/roles.decorator';
+import { Role } from 'src/common/guard/role/role.enum';
+import { AddToCartDto } from './dto/add-to-cart.dto';
+import { UpdateCartQuantityDto } from './dto/update-cart.dto';
 
-
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.USER)
 @Controller('cart')
 export class CartController {
   constructor(private readonly cartService: CartService) {}
 
-  @Post()
-  create(@Body() createCartDto: CreateCartDto) {
-    return this.cartService.create(createCartDto);
-  }
-
-    @Post('add')
-  addToCart( @Req() req: Request, @Body() dto: CreateCartDto) {
+  @Post('add')
+  addToCart(@Req() req, @Body() dto: AddToCartDto) {
     return this.cartService.addToCart(req.user.userId, dto);
   }
 
   @Get()
-  findAll() {
-    return this.cartService.findAll();
+  getCart(@Req() req) {
+    return this.cartService.getCart(req.user.userId);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.cartService.findOne(+id);
+  @Patch(':itemId')
+  updateQuantity(
+    @Param('itemId') itemId: string,
+    @Body() dto: UpdateCartQuantityDto,
+  ) {
+    return this.cartService.updateQuantity(itemId, dto.quantity);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateCartDto: UpdateCartDto) {
-    return this.cartService.update(+id, updateCartDto);
+  /* ================= CLEAR CART ================= */
+  @Delete('clear')
+  clearCart(@Req() req) {
+    return this.cartService.clearCart(req.user.userId);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.cartService.remove(+id);
+  @Delete(':itemId')
+  remove(@Param('itemId') itemId: string) {
+    return this.cartService.removeItem(itemId);
   }
 }

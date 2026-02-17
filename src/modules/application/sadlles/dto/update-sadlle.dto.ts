@@ -1,5 +1,5 @@
-import { Transform } from 'class-transformer';
-import { IsOptional, IsArray, IsString } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import { IsOptional, IsArray, IsString, Min, IsInt } from 'class-validator';
 
 const normalizeArray = ({ value }: { value: any }) => {
   if (Array.isArray(value)) return value;
@@ -18,6 +18,12 @@ export class UpdateSadlleDto {
 
   @IsOptional()
   price?: string;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  stockQuantity?: number;
 
   @IsOptional()
   @Transform(normalizeArray)

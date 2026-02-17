@@ -50,7 +50,7 @@ export class SadllesController {
 
     return {
       success: true,
-      message: 'Saddle created successfully',
+      message: 'Product created successfully',
       data: saddle,
     };
   }

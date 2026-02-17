@@ -1,4 +1,4 @@
-import { IsArray, IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { productcategory, saddleSubcategory } from '@prisma/client';
 
@@ -21,6 +21,12 @@ export class CreateSadlleDto {
 
   @IsString()
   price: string;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  stockQuantity?: number;
 
   @IsOptional()
   @Transform(normalizeArray)

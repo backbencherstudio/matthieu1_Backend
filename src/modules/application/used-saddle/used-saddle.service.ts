@@ -227,6 +227,7 @@ export class UsedSaddleService {
           title: dto.title,
           description: dto.description,
           seatSize: dto.seatSize,
+          stockQuantity: dto.stockQuantity,
           category: dto.category,
           usedsaddlecategory: dto.usedsaddlecategory,
           basePrice: dto.basePrice,

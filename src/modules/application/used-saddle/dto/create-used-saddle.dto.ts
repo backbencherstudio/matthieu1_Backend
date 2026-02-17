@@ -65,6 +65,7 @@ import {
   IsEnum,
   IsInt,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   Min,
@@ -84,6 +85,11 @@ export class CreateUsedSaddleDto {
   @IsString()
   @IsNotEmpty({ message: 'Seat size is required' })
   seatSize: string;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  stockQuantity: number;
 
   @IsEnum(productcategory, {
     message: 'Invalid product category',
