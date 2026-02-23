@@ -431,74 +431,19 @@ enum type {
   SADDLES
   TACK
 }
-// model Category {
-//   id           String    @id @default(cuid())
-//   name          String
-//   type          type
-//   subcategories Subcategory[] 
-//   products      Product[]     
-//   createdAt     DateTime      @default(now())
-//   updatedAt     DateTime      @updatedAt
-//   @@unique([name, type])
-// }
-
-// model Subcategory {
-//   id         String    @id @default(cuid())
-//   name       String
-//   categoryId String?
-//   category   Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-//   products   Product[]
-//   createdAt  DateTime  @default(now())
-//   updatedAt  DateTime  @updatedAt
-
-//   //@@unique([name, categoryId]) 
-// }
-
-// ProductName enum removed; name becomes free-form string, validated in service for SADDLES
-
-
-// model Product {
-//   id              String    @id @default(cuid())
-//   name            String
-//   sku             String      @unique
-//   stockQuantity   Int
-//   benefits        String?
-//   description     String?
-//   leatherCareGuide String?
-//   price           Float
-//   discountPrice   Float?
-//   color           String?
-//   size            String?
-
-//   categoryId      String?
-//   category        Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-//   subcategoryId   String?
-//   subcategory     Subcategory? @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
-
-//   carts           CartItem[]
-//   images          ProductImage[]
-
-//   createdAt       DateTime    @default(now())
-//   updatedAt       DateTime    @updatedAt
-// }
-
-
-// model ProductImage {
-//   id        String    @id @default(cuid())
-//   url       String
-//   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-//   productId String
-// }
-
-
 
 model Cart {
   id        String     @id @default(cuid())
-  user                 User              @relation(fields: [userId], references: [id] , onDelete: Cascade)
-  userId               String  
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String?
+  sessionId String?    @unique
+
   items     CartItem[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+
+  @@index([userId])
+  @@index([sessionId])
 }
 
 model CartItem {
@@ -605,9 +550,7 @@ model TackProduct {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   category     productcategory 
-  // category        Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   subcategory   tackSubcategory?
-  // subcategory     Subcategory? @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
 
   Favorite Favorite[]
 

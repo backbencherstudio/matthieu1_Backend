@@ -10,13 +10,11 @@ import { PrismaModule } from '../../prisma/prisma.module';
 import { MailModule } from '../../mail/mail.module';
 import { NotificationModule } from '../application/notification/notification.module';
 
-
 import { AccountManagementModule } from './account-management/account-management.module';
 import { AccountPrivacyController } from './account-privacy/account-privacy.controller';
 import { AccountPrivacyService } from './account-privacy/account-privacy.service';
 import { SubscriptionModule } from '../application/subscription/subscription.module';
 import { NotificationService } from '../application/notification/notification.service';
-
 
 @Module({
   imports: [
@@ -24,7 +22,9 @@ import { NotificationService } from '../application/notification/notification.se
     JwtModule.registerAsync({
       useFactory: async () => ({
         secret: appConfig().jwt.secret,
-        signOptions: { expiresIn: appConfig().jwt.expiry },
+        signOptions: {
+          expiresIn: Number(appConfig().jwt.expiry) / 1000,
+        },
       }),
     }),
     PrismaModule,
@@ -34,7 +34,13 @@ import { NotificationService } from '../application/notification/notification.se
     SubscriptionModule,
   ],
   controllers: [AuthController, AccountPrivacyController],
-  providers: [AuthService, LocalStrategy, JwtStrategy, NotificationService,  AccountPrivacyService,],
+  providers: [
+    AuthService,
+    LocalStrategy,
+    JwtStrategy,
+    NotificationService,
+    AccountPrivacyService,
+  ],
   exports: [AuthService],
 })
-export class AuthModule { }
+export class AuthModule {}

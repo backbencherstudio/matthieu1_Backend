@@ -22,7 +22,9 @@ import { NotificationService } from '../application/notification/notification.se
 import { AccountManagementService } from './account-management/account-management.service';
 import { SubscriptionService } from '../application/subscription/subscription.service';
 import { NotificationGateway } from '../application/notification/notification.gateway';
+import { StringValue } from 'ms';
 import * as geoip from 'geoip-lite';
+// import { CartService } from '../application/user-portal/cart/cart.service';
 
 @Injectable()
 export class AuthService {
@@ -30,6 +32,7 @@ export class AuthService {
     private jwtService: JwtService,
     private prisma: PrismaService,
     private mailService: MailService,
+    // private readonly cartService: CartService,
     private readonly notificationService: NotificationService,
     private readonly subscriptionService: SubscriptionService,
     private readonly accountManagementService: AccountManagementService,
@@ -319,8 +322,13 @@ export class AuthService {
       //const token = this.jwtService.sign(payload);
       const token = this.jwtService.sign(payload, {
         secret: process.env.JWT_SECRET,
-        expiresIn: process.env.JWT_EXPIRY, // '1d' works directly
+        expiresIn: process.env.JWT_EXPIRY as StringValue, // '1d' works directly
       });
+
+      // const sessionId = req.cookies?.cart_session;
+      // if (sessionId) {
+      //   await this.cartService.mergeGuestCartToUser(sessionId, user.id);
+      // }
 
       await this.prisma.user.update({
         where: { id: user.id },
