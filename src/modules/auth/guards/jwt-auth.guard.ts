@@ -15,7 +15,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     // Get the request
     const request = context.switchToHttp().getRequest();
 
-    // List of public routes that don't need authentication
+    // List of explicit public routes that don't require authentication
     const publicRoutes = [
       '/api/auth/login',
       '/api/auth/register',
@@ -26,9 +26,16 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       '/api/contact-us',
     ];
 
+    // Routes that should bypass auth but contain parameters (cart endpoints).
+    // We treat anything under /api/cart as public so that both guests and
+    // logged-in users can hit the same controller without the guard blocking
+    // due to missing/invalid token. Token handling is done manually inside
+    // CartController.
+    const isCartRoute = request.path.startsWith('/api/cart');
+
     // Check if the route is public
-    if (publicRoutes.includes(request.path)) {
-      console.log('public route');
+    if (publicRoutes.includes(request.path) || isCartRoute) {
+      // console.log('public route');
       return true;
     }
 

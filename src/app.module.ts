@@ -1,7 +1,4 @@
-// external imports
 import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
-// import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-// import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
 
@@ -41,31 +38,9 @@ import { DbHeartbeatService } from './db-heartbeat.service';
         password: appConfig().redis.password,
         port: +appConfig().redis.port,
       },
-      // redis: {
-      //   host: appConfig().redis.host,
-      //   password: appConfig().redis.password,
-      //   port: +appConfig().redis.port,
-      // },
+
     }),
-    // disabling throttling for dev
-    // ThrottlerModule.forRoot([
-    //   {
-    //     name: 'short',
-    //     ttl: 1000,
-    //     limit: 3,
-    //   },
-    //   {
-    //     name: 'medium',
-    //     ttl: 10000,
-    //     limit: 20,
-    //   },
-    //   {
-    //     name: 'long',
-    //     ttl: 60000,
-    //     limit: 100,
-    //   },
-    // ]),
-    // General modules
+
 
       ScheduleModule.forRoot(),
     PrismaModule,
@@ -76,7 +51,6 @@ import { DbHeartbeatService } from './db-heartbeat.service';
     NotificationModule,
     AdminModule,
     PaymentModule,
-    //PaypalModule,
     SubscriptionModule,
    
     GeneralSettingsModule,
@@ -84,15 +58,6 @@ import { DbHeartbeatService } from './db-heartbeat.service';
   ],
   controllers: [AppController],
   providers: [
-    // disabling throttling for dev
-    // {
-    //   provide: APP_GUARD,
-    //   useClass: ThrottlerGuard,
-    // },
-    // disbling throttling for dev {
-    //   provide: APP_GUARD,
-    //   useClass: ThrottlerBehindProxyGuard,
-    // },
     AppService,
     DbHeartbeatService
   ],
@@ -100,11 +65,5 @@ import { DbHeartbeatService } from './db-heartbeat.service';
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(LoggerMiddleware).forRoutes('*');
-
-    // consumer
-    //   .apply(RawBodyMiddleware)  // Apply RawBodyMiddleware second
-    //   .forRoutes({ path: 'payment/paypal/webhook', method: RequestMethod.POST });
-
-
   }
 }

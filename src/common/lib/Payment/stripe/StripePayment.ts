@@ -6,7 +6,7 @@ import { Fetch } from '../../Fetch';
 const STRIPE_SECRET_KEY = appConfig().payment.stripe.secret_key;
 
 const Stripe = new stripe("sk_test_51QrFSbJD40kEg8yvAZuwuh1RjXjDEt6ybfexsIGqELf4gZho1m9YmcvxNtqG29LZgFuDPbqyRC4Gx8ThVQ4kRriR00ZHkC47Yj", {
-  apiVersion: '2025-07-30.basil',
+  apiVersion: '2025-08-27.basil',
 });
 
 const STRIPE_WEBHOOK_SECRET = appConfig().payment.stripe.webhook_secret;
