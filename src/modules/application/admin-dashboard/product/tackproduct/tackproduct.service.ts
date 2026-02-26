@@ -1,6 +1,15 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Prisma, productcategory, tackSubcategory } from '@prisma/client';
+import {
+  Color,
+  Prisma,
+  productcategory,
+  tackSubcategory,
+} from '@prisma/client';
 import { ProductUploadService } from './product-upload.service';
 import { CreateTackproductDto } from './dto/create-tackproduct.dto';
 import { UpdateTackproductDto } from './dto/update-tackproduct.dto';
@@ -42,12 +51,131 @@ export class TackproductService {
 
   /* ---------------- CREATE ---------------- */
 
+  // async create(createDto: CreateTackproductDto) {
+  //   if (!Array.isArray(createDto.variants) || createDto.variants.length === 0) {
+  //     throw new BadRequestException('At least one variant is required');
+  //   }
+
+  //   // enum safety
+  //   if (!Object.values(productcategory).includes(createDto.category)) {
+  //     throw new BadRequestException('Invalid category');
+  //   }
+
+  //   if (
+  //     createDto.subcategory &&
+  //     !Object.values(tackSubcategory).includes(createDto.subcategory)
+  //   ) {
+  //     throw new BadRequestException('Invalid subcategory');
+  //   }
+
+  //   // SADDLES rule (same logic)
+  //   if (createDto.category === productcategory.SADDLES) {
+  //     const allowedSaddleNames = [
+  //       'JUMPING',
+  //       'DRESSAGE',
+  //       'CROSS_COUNTRY',
+  //       'KIDS',
+  //     ];
+  //     const normalizedName = createDto.name.trim().toUpperCase();
+  //     if (!allowedSaddleNames.includes(normalizedName)) {
+  //       throw new BadRequestException(
+  //         'For SADDLES category, name must be one of: JUMPING, DRESSAGE, CROSS_COUNTRY, KIDS',
+  //       );
+  //     }
+  //     createDto.name = normalizedName;
+  //   }
+
+  //   const sku = await this.generateUniqueSku();
+
+  //   try {
+  //     const created = await this.prisma.tackProduct.create({
+  //       data: {
+  //         name: createDto.name,
+  //         sku,
+  //         benefits: createDto.benefits,
+  //         description: createDto.description,
+  //         leatherCareGuide: createDto.leatherCareGuide,
+
+  //         thumbnailImage: createDto.thumbnailImage,
+  //         category: createDto.category,
+  //         subcategory: createDto.subcategory,
+
+  //         variants: {
+  //           create: await Promise.all(
+  //             (createDto.variants || []).map(async (v) => {
+  //               let colorName: string | undefined;
+  //               let sizeName: string | undefined;
+
+  //               if (v.colorId) {
+  //                 const color = await this.prisma.color.findUnique({
+  //                   where: { id: v.colorId },
+  //                   select: { name: true },
+  //                 });
+  //                 if (!color) throw new BadRequestException('Invalid colorId');
+  //                 colorName = color.name;
+  //               }
+
+  //               if (v.sizeId) {
+  //                 const size = await this.prisma.size.findUnique({
+  //                   where: { id: v.sizeId },
+  //                   select: { name: true },
+  //                 });
+  //                 if (!size) throw new BadRequestException('Invalid sizeId');
+  //                 sizeName = size.name;
+  //               }
+
+  //               return {
+  //                 colorId: v.colorId,
+  //                 sizeId: v.sizeId,
+  //                 color: colorName,
+  //                 size: sizeName,
+  //                 price: Number(v.price),
+  //                 stockQuantity: Number(v.stockQuantity),
+  //                 isDefault: !!v.isDefault,
+  //                 images: v.images?.length
+  //                   ? { create: v.images.map((url) => ({ url })) }
+  //                   : undefined,
+  //               };
+  //             }),
+  //           ),
+  //         },
+  //       },
+  //       include: {
+  //         variants: {
+  //           include: { images: true, colorRef: true, sizeRef: true },
+  //         },
+  //       },
+  //     });
+
+  //     return created;
+  //   } catch (error) {
+  //     if (
+  //       error instanceof Prisma.PrismaClientKnownRequestError &&
+  //       error.code === 'P2002'
+  //     ) {
+  //       throw new BadRequestException(
+  //         'Unique constraint failed. Please choose different values.',
+  //       );
+  //     }
+  //     throw error;
+  //   }
+  // }
+
   async create(createDto: CreateTackproductDto) {
     if (!Array.isArray(createDto.variants) || createDto.variants.length === 0) {
       throw new BadRequestException('At least one variant is required');
     }
 
-    // enum safety
+    const hasEmptyVariant = createDto.variants.some(
+      (v) => !v.colorId && !v.sizeId,
+    );
+
+    if (hasEmptyVariant && createDto.variants.length > 1) {
+      throw new BadRequestException(
+        'If variant has no size and color, product can contain only ONE variant.',
+      );
+    }
+
     if (!Object.values(productcategory).includes(createDto.category)) {
       throw new BadRequestException('Invalid category');
     }
@@ -59,97 +187,65 @@ export class TackproductService {
       throw new BadRequestException('Invalid subcategory');
     }
 
-    // SADDLES rule (same logic)
-    if (createDto.category === productcategory.SADDLES) {
-      const allowedSaddleNames = [
-        'JUMPING',
-        'DRESSAGE',
-        'CROSS_COUNTRY',
-        'KIDS',
-      ];
-      const normalizedName = createDto.name.trim().toUpperCase();
-      if (!allowedSaddleNames.includes(normalizedName)) {
-        throw new BadRequestException(
-          'For SADDLES category, name must be one of: JUMPING, DRESSAGE, CROSS_COUNTRY, KIDS',
-        );
-      }
-      createDto.name = normalizedName;
-    }
-
     const sku = await this.generateUniqueSku();
 
-    try {
-      const created = await this.prisma.tackProduct.create({
-        data: {
-          name: createDto.name,
-          sku,
-          benefits: createDto.benefits,
-          description: createDto.description,
-          leatherCareGuide: createDto.leatherCareGuide,
+    return this.prisma.tackProduct.create({
+      data: {
+        name: createDto.name,
+        sku,
+        benefits: createDto.benefits,
+        description: createDto.description,
+        leatherCareGuide: createDto.leatherCareGuide,
+        thumbnailImage: createDto.thumbnailImage,
+        category: createDto.category,
+        subcategory: createDto.subcategory,
 
-          thumbnailImage: createDto.thumbnailImage,
-          category: createDto.category,
-          subcategory: createDto.subcategory,
+        variants: {
+          create: await Promise.all(
+            createDto.variants.map(async (v) => {
+              let colorName: string | undefined;
+              let sizeName: string | undefined;
 
-          variants: {
-            create: await Promise.all(
-              (createDto.variants || []).map(async (v) => {
-                let colorName: string | undefined;
-                let sizeName: string | undefined;
+              if (v.colorId) {
+                const color = await this.prisma.color.findUnique({
+                  where: { id: v.colorId },
+                });
+                if (!color) throw new BadRequestException('Invalid colorId');
+                colorName = color.name;
+              }
 
-                if (v.colorId) {
-                  const color = await this.prisma.color.findUnique({
-                    where: { id: v.colorId },
-                    select: { name: true },
-                  });
-                  if (!color) throw new BadRequestException('Invalid colorId');
-                  colorName = color.name;
-                }
+              if (v.sizeId) {
+                const size = await this.prisma.size.findUnique({
+                  where: { id: v.sizeId },
+                });
+                if (!size) throw new BadRequestException('Invalid sizeId');
+                sizeName = size.name;
+              }
 
-                if (v.sizeId) {
-                  const size = await this.prisma.size.findUnique({
-                    where: { id: v.sizeId },
-                    select: { name: true },
-                  });
-                  if (!size) throw new BadRequestException('Invalid sizeId');
-                  sizeName = size.name;
-                }
-
-                return {
-                  colorId: v.colorId,
-                  sizeId: v.sizeId,
-                  color: colorName,
-                  size: sizeName,
-                  price: Number(v.price),
-                  stockQuantity: Number(v.stockQuantity),
-                  isDefault: !!v.isDefault,
-                  images: v.images?.length
-                    ? { create: v.images.map((url) => ({ url })) }
-                    : undefined,
-                };
-              }),
-            ),
-          },
+              return {
+                colorId: v.colorId ?? null,
+                sizeId: v.sizeId ?? null,
+                color: colorName,
+                size: sizeName,
+                price: Number(v.price),
+                stockQuantity: Number(v.stockQuantity),
+                isDefault: !!v.isDefault,
+                images: v.images?.length
+                  ? {
+                      create: v.images.map((url: string) => ({ url })),
+                    }
+                  : undefined,
+              };
+            }),
+          ),
         },
-        include: {
-          variants: {
-            include: { images: true, colorRef: true, sizeRef: true },
-          },
+      },
+      include: {
+        variants: {
+          include: { images: true, colorRef: true, sizeRef: true },
         },
-      });
-
-      return created;
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
-        throw new BadRequestException(
-          'Unique constraint failed. Please choose different values.',
-        );
-      }
-      throw error;
-    }
+      },
+    });
   }
 
   /* ---------------- FIND ALL ---------------- */
@@ -298,7 +394,9 @@ export class TackproductService {
           : product.category,
         variants: product.variants.map((variant) => ({
           id: variant.id,
+          colorId: variant.colorId,
           color: variant.color,
+          sizeid: variant.sizeId,
           size: variant.size,
           price: variant.price,
           stockQuantity: variant.stockQuantity,
@@ -320,36 +418,67 @@ export class TackproductService {
     colorId?: string,
     sizeId?: string,
   ) {
+    // 1️⃣ Check product exists
     const product = await this.prisma.tackProduct.findUnique({
       where: { id: productId },
-      include: {
-        variants: {
-          include: { images: true, colorRef: true, sizeRef: true },
-        },
+      select: {
+        id: true,
+        name: true,
+        sku: true,
+        description: true,
+        category: true,
+        subcategory: true,
       },
     });
 
     if (!product) {
-      throw new BadRequestException('Product not found');
+      throw new NotFoundException('Product not found');
     }
 
+    // 2️⃣ Find specific variant if filters provided
     let variant;
 
-    if (colorId && sizeId) {
-      variant = product.variants.find(
-        (v) => v.colorId === colorId && v.sizeId === sizeId,
+    if (colorId || sizeId) {
+      variant = await this.prisma.variant.findFirst({
+        where: {
+          TackProductId: productId,
+          ...(colorId && { colorId }),
+          ...(sizeId && { sizeId }),
+        },
+        include: {
+          images: true,
+        },
+      });
+
+      if (!variant) {
+        throw new NotFoundException('Selected variant not available');
+      }
+    } else {
+      // 3️⃣ Otherwise return default variant
+      variant = await this.prisma.variant.findFirst({
+        where: {
+          TackProductId: productId,
+          isDefault: true,
+        },
+        include: {
+          images: true,
+        },
+      });
+
+      if (!variant) {
+        throw new NotFoundException('No default variant available');
+      }
+    }
+
+    // 🔥 Remove null/undefined fields helper
+    const removeNullFields = (obj: any) =>
+      Object.fromEntries(
+        Object.entries(obj).filter(
+          ([_, value]) => value !== null && value !== undefined,
+        ),
       );
-    }
 
-    if (!variant) {
-      variant = product.variants.find((v) => v.isDefault);
-    }
-
-    if (!variant) {
-      throw new BadRequestException('No variant available');
-    }
-
-    return {
+    const cleanedProduct = removeNullFields({
       id: product.id,
       name: product.name,
       sku: product.sku,
@@ -357,19 +486,28 @@ export class TackproductService {
       category: product.subcategory
         ? `${product.category} → ${product.subcategory}`
         : product.category,
-      variant: {
-        id: variant.id,
-        color: variant.color,
-        size: variant.size,
-        price: variant.price,
-        stockQuantity: variant.stockQuantity,
-        images: variant.images.map((img) => img.url),
-      },
+    });
+
+    const cleanedVariant = removeNullFields({
+      id: variant.id,
+      colorId: variant.colorId,
+      color: variant.color,
+      sizeId: variant.sizeId,
+      size: variant.size,
+      price: variant.price,
+      stockQuantity: variant.stockQuantity,
+      images: variant.images?.length
+        ? variant.images.map((img) => img.url)
+        : undefined,
+    });
+
+    return {
+      ...cleanedProduct,
+      variant: cleanedVariant,
     };
   }
 
   /* ---------------- UPDATE / DELETE / VARIANT METHODS ---------------- */
-  /* 🔒 BELOW THIS LINE — ZERO CHANGES TO YOUR LOGIC 🔒 */
 
   private getStockStatus(stockQuantity: number): string {
     if (stockQuantity === 0) return 'Out of Stock';
@@ -377,44 +515,128 @@ export class TackproductService {
     return 'In Stock';
   }
 
+  // async update(id: string, updateDto: UpdateTackproductDto) {
+  //   const current = await this.prisma.tackProduct.findUnique({
+  //     where: { id },
+  //     include: { variants: true },
+  //   });
 
-  async update(id: string, updateDto: UpdateTackproductDto) {
+  //   if (!current) {
+  //     throw new BadRequestException('Tack product not found');
+  //   }
+
+  //   // 🔒 STRICT VARIANT VALIDATION (for new variants)
+  //   if (updateDto.variantsCreate?.length) {
+  //     const existingVariants = current.variants;
+
+  //     const hasEmptyVariantInExisting = existingVariants.some(
+  //       (v) => !v.colorId && !v.sizeId,
+  //     );
+
+  //     const hasEmptyVariantInNew = updateDto.variantsCreate.some(
+  //       (v) => !v.colorId && !v.sizeId,
+  //     );
+
+  //     // Case 1: Existing has empty variant → block any new variants
+  //     if (hasEmptyVariantInExisting) {
+  //       throw new BadRequestException(
+  //         'Product already contains single variant. Cannot add more variants.',
+  //       );
+  //     }
+
+  //     // Case 2: Trying to add empty variant but product already has variants
+  //     if (hasEmptyVariantInNew && existingVariants.length > 0) {
+  //       throw new BadRequestException(
+  //         'Cannot add single variant to product that already has variants.',
+  //       );
+  //     }
+
+  //     // Case 3: Multiple empty variants in update request
+  //     if (hasEmptyVariantInNew && updateDto.variantsCreate.length > 1) {
+  //       throw new BadRequestException(
+  //         'Single variant product can contain only one variant.',
+  //       );
+  //     }
+
+  //     // 🔹 Create new variants
+  //     for (const v of updateDto.variantsCreate) {
+  //       await this.createVariant(id, v);
+  //     }
+  //   }
+
+  //   return this.prisma.tackProduct.update({
+  //     where: { id },
+  //     data: {
+  //       ...(updateDto.name && { name: updateDto.name }),
+  //       ...(updateDto.benefits && { benefits: updateDto.benefits }),
+  //       ...(updateDto.description && {
+  //         description: updateDto.description,
+  //       }),
+  //       ...(updateDto.leatherCareGuide && {
+  //         leatherCareGuide: updateDto.leatherCareGuide,
+  //       }),
+  //     },
+  //     include: { variants: true },
+  //   });
+  // }
+
+  async update(
+    id: string,
+    updateDto: UpdateTackproductDto & { thumbnailFile?: Express.Multer.File },
+  ) {
     const current = await this.prisma.tackProduct.findUnique({
       where: { id },
-      select: {
-        category: true,
-        thumbnailImage: true,
-      },
+      include: { variants: true },
     });
 
     if (!current) {
       throw new BadRequestException('Tack product not found');
     }
 
-    // 🔒 SADDLES name rule (UNCHANGED)
-    if (updateDto.name && current.category === productcategory.SADDLES) {
-      const allowed = ['JUMPING', 'DRESSAGE', 'CROSS_COUNTRY', 'KIDS'];
-      const normalized = updateDto.name.trim().toUpperCase();
-      if (!allowed.includes(normalized)) {
-        throw new BadRequestException('Invalid saddle name');
-      }
-      updateDto.name = normalized;
-    }
-
-    // 🔥 thumbnail handling
     let thumbnailImage: string | undefined;
 
     if (updateDto.thumbnailFile) {
-      // delete old thumbnail
       if (current.thumbnailImage) {
         await this.fileSvc.deleteOne(current.thumbnailImage);
       }
-
-      // upload new thumbnail
       thumbnailImage = await this.fileSvc.uploadOne(
         'tack-products',
         updateDto.thumbnailFile,
       );
+    }
+
+    if (updateDto.variantsCreate?.length) {
+      const existingVariants = current.variants;
+
+      const hasEmptyVariantInExisting = existingVariants.some(
+        (v) => !v.colorId && !v.sizeId,
+      );
+
+      const hasEmptyVariantInNew = updateDto.variantsCreate.some(
+        (v) => !v.colorId && !v.sizeId,
+      );
+
+      if (hasEmptyVariantInExisting) {
+        throw new BadRequestException(
+          'Product already contains single variant. Cannot add more variants.',
+        );
+      }
+
+      if (hasEmptyVariantInNew && existingVariants.length > 0) {
+        throw new BadRequestException(
+          'Cannot add single variant to product that already has variants.',
+        );
+      }
+
+      if (hasEmptyVariantInNew && updateDto.variantsCreate.length > 1) {
+        throw new BadRequestException(
+          'Single variant product can contain only one variant.',
+        );
+      }
+
+      for (const v of updateDto.variantsCreate) {
+        await this.createVariant(id, v);
+      }
     }
 
     return this.prisma.tackProduct.update({
@@ -428,7 +650,7 @@ export class TackproductService {
         ...(updateDto.leatherCareGuide && {
           leatherCareGuide: updateDto.leatherCareGuide,
         }),
-        ...(thumbnailImage && { thumbnailImage }), // ✅ HERE
+        ...(thumbnailImage && { thumbnailImage }),
       },
       include: { variants: true },
     });

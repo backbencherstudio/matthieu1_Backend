@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TackproductService } from './tackproduct.service';
+import { productcategory } from '@prisma/client';
 
 describe('TackproductService', () => {
   let service: TackproductService;

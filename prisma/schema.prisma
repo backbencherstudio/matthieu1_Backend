@@ -564,9 +564,9 @@ model Variant {
 
   // FK references to color and size
   colorId       String?
-  colorRef      color?         @relation(fields: [colorId], references: [id], onDelete: SetNull)
+  colorRef      color?         @relation(fields: [colorId], references: [id], onDelete: Cascade)
   sizeId        String?
-  sizeRef       size?          @relation(fields: [sizeId], references: [id], onDelete: SetNull)
+  sizeRef       size?          @relation(fields: [sizeId], references: [id], onDelete: Cascade)
 
   // Optional denormalized names for quick reads
   color         String?
@@ -702,8 +702,10 @@ enum tackSubcategory {
   RIDER_APPAREL
   BOOTS
   ACCESSORIES
+  HALTERS
+  LEATHER_CARE
+  OTHER
 }
-
 
 model SaddlesProduct {
   id              String    @id @default(cuid())
