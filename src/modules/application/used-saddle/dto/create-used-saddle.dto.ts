@@ -103,7 +103,12 @@ export class CreateUsedSaddleDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  basePrice: number;
+  basePrice_usd: number;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  basePrice_eur: number;
 
   // @IsEnum(TrialPeriod, {
   //   message: 'Trial period must be NO_TRIAL | TRIAL_7_DAYS | TRIAL_14_DAYS',

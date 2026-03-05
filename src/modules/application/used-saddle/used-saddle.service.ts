@@ -192,6 +192,7 @@ import { UsedSaddleUploadService } from './used-saddle-upload.service';
 import { CreateUsedSaddleDto } from './dto/create-used-saddle.dto';
 import { UpdateUsedSaddleDto } from './dto/update-used-saddle.dto';
 import { TRIAL_PRICE_MAP } from './used-saddle.constants';
+import { resolveCurrencyFromCountry } from 'src/common/utils/currency.util';
 
 @Injectable()
 export class UsedSaddleService {
@@ -199,6 +200,22 @@ export class UsedSaddleService {
     private readonly prisma: PrismaService,
     private readonly upload: UsedSaddleUploadService,
   ) {}
+
+  private formatPriceRange(product: any, country?: string) {
+    const currency = resolveCurrencyFromCountry(country);
+
+    if (currency === 'USD') {
+      return {
+        priceRange: this.calculatePriceRange(product.basePrice_usd),
+        currency: 'USD',
+      };
+    }
+
+    return {
+      priceRange: this.calculatePriceRange(product.basePrice_eur),
+      currency: 'EUR',
+    };
+  }
 
   private generateSku(): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -230,7 +247,8 @@ export class UsedSaddleService {
           stockQuantity: dto.stockQuantity,
           category: dto.category,
           usedsaddlecategory: dto.usedsaddlecategory,
-          basePrice: dto.basePrice,
+          basePrice_usd: dto.basePrice_usd,
+          basePrice_eur: dto.basePrice_eur,
           isAvailable: true,
         },
       });
@@ -244,7 +262,12 @@ export class UsedSaddleService {
 
   // ================= FIND ALL =================
 
-  async findAll(isAdmin: boolean, page: number, limit: number) {
+  async findAll(
+    isAdmin: boolean,
+    page: number,
+    limit: number,
+    country?: string,
+  ) {
     const skip = (page - 1) * limit;
 
     if (isAdmin) {
@@ -261,7 +284,8 @@ export class UsedSaddleService {
       return {
         data: items.map((saddle) => ({
           ...saddle,
-          priceRange: this.calculatePriceRange(saddle.basePrice),
+          priceRange_usd: this.calculatePriceRange(saddle.basePrice_usd),
+          priceRange_eur: this.calculatePriceRange(saddle.basePrice_eur),
         })),
         meta: {
           page,
@@ -277,7 +301,9 @@ export class UsedSaddleService {
         select: {
           id: true,
           title: true,
-          basePrice: true,
+          basePrice_usd: true,
+          basePrice_eur: true,
+
           images: {
             take: 1,
             select: { url: true },
@@ -295,7 +321,9 @@ export class UsedSaddleService {
         id: saddle.id,
         title: saddle.title,
         image: saddle.images[0]?.url || null,
-        priceRange: this.calculatePriceRange(saddle.basePrice),
+        ...this.formatPriceRange(saddle, country),
+        // priceRange_usd: this.calculatePriceRange(saddle.basePrice_usd),
+        // priceRange_eur: this.calculatePriceRange(saddle.basePrice_eur),
       })),
       meta: {
         page,
@@ -307,7 +335,7 @@ export class UsedSaddleService {
   }
 
   // ================= FIND ONE =================
-  async findOne(id: string, isAdmin: boolean) {
+  async findOne(id: string, isAdmin: boolean, country?: string) {
     const saddle = await this.prisma.usedSaddle.findUnique({
       where: { id },
       include: { images: true },
@@ -320,15 +348,19 @@ export class UsedSaddleService {
     if (isAdmin) {
       return {
         ...saddle,
-        priceRange: this.calculatePriceRange(saddle.basePrice),
+        // priceRange_usd: this.calculatePriceRange(saddle.basePrice_usd),
+        // priceRange_eur: this.calculatePriceRange(saddle.basePrice_eur),
+        ...this.formatPriceRange(saddle, country),
       };
     }
 
-    const { basePrice, ...rest } = saddle;
+    const { basePrice_usd, basePrice_eur, ...rest } = saddle;
 
     return {
       ...rest,
-      priceRange: this.calculatePriceRange(basePrice),
+      ...this.formatPriceRange({ basePrice_usd, basePrice_eur }, country),
+      // priceRange_usd: this.calculatePriceRange(basePrice_usd),
+      // priceRange_eur: this.calculatePriceRange(basePrice_eur),
     };
   }
 
@@ -391,6 +423,6 @@ export class UsedSaddleService {
       where: { id },
     });
 
-    return { message: 'Used saddle deleted' };
+    return { data: saddle };
   }
 }

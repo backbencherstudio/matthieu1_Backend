@@ -36,6 +36,55 @@ export class UsedSaddleController {
 
   // ================= FIND ALL =================
 
+  // @Get()
+  // @Roles(Role.ADMIN, Role.USER)
+  // async findAll(
+  //   @Req() req: Request,
+  //   @Query('page') page = '1',
+  //   @Query('limit') limit = '10',
+  // ) {
+  //   try {
+  //     const userDetails = await UserRepository.getUserDetails(req.user.userId);
+  //     const isAdmin = userDetails?.type?.includes(Role.ADMIN);
+
+  //     const pageNumber = Math.max(parseInt(page, 10) || 1, 1);
+  //     const pageSize = Math.min(parseInt(limit, 10) || 10, 50); // max 50
+
+  //     const data = await this.service.findAll(isAdmin, pageNumber, pageSize);
+
+  //     return {
+  //       statusCode: 200,
+  //       message: 'Used saddles fetched successfully',
+  //       ...data,
+  //     };
+  //   } catch (err) {
+  //     if (err instanceof HttpException) throw err;
+  //     throw new InternalServerErrorException('Failed to fetch used saddles');
+  //   }
+  // }
+
+  // // ================= FIND ONE =================
+  // @Get(':id')
+  // @Roles(Role.ADMIN, Role.USER)
+  // async findOne(@Param('id') id: string, @Req() req: Request) {
+  //   try {
+  //     const userDetails = await UserRepository.getUserDetails(req.user.userId);
+
+  //     const isAdmin = userDetails?.type?.includes(Role.ADMIN);
+
+  //     const data = await this.service.findOne(id, isAdmin);
+
+  //     return {
+  //       statusCode: 200,
+  //       message: 'Used saddle fetched successfully',
+  //       data,
+  //     };
+  //   } catch (err) {
+  //     if (err instanceof HttpException) throw err;
+  //     throw new InternalServerErrorException('Failed to fetch used saddle');
+  //   }
+  // }
+
   @Get()
   @Roles(Role.ADMIN, Role.USER)
   async findAll(
@@ -43,46 +92,43 @@ export class UsedSaddleController {
     @Query('page') page = '1',
     @Query('limit') limit = '10',
   ) {
-    try {
-      const userDetails = await UserRepository.getUserDetails(req.user.userId);
-      const isAdmin = userDetails?.type?.includes(Role.ADMIN);
+    const userDetails = await UserRepository.getUserDetails(req.user.userId);
+    const isAdmin = userDetails?.type?.includes(Role.ADMIN);
 
-      const pageNumber = Math.max(parseInt(page, 10) || 1, 1);
-      const pageSize = Math.min(parseInt(limit, 10) || 10, 50); // max 50
+    const pageNumber = Math.max(parseInt(page, 10) || 1, 1);
+    const pageSize = Math.min(parseInt(limit, 10) || 10, 50);
 
-      const data = await this.service.findAll(isAdmin, pageNumber, pageSize);
+    const country = (req.headers['x-country'] || '').toString();
 
-      return {
-        statusCode: 200,
-        message: 'Used saddles fetched successfully',
-        ...data,
-      };
-    } catch (err) {
-      if (err instanceof HttpException) throw err;
-      throw new InternalServerErrorException('Failed to fetch used saddles');
-    }
+    const data = await this.service.findAll(
+      isAdmin,
+      pageNumber,
+      pageSize,
+      country,
+    );
+
+    return {
+      statusCode: 200,
+      message: 'Used saddles fetched successfully',
+      ...data,
+    };
   }
 
-  // ================= FIND ONE =================
   @Get(':id')
   @Roles(Role.ADMIN, Role.USER)
   async findOne(@Param('id') id: string, @Req() req: Request) {
-    try {
-      const userDetails = await UserRepository.getUserDetails(req.user.userId);
+    const userDetails = await UserRepository.getUserDetails(req.user.userId);
+    const isAdmin = userDetails?.type?.includes(Role.ADMIN);
 
-      const isAdmin = userDetails?.type?.includes(Role.ADMIN);
+    const country = (req.headers['x-country'] || '').toString();
 
-      const data = await this.service.findOne(id, isAdmin);
+    const data = await this.service.findOne(id, isAdmin, country);
 
-      return {
-        statusCode: 200,
-        message: 'Used saddle fetched successfully',
-        data,
-      };
-    } catch (err) {
-      if (err instanceof HttpException) throw err;
-      throw new InternalServerErrorException('Failed to fetch used saddle');
-    }
+    return {
+      statusCode: 200,
+      message: 'Used saddle fetched successfully',
+      data,
+    };
   }
 
   // ================= CREATE =================

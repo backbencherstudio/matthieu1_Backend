@@ -17,7 +17,10 @@ export class UpdateSadlleDto {
   header_description?: string;
 
   @IsOptional()
-  price?: string;
+  price_usd?: string;
+
+  @IsOptional()
+  price_eur?: string;
 
   @Type(() => Number)
   @IsInt()
