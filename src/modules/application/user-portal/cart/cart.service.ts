@@ -642,22 +642,95 @@ export class CartService {
     };
   }
 
-  // /* ================= GET CART ================= */
-
   // async getCart(params: { userId?: string; sessionId?: string }) {
   //   const cart = await this.getOrCreateCart(params);
 
   //   const cartData = await this.prisma.cart.findUnique({
   //     where: { id: cart.id },
   //     include: {
-  //       items: true,
+  //       items: {
+  //         include: {
+  //           variant: {
+  //             include: { Tackproduct: true, images: true },
+  //           },
+  //           usedSaddle: { include: { images: true } },
+  //           leadline: { include: { images: true } },
+  //         },
+  //       },
   //     },
   //   });
+
+  //   const userId = cart.userId ?? null;
+
+  //   const formattedItems = (cartData?.items || [])
+  //     .map((item) => {
+  //       // USED SADDLE
+  //       if (item.usedSaddle) {
+  //         return {
+  //           userId,
+  //           sessionId: cart.sessionId,
+  //           cartId: cart.id,
+  //           itemId: item.id,
+  //           usedSaddleId: item.usedSaddle.id,
+  //           quantity: item.quantity,
+  //           itemName: item.usedSaddle.title,
+  //           itemImage: item.usedSaddle.images?.[0]?.url ?? null,
+  //           sku: item.usedSaddle.sku,
+  //           price_usd: item.usedSaddle.basePrice_usd,
+  //           price_eur: item.usedSaddle.basePrice_eur,
+  //           seatSize: item.usedSaddle.seatSize,
+  //           // isAvailable: item.usedSaddle.isAvailable,
+  //         };
+  //       }
+
+  //       // LEADLINE (SaddlesProduct)
+  //       if (item.leadline) {
+  //         return {
+  //           userId,
+  //           sessionId: cart.sessionId,
+  //           cartId: cart.id,
+  //           itemId: item.id,
+  //           leadlineSaddleId: item.leadline.id,
+  //           quantity: item.quantity,
+  //           itemName: item.leadline.name,
+  //           itemImage: item.leadline.images?.[0]?.url ?? null,
+  //           sku: item.leadline.sku,
+  //           price_usd: item.leadline.price_usd,
+  //           price_eur: item.leadline.price_eur,
+  //           colors: item.leadline.colors,
+  //           sizes: item.leadline.sizes,
+  //         };
+  //       }
+
+  //       // TACK product (variant based)
+  //       if (item.variant) {
+  //         return {
+  //           userId,
+  //           sessionId: cart.sessionId,
+  //           cartId: cart.id,
+  //           itemId: item.id,
+  //           tackProductId: item.variant.TackProductId,
+  //           variantId: item.variant.id,
+  //           quantity: item.quantity,
+  //           itemName: item.variant.Tackproduct?.name ?? null,
+  //           itemImage: item.variant.images?.[0]?.url ?? null,
+  //           sku: item.variant.Tackproduct?.sku ?? null,
+  //           price_usd: item.variant.price_usd,
+  //           price_eur: item.variant.price_eur,
+  //           color: item.variant.color,
+  //           size: item.variant.size,
+  //           stockQuantity: item.variant.stockQuantity,
+  //         };
+  //       }
+
+  //       return null;
+  //     })
+  //     .filter(Boolean);
 
   //   return {
   //     success: true,
   //     message: 'Cart retrieved successfully',
-  //     data: cartData?.items ?? [],
+  //     data: formattedItems,
   //   };
   // }
 
@@ -683,46 +756,45 @@ export class CartService {
 
     const formattedItems = (cartData?.items || [])
       .map((item) => {
-        // USED SADDLE
         if (item.usedSaddle) {
           return {
             userId,
             sessionId: cart.sessionId,
             cartId: cart.id,
             itemId: item.id,
-            usedSaddleId: item.usedSaddle.id,
             quantity: item.quantity,
             itemName: item.usedSaddle.title,
             itemImage: item.usedSaddle.images?.[0]?.url ?? null,
+            price_usd: item.usedSaddle.basePrice_usd,
+            price_eur: item.usedSaddle.basePrice_eur,
           };
         }
 
-        // LEADLINE
         if (item.leadline) {
           return {
             userId,
             sessionId: cart.sessionId,
             cartId: cart.id,
             itemId: item.id,
-            leadlineSaddleId: item.leadline.id,
             quantity: item.quantity,
             itemName: item.leadline.name,
             itemImage: item.leadline.images?.[0]?.url ?? null,
+            price_usd: item.leadline.price_usd,
+            price_eur: item.leadline.price_eur,
           };
         }
 
-        // TACK product (variant based)
         if (item.variant) {
           return {
             userId,
             sessionId: cart.sessionId,
             cartId: cart.id,
             itemId: item.id,
-            tackProductId: item.variant.TackProductId,
-            variantId: item.variant.id,
             quantity: item.quantity,
             itemName: item.variant.Tackproduct?.name ?? null,
             itemImage: item.variant.images?.[0]?.url ?? null,
+            price_usd: item.variant.price_usd,
+            price_eur: item.variant.price_eur,
           };
         }
 
@@ -730,10 +802,50 @@ export class CartService {
       })
       .filter(Boolean);
 
+    /* ================= CALCULATION ================= */
+
+    const subtotal_usd = formattedItems.reduce((sum, item) => {
+      return sum + Number(item.price_usd) * item.quantity;
+    }, 0);
+
+    const subtotal_eur = formattedItems.reduce((sum, item) => {
+      return sum + Number(item.price_eur) * item.quantity;
+    }, 0);
+
+    const shipping_usd = subtotal_usd > 0 ? 15 : 0;
+    const shipping_eur = subtotal_eur > 0 ? 15 : 0;
+
+    const taxRate = 0.08;
+
+    const tax_usd = subtotal_usd * taxRate;
+    const tax_eur = subtotal_eur * taxRate;
+
+    const couponDiscount_usd = 0;
+    const couponDiscount_eur = 0;
+
+    const total_usd =
+      subtotal_usd + shipping_usd + tax_usd - couponDiscount_usd;
+    const total_eur =
+      subtotal_eur + shipping_eur + tax_eur - couponDiscount_eur;
+
     return {
       success: true,
       message: 'Cart retrieved successfully',
-      data: formattedItems,
+      data: {
+        items: formattedItems,
+        summary: {
+          subtotal_usd,
+          subtotal_eur,
+          shipping_usd,
+          shipping_eur,
+          tax_usd,
+          tax_eur,
+          couponDiscount_usd,
+          couponDiscount_eur,
+          total_usd,
+          total_eur,
+        },
+      },
     };
   }
 

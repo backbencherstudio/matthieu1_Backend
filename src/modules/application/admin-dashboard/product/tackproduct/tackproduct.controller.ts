@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
   UseInterceptors,
+  Headers,
   UploadedFiles,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
@@ -31,94 +32,7 @@ export class TackproductController {
     private readonly uploadService: ProductUploadService,
   ) {}
 
-  // /* ---------------- CREATE ---------------- */
-  // @Roles(Role.ADMIN)
-  // @Post('create')
-  // @UseInterceptors(AnyFilesInterceptor({ storage: memoryStorage() }))
-  // async create(
-  //   @Body() body: any,
-  //   @UploadedFiles() files: Express.Multer.File[],
-  // ) {
-  //   try {
-  //     let thumbnailImage: string | undefined;
-
-  //     // 🔹 handle thumbnail upload
-  //     if (files?.length) {
-  //       const thumbnailFile = files.find(
-  //         (file) => file.fieldname === 'thumbnail',
-  //       );
-
-  //       if (thumbnailFile) {
-  //         thumbnailImage = await this.uploadService.uploadOne(
-  //           'tack-products',
-  //           thumbnailFile,
-  //         );
-  //       }
-  //     }
-
-  //     // 🔹 parse variants
-  //     let variants: any = body.variants;
-  //     if (typeof body.variants === 'string') {
-  //       try {
-  //         variants = JSON.parse(body.variants);
-  //       } catch {
-  //         return { message: 'Invalid JSON in variants field' };
-  //       }
-  //     }
-
-  //     const dto: CreateTackproductDto = {
-  //       name: body.name,
-  //       category: body.category as productcategory,
-  //       subcategory: body.subcategory as tackSubcategory,
-  //       benefits: body.benefits,
-  //       description: body.description,
-  //       leatherCareGuide: body.leatherCareGuide,
-  //       thumbnailImage,
-  //       variants: Array.isArray(variants) ? variants : [],
-  //     };
-
-  //     // 🔹 attach variant images (support common fieldname patterns)
-  //     if (files?.length) {
-  //       const imageMap: Record<number, string[]> = {};
-  //       const patterns = [
-  //         /^variants\[(\d+)\]\.images(?:\[\])?$/,
-  //         /^variants\[(\d+)\]\[images\]$/,
-  //       ];
-  //       const bucketPrefix = 'tack-products';
-
-  //       for (const file of files) {
-  //         let match: RegExpMatchArray | null = null;
-  //         for (const re of patterns) {
-  //           match = file.fieldname.match(re);
-  //           if (match) break;
-  //         }
-  //         if (!match) continue;
-
-  //         const idx = Number(match[1]);
-  //         if (!imageMap[idx]) imageMap[idx] = [];
-  //         const url = await this.uploadService.uploadOne(bucketPrefix, file);
-  //         imageMap[idx].push(url);
-  //       }
-
-  //       Object.entries(imageMap).forEach(([idxStr, urls]) => {
-  //         const idx = Number(idxStr);
-  //         if (!dto.variants[idx]) return;
-  //         dto.variants[idx].images = [
-  //           ...(dto.variants[idx].images || []),
-  //           ...urls,
-  //         ];
-  //       });
-  //     }
-
-  //     return await this.tackproductService.create(dto);
-  //   } catch (error) {
-  //     return {
-  //       message: 'Failed to create tack product',
-  //       error: String(error?.message || error),
-  //     };
-  //   }
-  // }
-
+  //---------------------------- CREATE ----------------------------
   @Roles(Role.ADMIN)
   @Post('create')
   @UseInterceptors(AnyFilesInterceptor({ storage: memoryStorage() }))
@@ -228,9 +142,13 @@ export class TackproductController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.USER)
   @Get('user/show-all/:category')
-  async showAllForUser(@Param('category') category: productcategory) {
+  async showAllForUser(
+    @Param('category') category: productcategory,
+    @Headers('x-country') country: string,
+  ) {
     return this.tackproductService.getProductsGroupedBySubcategoryForUser(
       category,
+      country,
     );
   }
 
@@ -238,7 +156,8 @@ export class TackproductController {
   //for admin dashboard
   @Roles(Role.ADMIN)
   @Get('oneproduct/:id')
-  async findOne(@Param('id') id: string) {
+  async findOne(
+    @Param('id') id: string) {
     try {
       return await this.tackproductService.findOne(id);
     } catch (error) {
@@ -256,82 +175,10 @@ export class TackproductController {
     @Param('id') id: string,
     @Query('colorId') colorId?: string,
     @Query('sizeId') sizeId?: string,
+    @Headers('x-country') country?: string,
   ) {
-    return this.tackproductService.getProductForUser(id, colorId, sizeId);
+    return this.tackproductService.getProductForUser(id, colorId, sizeId, country);
   }
-
-  /* ---------------- UPDATE ---------------- */
-
-  // @Roles(Role.ADMIN)
-  // @Patch(':id')
-  // @UseInterceptors(AnyFilesInterceptor({ storage: memoryStorage() }))
-  // async update(
-  //   @Param('id') id: string,
-  //   @Body() body: any,
-  //   @UploadedFiles() files: Express.Multer.File[],
-  // ) {
-  //   try {
-  //     let dto: UpdateTackproductDto;
-
-  //     let variantsCreate: any = body.variantsCreate;
-  //     if (typeof variantsCreate === 'string') {
-  //       try {
-  //         variantsCreate = JSON.parse(variantsCreate);
-  //       } catch {
-  //         return { message: 'Invalid JSON in variantsCreate field' };
-  //       }
-  //     }
-
-  //     // ✅ find thumbnail file
-  //     const thumbnailFile = files?.find(
-  //       (file) => file.fieldname === 'thumbnail',
-  //     );
-
-  //     dto = {
-  //       name: body.name,
-  //       benefits: body.benefits,
-  //       description: body.description,
-  //       leatherCareGuide: body.leatherCareGuide,
-  //       variantsCreate: Array.isArray(variantsCreate)
-  //         ? variantsCreate
-  //         : undefined,
-  //       thumbnailFile, // 👈 pass file to service
-  //     } as UpdateTackproductDto & { thumbnailFile?: Express.Multer.File };
-
-  //     // 🔹 attach uploaded images → variantsCreate[index].images (UNCHANGED)
-  //     if (files?.length && Array.isArray(dto.variantsCreate)) {
-  //       const bucketPrefix = 'tack-products';
-  //       const map: Record<number, string[]> = {};
-  //       const regex = /^variantsCreate\[(\d+)\]\.images$/;
-
-  //       for (const file of files) {
-  //         const match = file.fieldname.match(regex);
-  //         if (!match) continue;
-
-  //         const idx = Number(match[1]);
-  //         if (!map[idx]) map[idx] = [];
-  //         const url = await this.uploadService.uploadOne(bucketPrefix, file);
-  //         map[idx].push(url);
-  //       }
-
-  //       Object.entries(map).forEach(([idxStr, urls]) => {
-  //         const idx = Number(idxStr);
-  //         if (!dto.variantsCreate[idx]) return;
-  //         dto.variantsCreate[idx].images = [
-  //           ...(dto.variantsCreate[idx].images || []),
-  //           ...urls,
-  //         ];
-  //       });
-  //     }
-
-  //     return await this.tackproductService.update(id, dto);
-  //   } catch (error) {
-  //     return {
-  //       message: 'Failed to update tack product',
-  //       error: String(error?.message || error),
-  //     };
-  //   }
-  // }
 
   @Roles(Role.ADMIN)
   @Patch(':id')

@@ -515,8 +515,12 @@ model Favorite {
   saddleProductId String?
   saddleProduct   SaddlesProduct? @relation(fields: [saddleProductId], references: [id], onDelete: Cascade)
 
+  usedSaddleProductId String?
+  usedSaddleProduct   UsedSaddle? @relation(fields: [usedSaddleProductId], references: [id], onDelete: Cascade)
+
   @@unique([userId, tackProductId])
   @@unique([userId, saddleProductId])
+  @@unique([userId, usedSaddleProductId])
   @@map("favorites")
 }
 
@@ -571,7 +575,8 @@ model Variant {
   // Optional denormalized names for quick reads
   color         String?
   size          String?
-  price         Float
+  price_usd     Float
+  price_eur     Float
   stockQuantity Int
   isDefault     Boolean       @default(false)
   images        VariantImage[]
@@ -713,7 +718,8 @@ model SaddlesProduct {
   sku             String      @unique
   header_title    String?
   header_description String?
-  price           String
+  price_usd           String
+  price_eur           String
   sizes           String[]
   stockQuantity   Int?
   description     String?
@@ -762,11 +768,13 @@ model UsedSaddle {
   stockQuantity   Int
   category    productcategory 
   usedsaddlecategory String
-  basePrice   Int
+  basePrice_usd   Int
+  basePrice_eur   Int
 
   isAvailable Boolean  @default(true)
 
   images      UsedSaddleImage[]
+  favorites   Favorite[]
 
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt

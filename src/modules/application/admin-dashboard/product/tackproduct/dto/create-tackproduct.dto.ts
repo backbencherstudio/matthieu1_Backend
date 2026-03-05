@@ -23,7 +23,11 @@ class VariantInputDto {
 
   @IsNotEmpty()
   // @IsNumber()
-  price: number;
+  price_usd: number;
+
+  @IsNotEmpty()
+  // @IsNumber()
+  price_eur: number;
 
   @IsNotEmpty()
   // @IsNumber()
