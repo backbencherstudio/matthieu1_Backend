@@ -16,6 +16,7 @@ import { ColorSizeModule } from './admin-dashboard/product/color-size/color-size
 import { ExpertsModule } from './experts/experts.module';
 import { SadllesModule } from './sadlles/sadlles.module';
 import { UsedSaddleModule } from './used-saddle/used-saddle.module';
+import { CouponModule } from './admin-dashboard/coupon/coupon.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { UsedSaddleModule } from './used-saddle/used-saddle.module';
     ExpertsModule,
     SadllesModule,
     UsedSaddleModule,
+    CouponModule,
   ],
 })
 export class ApplicationModule {}
