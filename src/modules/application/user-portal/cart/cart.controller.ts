@@ -166,6 +166,7 @@ import {
   Param,
   Req,
   Res,
+  Query,
 } from '@nestjs/common';
 import { CartService } from './cart.service';
 import { AddToCartDto } from './dto/add-to-cart.dto';
@@ -233,11 +234,16 @@ export class CartController {
   }
 
   @Get()
-  async getCart(@Req() req, @Res({ passthrough: true }) res: Response) {
+  async getCart(
+    @Req() req,
+    @Res({ passthrough: true }) res: Response,
+    @Query('coupon') couponCode?: string,
+  ) {
     const userId = this.extractUserIdFromToken(req);
     const sessionId = userId ? undefined : this.getOrSetGuestSession(req, res);
+    const country = req.headers['x-country']?.toString();
 
-    return this.cartService.getCart({ userId, sessionId });
+    return this.cartService.getCart({ userId, sessionId }, couponCode, country);
   }
 
   @Patch(':itemId')
