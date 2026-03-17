@@ -1,6 +1,6 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["fullTextSearchPostgres"]
+  previewFeatures = ["fullTextSearch"]
 }
 
 datasource db {
@@ -339,13 +339,13 @@ model UserSetting {
 
 
 model GeneralSetting {
-  id             String   @id @default(cuid())
-  appName        String
-  appDescription String
-  contactEmail   String
-  contactPhone   String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                String   @id @default(cuid())
+  appName           String
+  appDescription    String
+  contactEmail      String
+  contactPhone      String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 
@@ -384,16 +384,16 @@ model Blog {
 }
 
 model BlogContentImage {
-  id          String   @id @default(cuid())
-  imageUrl    String
-  imageTitle  String
-  imageDetail String
-  imageDescription String
+  id                String   @id @default(cuid())
+  imageUrl          String
+  imageTitle        String
+  imageDetail       String
+  imageDescription  String
 
-  blogId      String
-  blog        Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  blogId            String
+  blog              Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
 }
 
 
@@ -433,24 +433,25 @@ enum type {
 }
 
 model Cart {
-  id        String     @id @default(cuid())
-  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String?
-  sessionId String?    @unique
+  id            String     @id @default(cuid())
+  user          User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String?
+  sessionId     String?    @unique
+  couponCode    String?
 
-  items     CartItem[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  items         CartItem[]
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
   @@index([userId])
   @@index([sessionId])
 }
 
 model CartItem {
-  id        String   @id @default(cuid())
-  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  cartId    String
-  quantity  Int      @default(1)
+  id            String   @id @default(cuid())
+  cart          Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  cartId        String
+  quantity      Int      @default(1)
 
   // ---- TACK PRODUCT ----
   tackProductId String?
@@ -467,23 +468,25 @@ model CartItem {
   leadlineId    String?
   leadline      SaddlesProduct? @relation(fields: [leadlineId], references: [id] , onDelete: Cascade)
   
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
+
+
 model coupon {
-  id              String   @id @default(cuid())
-  code            String   @unique
-  discount        Float
-  expiresAt       DateTime
-
-  maxUsers        Int?
-  maxUsesPerUser  Int?
-
-  usages          couponUsage[]  
-
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  code                String   @unique
+  discount            Float
+  expiresAt           DateTime
+  // discountType        DiscountType @default(PERCENTAGE)
+  // maxDiscount_usd     Float?
+  // maxDiscount_eur     Float?
+  maxUsers            Int?
+  maxUsesPerUser      Int?
+  usages              couponUsage[]
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }
 
 
@@ -514,22 +517,22 @@ enum Color {
 }
 
 model CustomerAlert {
-  id           String   @id @default(cuid())
-  alertId      String   @unique
-  priceMin     Float
-  priceMax     Float
-  brand        String
-  discpline    Discpline
+  id                String   @id @default(cuid())
+  alertId           String   @unique
+  priceMin          Float
+  priceMax          Float
+  brand             String
+  discpline         Discpline
   seatsSize         String
-  color        Color
+  color             Color
   customerFirstName String
-  customerLastName String
-  customerEmail String
-  phoneNumber String
-  town String
-  state String
-  notes String
-  createdAt    DateTime @default(now())
+  customerLastName  String
+  customerEmail     String
+  phoneNumber       String
+  town              String
+  state             String
+  notes             String
+  createdAt         DateTime @default(now())
 }
 
 model Favorite {
@@ -557,6 +560,58 @@ model Favorite {
 
 
 ///////////////////////////////////////////////////// Tack Product Models/////////////////////////////////////////////////
+
+model TackProduct {
+  id               String        @id @default(cuid())
+  name             String
+  sku              String        @unique
+  benefits         String?
+  description      String?
+  leatherCareGuide String?
+  thumbnailImage   String?
+  country          saddlecountry
+  category         productcategory
+  subcategory      tackSubcategory?
+
+  variants         Variant[]
+
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  Favorite         Favorite[]
+  cartItems        CartItem[]
+}
+
+model Variant {
+  id            String   @id @default(cuid())
+
+  TackProductId String
+  Tackproduct   TackProduct @relation(fields: [TackProductId], references: [id], onDelete: Cascade)
+
+  colorId       String?
+  colorRef      color?   @relation(fields: [colorId], references: [id], onDelete: Cascade)
+
+  sizeId        String?
+  sizeRef       size?    @relation(fields: [sizeId], references: [id], onDelete: Cascade)
+
+  color         String?
+  size          String?
+
+  price_usd     Float
+  price_eur     Float
+  stockQuantity Int
+
+  isDefault     Boolean  @default(false)
+
+  images        VariantImage[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([TackProductId, colorId, sizeId])
+  @@index([TackProductId])
+  cartItems CartItem[]
+}
 model color {
   id         String   @id @default(cuid())
   name       String
@@ -572,53 +627,7 @@ model size {
   Variant Variant[]
 }
 
-model TackProduct {
-  id           String        @id @default(cuid())
-  name         String
-  sku          String        @unique
-  benefits        String?
-  description     String?
-  leatherCareGuide String?
-  thumbnailImage  String?
-  variants     Variant[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  category     productcategory 
-  subcategory   tackSubcategory?
-
-  Favorite Favorite[]
-
-  cartItems CartItem[]
-}
-
-model Variant {
-  id            String        @id @default(cuid())
-  TackProductId     String
-  Tackproduct       TackProduct       @relation(fields: [TackProductId], references: [id], onDelete: Cascade)
-
-  // FK references to color and size
-  colorId       String?
-  colorRef      color?         @relation(fields: [colorId], references: [id], onDelete: Cascade)
-  sizeId        String?
-  sizeRef       size?          @relation(fields: [sizeId], references: [id], onDelete: Cascade)
-
-  // Optional denormalized names for quick reads
-  color         String?
-  size          String?
-  price_usd     Float
-  price_eur     Float
-  stockQuantity Int
-  isDefault     Boolean       @default(false)
-  images        VariantImage[]
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  @@unique([TackProductId, colorId, sizeId])
-  @@index([TackProductId])
-  @@index([colorId])
-  @@index([sizeId])
-  cartItems CartItem[]
-}
+ 
 
 model VariantImage {
   id        String   @id @default(cuid())
@@ -725,6 +734,10 @@ enum saddleSubcategory {
   ATHENA
 }
 
+enum saddlecountry {
+  USA
+  EUROPE
+}
 
 
 enum tackSubcategory {
@@ -753,6 +766,7 @@ model SaddlesProduct {
   sizes           String[]
   stockQuantity   Int?
   description     String?
+  country         saddlecountry
   category        productcategory
   subcategory     saddleSubcategory?
   images          SaddleProductImage[]
@@ -800,7 +814,7 @@ model UsedSaddle {
   usedsaddlecategory String
   basePrice_usd   Int
   basePrice_eur   Int
-
+  country     saddlecountry
   isAvailable Boolean  @default(true)
 
   images      UsedSaddleImage[]
@@ -818,3 +832,176 @@ model UsedSaddleImage {
   usedsaddle   UsedSaddle @relation(fields: [UsedSaddleId], references: [id], onDelete: Cascade)
   UsedSaddleId String
 }
+
+// enum OrderStatus {
+//   PENDING
+//   PAID
+//   FAILED
+//   CANCELLED
+// }
+
+// enum PaymentProvider {
+//   STRIPE
+// }
+
+// enum PaymentStatus {
+//   PENDING
+//   SUCCEEDED
+//   FAILED
+//   CANCELED
+// }
+
+// model Order {
+//   id              String       @id @default(cuid())
+//   userId          String?
+//   sessionId       String?
+//   cartId          String?
+
+//   country         String?
+//   currency        String
+
+//   subtotal        Float
+//   shipping        Float
+//   tax             Float
+//   couponDiscount  Float
+//   total           Float
+
+//   couponCode      String?
+//   couponId        String?
+
+//   status          OrderStatus  @default(PENDING)
+//   paymentIntentId String?      @unique
+
+//   items           OrderItem[]
+//   payment         Payment?
+
+//   createdAt       DateTime     @default(now())
+//   updatedAt       DateTime     @updatedAt
+// }
+
+// model OrderItem {
+//   id         String   @id @default(cuid())
+
+//   orderId    String
+//   order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+//   itemId     String?
+//   itemName   String
+//   itemImage  String?
+//   price      Float
+//   quantity   Int
+//   total      Float
+//   currency   String
+
+//   createdAt  DateTime @default(now())
+//   updatedAt  DateTime @updatedAt
+// }
+
+// model Payment {
+//   id              String          @id @default(cuid())
+//   orderId          String          @unique
+//   order            Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+//   provider         PaymentProvider @default(STRIPE)
+//   paymentIntentId  String          @unique
+//   clientSecret     String?
+//   amount           Float
+//   currency         String
+//   status           PaymentStatus   @default(PENDING)
+
+//   createdAt        DateTime        @default(now())
+//   updatedAt        DateTime        @updatedAt
+// }
+
+model CheckoutAddress {
+  id            String   @id @default(uuid())
+
+  userId        String?
+  sessionId     String?
+
+  firstName     String
+  lastName      String
+  email         String
+  phone         String
+  companyName   String?
+
+  streetAddress String
+  apartment     String?
+
+  city          String
+  state         String
+  zipCode       String
+  country       String
+
+  createdAt     DateTime @default(now())
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+model Order {
+  id          String      @id @default(uuid())
+  orderNumber String      @unique
+
+  userId      String?
+  sessionId   String?
+
+  subtotal    Float
+  shipping    Float
+  tax         Float
+  discount    Float
+  total       Float
+  currency    String
+
+  status      OrderStatus @default(PENDING)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items       OrderItem[]
+  address     OrderAddress?
+}
+
+model OrderItem {
+  id            String  @id @default(uuid())
+  orderId       String
+
+  tackProductId String?
+  variantId     String?
+  usedSaddleId  String?
+  leadlineId    String?
+
+  itemName      String
+  itemImage     String?
+  price         Float
+  quantity      Int
+  totalPrice    Float
+  currency      String
+
+  order         Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model OrderAddress {
+  id        String   @id @default(uuid())
+  orderId   String   @unique
+
+  firstName String
+  lastName  String
+  email     String
+  phone     String
+
+  streetAddress String
+  apartment     String?
+
+  city     String
+  state    String
+  zipCode  String
+  country  String
+
+  order    Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+}
+

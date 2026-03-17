@@ -70,7 +70,7 @@ import {
   IsString,
   Min,
 } from 'class-validator';
-import { productcategory, TrialPeriod } from '@prisma/client';
+import { productcategory, saddlecountry } from '@prisma/client';
 import { Type } from 'class-transformer';
 
 export class CreateUsedSaddleDto {
@@ -95,6 +95,9 @@ export class CreateUsedSaddleDto {
     message: 'Invalid product category',
   })
   category: productcategory;
+
+  @IsEnum(saddlecountry)
+  country: saddlecountry;
 
   @IsString()
   @IsNotEmpty({ message: 'Used saddle category is required' })

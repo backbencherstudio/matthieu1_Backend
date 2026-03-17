@@ -112,110 +112,257 @@ export class AuthService {
     }
   }
 
-  async updateUser(
-    userId: string,
-    updateUserDto: UpdateUserDto,
-    image?: Express.Multer.File,
-    coverPhoto?: Express.Multer.File,
-  ) {
+  async getUserAddress(userId: string) {
     try {
-      const data: any = {};
-      if (updateUserDto.name) {
-        data.name = updateUserDto.name;
-      }
-      if (updateUserDto.phone_number) {
-        data.phone_number = updateUserDto.phone_number;
-      }
-      if (updateUserDto.country) {
-        data.country = updateUserDto.country;
-      }
-      if (updateUserDto.state) {
-        data.state = updateUserDto.state;
-      }
-      if (updateUserDto.local_government) {
-        data.local_government = updateUserDto.local_government;
-      }
-      if (updateUserDto.city) {
-        data.city = updateUserDto.city;
-      }
-      if (updateUserDto.bio) {
-        data.bio = updateUserDto.bio;
-      }
-      if (updateUserDto.username) {
-        data.username = updateUserDto.username;
-      }
-      if (updateUserDto.zip_code) {
-        data.zip_code = updateUserDto.zip_code;
-      }
-      if (updateUserDto.address) {
-        data.address = updateUserDto.address;
-      }
-      if (updateUserDto.gender) {
-        data.gender = updateUserDto.gender;
-      }
-      if (updateUserDto.date_of_birth) {
-        data.date_of_birth = DateHelper.format(updateUserDto.date_of_birth);
-      }
-      if (image) {
-        const oldImage = await this.prisma.user.findFirst({
-          where: { id: userId },
-          select: { avatar: true },
-        });
-        if (oldImage.avatar) {
-          await FileStorage.delete(
-            appConfig().storageUrl.avatar + oldImage.avatar,
-          );
-        }
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          phone_number: true,
+          address: true,
+          
+        },
+      });
 
-        const fileName = `${StringHelper.randomString()}${image.originalname}`;
-        await FileStorage.put(
-          appConfig().storageUrl.avatar + fileName,
-          image.buffer,
-        );
-
-        data.avatar = fileName;
-      }
-
-      if (coverPhoto) {
-        const oldImage = await this.prisma.user.findFirst({
-          where: { id: userId },
-          select: { coverPhoto: true },
-        });
-        if (oldImage.coverPhoto) {
-          await FileStorage.delete(
-            appConfig().storageUrl.avatar + oldImage.coverPhoto,
-          );
-        }
-
-        // upload file
-        const fileName = `${StringHelper.randomString()}${image.originalname}`;
-        await FileStorage.put(
-          appConfig().storageUrl.avatar + fileName,
-          coverPhoto.buffer,
-        );
-
-        data.coverPhoto = fileName;
-      }
-      const user = await UserRepository.getUserDetails(userId);
-      if (user) {
-        await this.prisma.user.update({
-          where: { id: userId },
-          data: {
-            ...data,
-          },
-        });
-        //console.log(user);
-
-        return {
-          success: true,
-          message: 'User updated successfully',
-        };
-      } else {
+      if (!user) {
         return {
           success: false,
           message: 'User not found',
         };
       }
+
+      return {
+        success: true,
+        message: 'Contact information fetched successfully',
+        data: user,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message,
+      };
+    }
+  }
+
+  // async updateUser(
+  //   userId: string,
+  //   updateUserDto: UpdateUserDto,
+  //   image?: Express.Multer.File,
+  //   coverPhoto?: Express.Multer.File,
+  // ) {
+  //   try {
+  //     const data: any = {};
+  //     if (updateUserDto.name) {
+  //       data.name = updateUserDto.name;
+  //     }
+  //     if (updateUserDto.phone_number) {
+  //       data.phone_number = updateUserDto.phone_number;
+  //     }
+  //     if (updateUserDto.country) {
+  //       data.country = updateUserDto.country;
+  //     }
+  //     if (updateUserDto.state) {
+  //       data.state = updateUserDto.state;
+  //     }
+  //     if (updateUserDto.local_government) {
+  //       data.local_government = updateUserDto.local_government;
+  //     }
+  //     if (updateUserDto.city) {
+  //       data.city = updateUserDto.city;
+  //     }
+  //     if (updateUserDto.bio) {
+  //       data.bio = updateUserDto.bio;
+  //     }
+  //     if (updateUserDto.username) {
+  //       data.username = updateUserDto.username;
+  //     }
+  //     if (updateUserDto.zip_code) {
+  //       data.zip_code = updateUserDto.zip_code;
+  //     }
+  //     if (updateUserDto.address) {
+  //       data.address = updateUserDto.address;
+  //     }
+  //     if (updateUserDto.gender) {
+  //       data.gender = updateUserDto.gender;
+  //     }
+  //     if (updateUserDto.date_of_birth) {
+  //       data.date_of_birth = DateHelper.format(updateUserDto.date_of_birth);
+  //     }
+  //     if (image) {
+  //       const oldImage = await this.prisma.user.findFirst({
+  //         where: { id: userId },
+  //         select: { avatar: true },
+  //       });
+  //       if (oldImage.avatar) {
+  //         await FileStorage.delete(
+  //           appConfig().storageUrl.avatar + oldImage.avatar,
+  //         );
+  //       }
+
+  //       const fileName = `${StringHelper.randomString()}${image.originalname}`;
+  //       await FileStorage.put(
+  //         appConfig().storageUrl.avatar + fileName,
+  //         image.buffer,
+  //       );
+
+  //       data.avatar = fileName;
+  //     }
+
+  //     if (coverPhoto) {
+  //       const oldImage = await this.prisma.user.findFirst({
+  //         where: { id: userId },
+  //         select: { coverPhoto: true },
+  //       });
+  //       if (oldImage.coverPhoto) {
+  //         await FileStorage.delete(
+  //           appConfig().storageUrl.avatar + oldImage.coverPhoto,
+  //         );
+  //       }
+
+  //       // upload file
+  //       const fileName = `${StringHelper.randomString()}${image.originalname}`;
+  //       await FileStorage.put(
+  //         appConfig().storageUrl.avatar + fileName,
+  //         coverPhoto.buffer,
+  //       );
+
+  //       data.coverPhoto = fileName;
+  //     }
+  //     const user = await UserRepository.getUserDetails(userId);
+  //     if (user) {
+  //       await this.prisma.user.update({
+  //         where: { id: userId },
+  //         data: {
+  //           ...data,
+  //         },
+  //       });
+  //       //console.log(user);
+
+  //       return {
+  //         success: true,
+  //         message: 'User updated successfully',
+  //       };
+  //     } else {
+  //       return {
+  //         success: false,
+  //         message: 'User not found',
+  //       };
+  //     }
+  //   } catch (error) {
+  //     return {
+  //       success: false,
+  //       message: error.message,
+  //     };
+  //   }
+  // }
+
+  async updateUser(
+  userId: string,
+  updateUserDto: UpdateUserDto,
+  image?: Express.Multer.File,
+) {
+  try {
+    const data: any = {};
+
+    if (updateUserDto.first_name) {
+      data.first_name = updateUserDto.first_name;
+    }
+
+    if (updateUserDto.last_name) {
+      data.last_name = updateUserDto.last_name;
+    }
+
+    if (updateUserDto.email) {
+      data.email = updateUserDto.email;
+    }
+
+    if (updateUserDto.phone_number) {
+      data.phone_number = updateUserDto.phone_number;
+    }
+
+    // Image Upload
+    if (image) {
+      const oldImage = await this.prisma.user.findFirst({
+        where: { id: userId },
+        select: { avatar: true },
+      });
+
+      if (oldImage?.avatar) {
+        await FileStorage.delete(
+          appConfig().storageUrl.avatar + oldImage.avatar,
+        );
+      }
+
+      const fileName = `${StringHelper.randomString()}${image.originalname}`;
+
+      await FileStorage.put(
+        appConfig().storageUrl.avatar + fileName,
+        image.buffer,
+      );
+
+      data.avatar = fileName;
+    }
+
+    const user = await UserRepository.getUserDetails(userId);
+
+    if (!user) {
+      return {
+        success: false,
+        message: 'User not found',
+      };
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: data,
+    });
+
+    return {
+      success: true,
+      message: 'User updated successfully',
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message,
+    };
+  }
+}
+
+  async updateUserAddress(
+    userId: string,
+    data: {
+      phone_number?: string;
+      // country?: string;
+      // state?: string;
+      // city?: string;
+      address?: string;
+      // zip_code?: string;
+    },
+  ) {
+    try {
+      const user = await UserRepository.getUserDetails(userId);
+
+      if (!user) {
+        return {
+          success: false,
+          message: 'User not found',
+        };
+      }
+
+      const updateData: any = {};
+
+      if (data.phone_number) updateData.phone_number = data.phone_number;
+      if (data.address) updateData.address = data.address;
+
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: updateData,
+      });
+
+      return {
+        success: true,
+        message: 'Address information updated successfully',
+      };
     } catch (error) {
       return {
         success: false,

@@ -6,8 +6,9 @@ import { CouponModule } from '../../admin-dashboard/coupon/coupon.module';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Module({
-  imports: [JwtModule, CouponModule], 
+  imports: [JwtModule, CouponModule],
   controllers: [CartController],
   providers: [CartService, PrismaService],
+  exports: [CartService],
 })
 export class CartModule {}

@@ -11,7 +11,9 @@ export function resolveCurrencyFromCountry(
   if (
     normalized === 'us' ||
     normalized === 'usa' ||
-    normalized === 'united states'
+    normalized === 'united states'||
+    normalized === 'america'
+
   ) {
     return 'USD';
   }

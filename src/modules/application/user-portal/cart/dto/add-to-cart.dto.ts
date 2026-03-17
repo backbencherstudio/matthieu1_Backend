@@ -20,4 +20,8 @@ export class AddToCartDto {
   @IsInt()
   @Min(1)
   quantity: number;
+
+  @IsOptional()
+  @IsString()
+  couponCode?: string;
 }

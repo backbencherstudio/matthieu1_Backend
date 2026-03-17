@@ -1,6 +1,8 @@
 import {
   BadRequestException,
+  HttpException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
@@ -18,58 +20,144 @@ export class BlogsService {
   // =========================
   // CREATE BLOG
   // =========================
+  // async create(data: any) {
+  //   // Validate required fields
+  //   const requiredFields = [
+  //     'title',
+  //     'authorName',
+  //     'thumbnailImageUrl',
+  //     'category',
+  //   ];
+  //   const missingFields = requiredFields.filter((field) => !data[field]);
+
+  //   if (missingFields.length > 0) {
+  //     throw new BadRequestException(
+  //       `Missing required fields: ${missingFields.join(', ')}`,
+  //     );
+  //   }
+
+  //   const isPublished = data.status === BlogStatus.PUBLISHED;
+
+  //   try {
+  //     return await this.prisma.blog.create({
+  //       data: {
+  //         title: data.title,
+  //         authorName: data.authorName,
+  //         thumbnailImageUrl: data.thumbnailImageUrl,
+  //         thumbnailVideoUrl: data.thumbnailVideoUrl,
+  //         descriptions: data.descriptions ?? null,
+  //         tags: data.tags,
+  //         category: data.category as Blog_Category,
+  //         status: data.status ?? BlogStatus.DRAFT,
+  //         publishedAt: isPublished ? new Date() : null,
+  //         contentImages: {
+  //           create: (data.contentImages || []).map((ci) => ({
+  //             imageUrl: ci.imageUrl,
+  //             imageTitle: ci.imageTitle,
+  //             imageDetail: ci.imageDetail,
+  //             imageDescription: ci.imageDescription ?? '',
+  //           })),
+  //         },
+  //       },
+  //       include: { contentImages: true },
+  //     });
+  //   } catch (error: any) {
+  //     if (error instanceof BadRequestException) {
+  //       throw error;
+  //     }
+  //     if (error instanceof Prisma.PrismaClientKnownRequestError) {
+  //       throw new BadRequestException(error.message);
+  //     }
+  //     if (error?.name === 'PrismaClientValidationError') {
+  //       throw new BadRequestException(error.message);
+  //     }
+  //     throw error;
+  //   }
+  // }
+
   async create(data: any) {
-    // Validate required fields
-    const requiredFields = [
-      'title',
-      'authorName',
-      'thumbnailImageUrl',
-      'category',
-    ];
-    const missingFields = requiredFields.filter((field) => !data[field]);
-
-    if (missingFields.length > 0) {
-      throw new BadRequestException(
-        `Missing required fields: ${missingFields.join(', ')}`,
-      );
-    }
-
-    const isPublished = data.status === BlogStatus.PUBLISHED;
-
     try {
+      // Required fields validation
+      const requiredFields = [
+        'title',
+        'authorName',
+        'thumbnailImageUrl',
+        'category',
+      ];
+
+      const missingFields = requiredFields.filter((field) => !data[field]);
+
+      if (missingFields.length) {
+        throw new BadRequestException(
+          `Missing required fields: ${missingFields.join(', ')}`,
+        );
+      }
+
+      // Validate category
+      if (!Object.values(Blog_Category).includes(data.category)) {
+        throw new BadRequestException('Invalid blog category');
+      }
+
+      // Validate status
+      if (data.status && !Object.values(BlogStatus).includes(data.status)) {
+        throw new BadRequestException('Invalid blog status');
+      }
+
+      // Sanitize tags
+      const tags = Array.isArray(data.tags)
+        ? data.tags.filter((t) => typeof t === 'string' && t.trim() !== '')
+        : [];
+
+      const isPublished = data.status === BlogStatus.PUBLISHED;
+
+      // Validate content images
+      const contentImages = (data.contentImages || []).map((ci: any) => {
+        if (!ci.imageUrl) {
+          throw new BadRequestException('Content image must contain imageUrl');
+        }
+
+        return {
+          imageUrl: ci.imageUrl,
+          imageTitle: ci.imageTitle || '',
+          imageDetail: ci.imageDetail || '',
+          imageDescription: ci.imageDescription || '',
+        };
+      });
+
       return await this.prisma.blog.create({
         data: {
           title: data.title,
           authorName: data.authorName,
           thumbnailImageUrl: data.thumbnailImageUrl,
-          thumbnailVideoUrl: data.thumbnailVideoUrl,
+          thumbnailVideoUrl: data.thumbnailVideoUrl ?? null,
           descriptions: data.descriptions ?? null,
-          tags: data.tags,
-          category: data.category as Blog_Category,
+          tags,
+          category: data.category,
           status: data.status ?? BlogStatus.DRAFT,
           publishedAt: isPublished ? new Date() : null,
+
           contentImages: {
-            create: (data.contentImages || []).map((ci) => ({
-              imageUrl: ci.imageUrl,
-              imageTitle: ci.imageTitle,
-              imageDetail: ci.imageDetail,
-              imageDescription: ci.imageDescription ?? '',
-            })),
+            create: contentImages,
           },
         },
-        include: { contentImages: true },
+        include: {
+          contentImages: true,
+        },
       });
     } catch (error: any) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
+      if (error instanceof HttpException) throw error;
+
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         throw new BadRequestException(error.message);
       }
+
       if (error?.name === 'PrismaClientValidationError') {
         throw new BadRequestException(error.message);
       }
-      throw error;
+
+      throw new InternalServerErrorException(
+        error?.message || 'Blog creation failed',
+      );
     }
   }
 
