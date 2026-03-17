@@ -19,7 +19,7 @@ import { Role } from 'src/common/guard/role/role.enum';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { ProductUploadService } from './product-upload.service';
-import { productcategory, tackSubcategory } from '@prisma/client';
+import { productcategory, saddlecountry, tackSubcategory } from '@prisma/client';
 import { CreateTackproductDto } from './dto/create-tackproduct.dto';
 import { UpdateTackproductDto } from './dto/update-tackproduct.dto';
 import { TackproductService } from './tackproduct.service';
@@ -68,6 +68,7 @@ export class TackproductController {
         name: body.name,
         category: body.category as productcategory,
         subcategory: body.subcategory as tackSubcategory,
+        country: body.country as saddlecountry,
         benefits: body.benefits,
         description: body.description,
         leatherCareGuide: body.leatherCareGuide,
@@ -207,6 +208,7 @@ export class TackproductController {
         benefits: body.benefits,
         description: body.description,
         leatherCareGuide: body.leatherCareGuide,
+        country: body.country as saddlecountry,
         variantsCreate: Array.isArray(variantsCreate)
           ? variantsCreate
           : undefined,

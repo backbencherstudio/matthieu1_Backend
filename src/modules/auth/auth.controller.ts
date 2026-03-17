@@ -185,28 +185,69 @@ export class AuthController {
       },
     ),
   )
-  async updateUser(
+  // async updateUser(
+  //   @Req() req: Request,
+  //   @Body() data: UpdateUserDto,
+  //   @UploadedFiles()
+  //   files: {
+  //     image?: Express.Multer.File[];
+  //     coverPhoto?: Express.Multer.File[];
+  //   },
+  // ) {
+  //   try {
+  //     const user_id = req.user.userId;
+  //     const response = await this.authService.updateUser(
+  //       user_id,
+  //       data,
+  //       files.image?.[0],
+  //       files.coverPhoto?.[0],
+  //     );
+  //     return response;
+  //   } catch (error) {8
+  //     return {
+  //       success: false,
+  //       message: 'Failed to update user',
+  //     };
+  //   }
+  // }
+
+  @ApiOperation({ summary: 'Update user address and phone' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Patch('update-address')
+  async updateUserAddress(
     @Req() req: Request,
-    @Body() data: UpdateUserDto,
-    @UploadedFiles()
-    files: {
-      image?: Express.Multer.File[];
-      coverPhoto?: Express.Multer.File[];
+    @Body()
+    data: {
+      phone_number?: string;
+      address?: string;
     },
   ) {
     try {
       const user_id = req.user.userId;
-      const response = await this.authService.updateUser(
-        user_id,
-        data,
-        files.image?.[0],
-        files.coverPhoto?.[0],
-      );
-      return response;
+
+      return await this.authService.updateUserAddress(user_id, data);
     } catch (error) {
       return {
         success: false,
-        message: 'Failed to update user',
+        message: 'Failed to update contact information',
+      };
+    }
+  }
+
+  @ApiOperation({ summary: 'Get user contact information' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Get('contact-info')
+  async getUserAddress(@Req() req: Request) {
+    try {
+      const user_id = req.user.userId;
+
+      return await this.authService.getUserAddress(user_id);
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to fetch contact information',
       };
     }
   }
@@ -314,40 +355,97 @@ export class AuthController {
   }
 
   // change password if user want to change the password
+  // @ApiOperation({ summary: 'Change password' })
+  // @ApiBearerAuth()
+  // @UseGuards(JwtAuthGuard)
+  // @Post('change-password')
+  // async changePassword(
+  //   @Req() req: Request,
+  //   @Body() data: { old_password: string; new_password: string },
+  // ) {
+  //   try {
+  //     const user_id = req.user.userId;
+
+  //     const oldPassword = data.old_password;
+  //     const newPassword = data.new_password;
+  //     if (!oldPassword) {
+  //       throw new HttpException(
+  //         'Old password not provided',
+  //         HttpStatus.UNAUTHORIZED,
+  //       );
+  //     }
+  //     if (!newPassword) {
+  //       throw new HttpException(
+  //         'New password not provided',
+  //         HttpStatus.UNAUTHORIZED,
+  //       );
+  //     }
+  //     return await this.authService.changePassword({
+  //       user_id: user_id,
+  //       oldPassword: oldPassword,
+  //       newPassword: newPassword,
+  //     });
+  //   } catch (error) {
+  //     return {
+  //       success: false,
+  //       message: 'Failed to change password',
+  //     };
+  //   }
+  // }
+
   @ApiOperation({ summary: 'Change password' })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post('change-password')
   async changePassword(
     @Req() req: Request,
-    @Body() data: { old_password: string; new_password: string },
+    @Body()
+    data: {
+      old_password: string;
+      new_password: string;
+      confirm_password: string;
+    },
   ) {
     try {
       const user_id = req.user.userId;
 
-      const oldPassword = data.old_password;
-      const newPassword = data.new_password;
-      if (!oldPassword) {
+      if (!data.old_password) {
         throw new HttpException(
           'Old password not provided',
-          HttpStatus.UNAUTHORIZED,
+          HttpStatus.BAD_REQUEST,
         );
       }
-      if (!newPassword) {
+
+      if (!data.new_password) {
         throw new HttpException(
           'New password not provided',
-          HttpStatus.UNAUTHORIZED,
+          HttpStatus.BAD_REQUEST,
         );
       }
+
+      if (!data.confirm_password) {
+        throw new HttpException(
+          'Confirm password not provided',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      if (data.new_password !== data.confirm_password) {
+        throw new HttpException(
+          'New password and confirm password do not match',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
       return await this.authService.changePassword({
-        user_id: user_id,
-        oldPassword: oldPassword,
-        newPassword: newPassword,
+        user_id,
+        oldPassword: data.old_password,
+        newPassword: data.new_password,
       });
     } catch (error) {
       return {
         success: false,
-        message: 'Failed to change password',
+        message: error.message,
       };
     }
   }

@@ -7,7 +7,7 @@ import {
   Min,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
-import { productcategory, saddleSubcategory } from '@prisma/client';
+import { productcategory, saddlecountry, saddleSubcategory } from '@prisma/client';
 
 const normalizeArray = ({ value }: { value: any }) => {
   if (value === undefined || value === null) return undefined;
@@ -47,6 +47,9 @@ export class CreateSadlleDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @IsEnum(saddlecountry)
+  country: saddlecountry;
 
   // 🔥 ARRAYS
   @IsOptional()

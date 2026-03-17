@@ -24,22 +24,27 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       '/api/auth/verify-email',
       '/api/firebase-auth/google',
       '/api/contact-us',
+      '/api/used-saddles/public',
+      '/api/checkout/address',
+      '/api/checkout/summary',
+
     ];
 
-    // Routes that should bypass auth but contain parameters (cart endpoints).
-    // We treat anything under /api/cart as public so that both guests and
-    // logged-in users can hit the same controller without the guard blocking
-    // due to missing/invalid token. Token handling is done manually inside
-    // CartController.
     const isCartRoute = request.path.startsWith('/api/cart');
 
-    // Check if the route is public
-    if (publicRoutes.includes(request.path) || isCartRoute) {
-      // console.log('public route');
+    // 🔥 FIX
+    const isUsedSaddlePublic = request.path.startsWith(
+      '/api/used-saddles/public',
+    );
+
+    if (
+      publicRoutes.includes(request.path) ||
+      isCartRoute ||
+      isUsedSaddlePublic
+    ) {
       return true;
     }
 
-    // For protected routes, check the JWT
     return super.canActivate(context);
   }
 

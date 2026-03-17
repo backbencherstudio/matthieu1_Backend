@@ -34,6 +34,7 @@ async function bootstrap() {
       'Authorization',
       'X-Requested-With',
       'Accept',
+      'x-country ',
     ],
   });
 

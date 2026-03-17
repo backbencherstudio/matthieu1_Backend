@@ -8,12 +8,14 @@ import {
   Color,
   Prisma,
   productcategory,
+  saddlecountry,
   tackSubcategory,
 } from '@prisma/client';
 import { ProductUploadService } from './product-upload.service';
 import { CreateTackproductDto } from './dto/create-tackproduct.dto';
 import { UpdateTackproductDto } from './dto/update-tackproduct.dto';
 import { resolveCurrencyFromCountry } from 'src/common/utils/currency.util';
+import {  resolveRegionFromCountry } from 'src/common/utils/region.util';
 
 @Injectable()
 export class TackproductService {
@@ -24,6 +26,7 @@ export class TackproductService {
 
   private formatVariantPrice(variant: any, country?: string) {
     const currency = resolveCurrencyFromCountry(country);
+    const region = resolveRegionFromCountry(country);
 
     if (currency === 'USD') {
       return {
@@ -105,6 +108,7 @@ export class TackproductService {
         leatherCareGuide: createDto.leatherCareGuide,
         thumbnailImage: createDto.thumbnailImage,
         category: createDto.category,
+        country: createDto.country,
         subcategory: createDto.subcategory,
 
         variants: {
@@ -195,6 +199,7 @@ export class TackproductService {
         id: product.id,
         name: product.name,
         sku: product.sku,
+        country: product.country,
         category: product.subcategory
           ? `${product.category} → ${product.subcategory}`
           : product.category,
@@ -236,8 +241,10 @@ export class TackproductService {
     category: productcategory,
     country?: string,
   ) {
+
+    const region = resolveRegionFromCountry(country);
     const products = await this.prisma.tackProduct.findMany({
-      where: { category },
+      where: { category , country: region },
       include: {
         variants: {
           where: { isDefault: true }, // 👈 user only default variant
@@ -301,6 +308,7 @@ export class TackproductService {
         id: product.id,
         name: product.name,
         sku: product.sku,
+        country: product.country,
         description: product.description,
         benefits: product.benefits,
         leatherCareGuide: product.leatherCareGuide,
@@ -337,8 +345,9 @@ export class TackproductService {
     country?: string,
   ) {
     // 1️⃣ Check product exists
+    const region = resolveRegionFromCountry(country);
     const product = await this.prisma.tackProduct.findUnique({
-      where: { id: productId },
+      where: { id: productId, country: region },
       select: {
         id: true,
         name: true,
@@ -346,6 +355,7 @@ export class TackproductService {
         description: true,
         category: true,
         subcategory: true,
+        country: true,
       },
     });
 
@@ -400,6 +410,7 @@ export class TackproductService {
       id: product.id,
       name: product.name,
       sku: product.sku,
+      country: product.country,
       description: product.description,
       category: product.subcategory
         ? `${product.category} → ${product.subcategory}`

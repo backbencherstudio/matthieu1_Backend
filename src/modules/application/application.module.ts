@@ -17,6 +17,9 @@ import { ExpertsModule } from './experts/experts.module';
 import { SadllesModule } from './sadlles/sadlles.module';
 import { UsedSaddleModule } from './used-saddle/used-saddle.module';
 import { CouponModule } from './admin-dashboard/coupon/coupon.module';
+import { PaymentModule } from './payment/payment.module';
+import { CheckoutAddressModule } from './user-portal/checkout-address/checkout-address.module';
+import { OrderModule } from './user-portal/order/order.module';
 
 @Module({
   imports: [
@@ -37,6 +40,9 @@ import { CouponModule } from './admin-dashboard/coupon/coupon.module';
     SadllesModule,
     UsedSaddleModule,
     CouponModule,
+    PaymentModule,
+    CheckoutAddressModule,
+    OrderModule,
   ],
 })
 export class ApplicationModule {}

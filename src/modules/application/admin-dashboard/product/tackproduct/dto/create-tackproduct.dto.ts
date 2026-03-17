@@ -10,7 +10,7 @@ import {
   IsEnum,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { productcategory, tackSubcategory } from '@prisma/client';
+import { productcategory, saddlecountry, tackSubcategory } from '@prisma/client';
 
 class VariantInputDto {
   @IsOptional()
@@ -57,6 +57,9 @@ export class CreateTackproductDto {
   @IsOptional()
   @IsEnum(tackSubcategory)
   subcategory?: tackSubcategory;
+
+  @IsEnum(saddlecountry)
+  country: saddlecountry;
 
   @IsOptional()
   @IsString()

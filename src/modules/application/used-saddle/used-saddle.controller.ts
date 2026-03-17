@@ -25,75 +25,63 @@ import { Roles } from 'src/common/guard/role/roles.decorator';
 import { Role } from 'src/common/guard/role/role.enum';
 import { Request } from 'express';
 import { UserRepository } from 'src/common/repository/user/user.repository';
+import { OptionalJwtAuthGuard } from 'src/modules/auth/guards/optionaljwt-auth.guard';
 
 @Controller('used-saddles')
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class UsedSaddleController {
   constructor(
     private readonly service: UsedSaddleService,
     private readonly upload: UsedSaddleUploadService,
   ) {}
 
-  // ================= FIND ALL =================
+  // ================= ADMIN =================
 
-  // @Get()
-  // @Roles(Role.ADMIN, Role.USER)
-  // async findAll(
-  //   @Req() req: Request,
-  //   @Query('page') page = '1',
-  //   @Query('limit') limit = '10',
-  // ) {
-  //   try {
-  //     const userDetails = await UserRepository.getUserDetails(req.user.userId);
-  //     const isAdmin = userDetails?.type?.includes(Role.ADMIN);
+  @Get('admin/all')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  async getAllAdmin(@Query('page') page = '1', @Query('limit') limit = '10') {
+    const pageNumber = Math.max(parseInt(page, 10) || 1, 1);
+    const pageSize = Math.min(parseInt(limit, 10) || 10, 50);
 
-  //     const pageNumber = Math.max(parseInt(page, 10) || 1, 1);
-  //     const pageSize = Math.min(parseInt(limit, 10) || 10, 50); // max 50
+    const data = await this.service.findAllAdmin(pageNumber, pageSize);
 
-  //     const data = await this.service.findAll(isAdmin, pageNumber, pageSize);
+    return {
+      statusCode: 200,
+      message: 'Admin used saddles fetched successfully',
+      ...data,
+    };
+  }
 
-  //     return {
-  //       statusCode: 200,
-  //       message: 'Used saddles fetched successfully',
-  //       ...data,
-  //     };
-  //   } catch (err) {
-  //     if (err instanceof HttpException) throw err;
-  //     throw new InternalServerErrorException('Failed to fetch used saddles');
-  //   }
-  // }
+  @Get('admin/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  async findOneAdmin(@Param('id') id: string) {
+    const data = await this.service.findOneAdmin(id);
 
-  // // ================= FIND ONE =================
-  // @Get(':id')
-  // @Roles(Role.ADMIN, Role.USER)
-  // async findOne(@Param('id') id: string, @Req() req: Request) {
-  //   try {
-  //     const userDetails = await UserRepository.getUserDetails(req.user.userId);
+    return {
+      statusCode: 200,
+      message: 'Admin used saddle fetched successfully',
+      data,
+    };
+  }
 
-  //     const isAdmin = userDetails?.type?.includes(Role.ADMIN);
+  // ================= PUBLIC =================
 
-  //     const data = await this.service.findOne(id, isAdmin);
-
-  //     return {
-  //       statusCode: 200,
-  //       message: 'Used saddle fetched successfully',
-  //       data,
-  //     };
-  //   } catch (err) {
-  //     if (err instanceof HttpException) throw err;
-  //     throw new InternalServerErrorException('Failed to fetch used saddle');
-  //   }
-  // }
-
-  @Get()
-  @Roles(Role.ADMIN, Role.USER)
-  async findAll(
+  @Get('public')
+  @UseGuards(OptionalJwtAuthGuard)
+  async getAllPublic(
     @Req() req: Request,
     @Query('page') page = '1',
     @Query('limit') limit = '10',
   ) {
-    const userDetails = await UserRepository.getUserDetails(req.user.userId);
-    const isAdmin = userDetails?.type?.includes(Role.ADMIN);
+    let isAdmin = false;
+
+    const user = req.user as any;
+
+    if (user) {
+      const userDetails = await UserRepository.getUserDetails(user.userId);
+      isAdmin = userDetails?.type?.includes(Role.ADMIN);
+    }
 
     const pageNumber = Math.max(parseInt(page, 10) || 1, 1);
     const pageSize = Math.min(parseInt(limit, 10) || 10, 50);
@@ -114,11 +102,17 @@ export class UsedSaddleController {
     };
   }
 
-  @Get(':id')
-  @Roles(Role.ADMIN, Role.USER)
-  async findOne(@Param('id') id: string, @Req() req: Request) {
-    const userDetails = await UserRepository.getUserDetails(req.user.userId);
-    const isAdmin = userDetails?.type?.includes(Role.ADMIN);
+  @Get('public/:id')
+  @UseGuards(OptionalJwtAuthGuard)
+  async findOnePublic(@Param('id') id: string, @Req() req: Request) {
+    let isAdmin = false;
+
+    const user = req.user as any;
+
+    if (user) {
+      const userDetails = await UserRepository.getUserDetails(user.userId);
+      isAdmin = userDetails?.type?.includes(Role.ADMIN);
+    }
 
     const country = (req.headers['x-country'] || '').toString();
 
@@ -133,6 +127,7 @@ export class UsedSaddleController {
 
   // ================= CREATE =================
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @UseInterceptors(FileFieldsInterceptor([{ name: 'images', maxCount: 10 }]))
   async create(
@@ -163,6 +158,7 @@ export class UsedSaddleController {
 
   // ================= UPDATE =================
   @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   async update(@Param('id') id: string, @Body() dto: UpdateUsedSaddleDto) {
     const data = await this.service.update(id, dto);
@@ -175,8 +171,9 @@ export class UsedSaddleController {
   }
 
   // ================= ADD IMAGES =================
-  @Roles(Role.ADMIN)
   @Post(':id/images')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
   @UseInterceptors(FileFieldsInterceptor([{ name: 'images', maxCount: 10 }]))
   async addImages(
     @Param('id') id: string,
@@ -197,6 +194,7 @@ export class UsedSaddleController {
   }
 
   // ================= DELETE IMAGE =================
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Delete('images/:imageId')
   async deleteImage(@Param('imageId') imageId: string) {
@@ -209,8 +207,9 @@ export class UsedSaddleController {
   }
 
   // ================= DELETE =================
-  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
+  @Delete(':id')
   async remove(@Param('id') id: string) {
     const result = await this.service.remove(id);
 
