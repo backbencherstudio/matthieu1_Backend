@@ -742,6 +742,7 @@ export class CartService {
           subtotal,
           shipping,
           tax,
+          couponCode,
           couponMessage,
           couponDiscount: discount,
           total,
