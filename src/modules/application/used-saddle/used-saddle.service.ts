@@ -307,7 +307,6 @@
 //   }
 // }
 
-
 import {
   BadRequestException,
   Injectable,
@@ -321,6 +320,7 @@ import { CreateUsedSaddleDto } from './dto/create-used-saddle.dto';
 import { UpdateUsedSaddleDto } from './dto/update-used-saddle.dto';
 import { TRIAL_PRICE_MAP } from './used-saddle.constants';
 import { resolveCurrencyFromCountry } from 'src/common/utils/currency.util';
+import { resolveRegionFromCountry } from 'src/common/utils/region.util';
 
 @Injectable()
 export class UsedSaddleService {
@@ -334,9 +334,8 @@ export class UsedSaddleService {
   /* ------------------------------------------------ */
 
   private resolveRegion(country?: string): saddlecountry {
-    return country?.toUpperCase() === 'USA'
-      ? saddlecountry.USA
-      : saddlecountry.EUROPE;
+    const region = resolveRegionFromCountry(country);
+    return region === 'USA' ? saddlecountry.USA : saddlecountry.EUROPE;
   }
 
   /* ------------------------------------------------ */
@@ -409,9 +408,7 @@ export class UsedSaddleService {
         throw new BadRequestException(error.message);
       }
 
-      throw new InternalServerErrorException(
-        'Failed to create used saddle',
-      );
+      throw new InternalServerErrorException('Failed to create used saddle');
     }
   }
 
@@ -425,12 +422,10 @@ export class UsedSaddleService {
     limit: number,
     country?: string,
   ) {
-
     const skip = (page - 1) * limit;
     const region = this.resolveRegion(country);
 
     if (isAdmin) {
-
       const [items, total] = await Promise.all([
         this.prisma.usedSaddle.findMany({
           where: {
@@ -514,7 +509,6 @@ export class UsedSaddleService {
   /* ------------------------------------------------ */
 
   async findAllAdmin(page: number, limit: number) {
-
     const skip = (page - 1) * limit;
 
     const [items, total] = await Promise.all([
@@ -543,7 +537,6 @@ export class UsedSaddleService {
   /* ------------------------------------------------ */
 
   async findOne(id: string, isAdmin: boolean, country?: string) {
-
     const saddle = await this.prisma.usedSaddle.findUnique({
       where: { id },
       include: { images: true },
@@ -556,9 +549,7 @@ export class UsedSaddleService {
     const region = this.resolveRegion(country);
 
     if (!isAdmin && saddle.country !== region) {
-      throw new NotFoundException(
-        'Used saddle not available in your region',
-      );
+      throw new NotFoundException('Used saddle not available in your region');
     }
 
     if (isAdmin) {
@@ -572,10 +563,7 @@ export class UsedSaddleService {
 
     return {
       ...rest,
-      ...this.formatPriceRange(
-        { basePrice_usd, basePrice_eur },
-        country,
-      ),
+      ...this.formatPriceRange({ basePrice_usd, basePrice_eur }, country),
     };
   }
 
@@ -584,7 +572,6 @@ export class UsedSaddleService {
   /* ------------------------------------------------ */
 
   async findOneAdmin(id: string) {
-
     const saddle = await this.prisma.usedSaddle.findUnique({
       where: { id },
       include: { images: true },
@@ -602,7 +589,6 @@ export class UsedSaddleService {
   /* ------------------------------------------------ */
 
   async update(id: string, dto: UpdateUsedSaddleDto) {
-
     return this.prisma.usedSaddle.update({
       where: { id },
       data: dto,
@@ -615,7 +601,6 @@ export class UsedSaddleService {
   /* ------------------------------------------------ */
 
   async addImages(id: string, urls: string[]) {
-
     await this.prisma.usedSaddleImage.createMany({
       data: urls.map((url) => ({
         url,
@@ -629,7 +614,6 @@ export class UsedSaddleService {
   /* ------------------------------------------------ */
 
   async deleteImage(imageId: string) {
-
     const image = await this.prisma.usedSaddleImage.findUnique({
       where: { id: imageId },
     });
@@ -650,7 +634,6 @@ export class UsedSaddleService {
   /* ------------------------------------------------ */
 
   async remove(id: string) {
-
     const saddle = await this.prisma.usedSaddle.findUnique({
       where: { id },
       include: { images: true },
