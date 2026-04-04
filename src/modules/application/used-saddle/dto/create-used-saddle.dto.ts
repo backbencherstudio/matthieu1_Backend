@@ -61,17 +61,88 @@
 //   trialPeriod: TrialPeriod;
 // }
 
+// import {
+//   IsEnum,
+//   IsInt,
+//   IsNotEmpty,
+//   IsNumber,
+//   IsOptional,
+//   IsString,
+//   Min,
+// } from 'class-validator';
+// import { productcategory, saddlecountry } from '@prisma/client';
+// import { Type } from 'class-transformer';
+
+// export class CreateUsedSaddleDto {
+//   @IsString()
+//   @IsNotEmpty({ message: 'Title is required' })
+//   title: string;
+
+//   @IsString()
+//   @IsNotEmpty({ message: 'Description is required' })
+//   description: string;
+
+//   @IsString()
+//   @IsNotEmpty({ message: 'Seat size is required' })
+//   seatSize: string;
+
+//   // //discipline is missing in the prisma schema, so we will just use a string for now
+//   // @IsString()
+//   // @IsNotEmpty({ message: 'Discipline is required' })
+//   // discipline: string;
+
+//   @Type(() => Number)
+//   @IsInt()
+//   @Min(0)
+//   stockQuantity: number;
+
+//   @IsEnum(productcategory, {
+//     message: 'Invalid product category',
+//   })
+//   category: productcategory;
+
+//   @IsEnum(saddlecountry)
+//   country: saddlecountry;
+
+//   @IsString()
+//   @IsNotEmpty({ message: 'Used saddle category is required' })
+//   usedsaddlecategory: string;
+
+//   @Type(() => Number)
+//   @IsInt()
+//   @Min(1)
+//   basePrice_usd: number;
+
+//   @Type(() => Number)
+//   @IsInt()
+//   @Min(1)
+//   basePrice_eur: number;
+
+//   // @IsEnum(TrialPeriod, {
+//   //   message: 'Trial period must be NO_TRIAL | TRIAL_7_DAYS | TRIAL_14_DAYS',
+//   // })
+//   // trialPeriod: TrialPeriod;
+
+//   @IsOptional()
+//   images?: any;
+// }
+
 import {
   IsEnum,
+  IsIn,
   IsInt,
   IsNotEmpty,
-  IsNumber,
   IsOptional,
   IsString,
   Min,
 } from 'class-validator';
-import { productcategory, saddlecountry } from '@prisma/client';
 import { Type } from 'class-transformer';
+import {
+  Brand,
+  Discpline,
+  productcategory,
+  saddlecountry,
+} from '@prisma/client';
 
 export class CreateUsedSaddleDto {
   @IsString()
@@ -82,14 +153,11 @@ export class CreateUsedSaddleDto {
   @IsNotEmpty({ message: 'Description is required' })
   description: string;
 
-  @IsString()
   @IsNotEmpty({ message: 'Seat size is required' })
+  @IsIn(['17', '17.5', '18'], {
+    message: 'Seat size must be 17, 17.5 or 18',
+  })
   seatSize: string;
-
-  // //discipline is missing in the prisma schema, so we will just use a string for now
-  // @IsString()
-  // @IsNotEmpty({ message: 'Discipline is required' })
-  // discipline: string;
 
   @Type(() => Number)
   @IsInt()
@@ -101,12 +169,19 @@ export class CreateUsedSaddleDto {
   })
   category: productcategory;
 
-  @IsEnum(saddlecountry)
-  country: saddlecountry;
-
   @IsString()
   @IsNotEmpty({ message: 'Used saddle category is required' })
   usedsaddlecategory: string;
+
+  @IsEnum(Discpline, {
+    message: 'Invalid discipline',
+  })
+  discipline: Discpline;
+
+  @IsEnum(Brand, {
+    message: 'Invalid brand',
+  })
+  brand: Brand;
 
   @Type(() => Number)
   @IsInt()
@@ -118,10 +193,10 @@ export class CreateUsedSaddleDto {
   @Min(1)
   basePrice_eur: number;
 
-  // @IsEnum(TrialPeriod, {
-  //   message: 'Trial period must be NO_TRIAL | TRIAL_7_DAYS | TRIAL_14_DAYS',
-  // })
-  // trialPeriod: TrialPeriod;
+  @IsEnum(saddlecountry, {
+    message: 'Invalid saddle country',
+  })
+  country: saddlecountry;
 
   @IsOptional()
   images?: any;
