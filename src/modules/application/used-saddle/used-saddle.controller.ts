@@ -26,6 +26,7 @@ import { Role } from 'src/common/guard/role/role.enum';
 import { Request } from 'express';
 import { UserRepository } from 'src/common/repository/user/user.repository';
 import { OptionalJwtAuthGuard } from 'src/modules/auth/guards/optionaljwt-auth.guard';
+import { Brand, Discpline } from '@prisma/client';
 
 @Controller('used-saddles')
 export class UsedSaddleController {
@@ -67,12 +68,50 @@ export class UsedSaddleController {
 
   // ================= PUBLIC =================
 
+  // @Get('public')
+  // @UseGuards(OptionalJwtAuthGuard)
+  // async getAllPublic(
+  //   @Req() req: Request,
+  //   @Query('page') page = '1',
+  //   @Query('limit') limit = '10',
+  // ) {
+  //   let isAdmin = false;
+
+  //   const user = req.user as any;
+
+  //   if (user) {
+  //     const userDetails = await UserRepository.getUserDetails(user.userId);
+  //     isAdmin = userDetails?.type?.includes(Role.ADMIN);
+  //   }
+
+  //   const pageNumber = Math.max(parseInt(page, 10) || 1, 1);
+  //   const pageSize = Math.min(parseInt(limit, 10) || 10, 50);
+
+  //   const country = (req.headers['x-country'] || '').toString();
+
+  //   const data = await this.service.findAll(
+  //     isAdmin,
+  //     pageNumber,
+  //     pageSize,
+  //     country,
+  //   );
+
+  //   return {
+  //     statusCode: 200,
+  //     message: 'Used saddles fetched successfully',
+  //     ...data,
+  //   };
+  // }
+
   @Get('public')
   @UseGuards(OptionalJwtAuthGuard)
   async getAllPublic(
     @Req() req: Request,
     @Query('page') page = '1',
     @Query('limit') limit = '10',
+    @Query('brand') brand?: Brand,
+    @Query('seatSize') seatSize?: string,
+    @Query('discipline') discipline?: Discpline,
   ) {
     let isAdmin = false;
 
@@ -93,6 +132,9 @@ export class UsedSaddleController {
       pageNumber,
       pageSize,
       country,
+      brand,
+      seatSize,
+      discipline,
     );
 
     return {
