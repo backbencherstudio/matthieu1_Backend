@@ -169,48 +169,6 @@ export class AuthController {
     }
   }
 
-  // update user
-  @ApiOperation({ summary: 'Update user' })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  @Patch('update')
-  @UseInterceptors(
-    FileFieldsInterceptor(
-      [
-        { name: 'image', maxCount: 1 },
-        { name: 'coverPhoto', maxCount: 1 },
-      ],
-      {
-        storage: memoryStorage(),
-      },
-    ),
-  )
-  // async updateUser(
-  //   @Req() req: Request,
-  //   @Body() data: UpdateUserDto,
-  //   @UploadedFiles()
-  //   files: {
-  //     image?: Express.Multer.File[];
-  //     coverPhoto?: Express.Multer.File[];
-  //   },
-  // ) {
-  //   try {
-  //     const user_id = req.user.userId;
-  //     const response = await this.authService.updateUser(
-  //       user_id,
-  //       data,
-  //       files.image?.[0],
-  //       files.coverPhoto?.[0],
-  //     );
-  //     return response;
-  //   } catch (error) {8
-  //     return {
-  //       success: false,
-  //       message: 'Failed to update user',
-  //     };
-  //   }
-  // }
-
   @ApiOperation({ summary: 'Update user address and phone' })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
