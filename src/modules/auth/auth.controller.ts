@@ -55,17 +55,67 @@ export class AuthController {
     }
   }
 
+  // @ApiOperation({ summary: 'Register a user' })
+  // @Post('register')
+  // async create(@Body() data: CreateUserDto) {
+  //   try {
+  //     const { email, password } = data;
+
+  //     if (!email) {
+  //       return {
+  //         success: false,
+  //         statusCode: 400,
+  //         message: 'Email not provided',
+  //       };
+  //     }
+
+  //     if (!password) {
+  //       return {
+  //         success: false,
+  //         statusCode: 400,
+  //         message: 'Password not provided',
+  //       };
+  //     }
+
+  //     const response = await this.authService.register({ email, password });
+
+  //     return response; // Return the unified response
+  //   } catch (error) {
+  //     return {
+  //       success: false,
+  //       statusCode: 500,
+  //       message: error?.message || 'Something went wrong',
+  //     };
+  //   }
+  // }
+
   @ApiOperation({ summary: 'Register a user' })
   @Post('register')
   async create(@Body() data: CreateUserDto) {
     try {
-      const { email, password } = data;
+      const { email, password, confirm_password, first_name, last_name } = data;
 
       if (!email) {
         return {
           success: false,
           statusCode: 400,
           message: 'Email not provided',
+        };
+      }
+
+      if (!first_name) {
+        return {
+          success: false,
+          statusCode: 400,
+          message: 'First name not provided',
+        };
+      }
+
+      if (!last_name) {
+        return {
+          success: false,
+          statusCode: 400,
+          message: 'Last name not provided',
         };
       }
 
@@ -77,9 +127,23 @@ export class AuthController {
         };
       }
 
-      const response = await this.authService.register({ email, password });
+      if (!confirm_password) {
+        return {
+          success: false,
+          statusCode: 400,
+          message: 'Confirm password not provided',
+        };
+      }
 
-      return response; // Return the unified response
+      const response = await this.authService.register({
+        email,
+        password,
+        confirm_password,
+        first_name,
+        last_name,
+      });
+
+      return response;
     } catch (error) {
       return {
         success: false,

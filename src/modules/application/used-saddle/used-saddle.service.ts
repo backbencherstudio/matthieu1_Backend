@@ -393,6 +393,7 @@ export class UsedSaddleService {
           sku: this.generateSku(),
           title: dto.title,
           description: dto.description,
+          // discipline: dto.discipline,
           seatSize: dto.seatSize,
           country: dto.country,
           stockQuantity: dto.stockQuantity,
