@@ -627,6 +627,7 @@ export class CartService {
 
           return {
             quantity: item.quantity,
+            itemId: item.id,
             itemName: item.usedSaddle.title,
             itemImage: item.usedSaddle.images?.[0]?.url ?? null,
             price,
@@ -665,6 +666,7 @@ export class CartService {
 
           return {
             quantity: item.quantity,
+            itemId: item.id,
             itemName: item.variant.Tackproduct?.name,
             itemImage: item.variant.images?.[0]?.url ?? null,
             price,

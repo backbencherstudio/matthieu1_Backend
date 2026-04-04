@@ -86,6 +86,11 @@ export class CreateUsedSaddleDto {
   @IsNotEmpty({ message: 'Seat size is required' })
   seatSize: string;
 
+  // //discipline is missing in the prisma schema, so we will just use a string for now
+  // @IsString()
+  // @IsNotEmpty({ message: 'Discipline is required' })
+  // discipline: string;
+
   @Type(() => Number)
   @IsInt()
   @Min(0)

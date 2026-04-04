@@ -119,7 +119,6 @@ export class AuthService {
         select: {
           phone_number: true,
           address: true,
-          
         },
       });
 
@@ -256,77 +255,77 @@ export class AuthService {
   // }
 
   async updateUser(
-  userId: string,
-  updateUserDto: UpdateUserDto,
-  image?: Express.Multer.File,
-) {
-  try {
-    const data: any = {};
+    userId: string,
+    updateUserDto: UpdateUserDto,
+    image?: Express.Multer.File,
+  ) {
+    try {
+      const data: any = {};
 
-    if (updateUserDto.first_name) {
-      data.first_name = updateUserDto.first_name;
-    }
-
-    if (updateUserDto.last_name) {
-      data.last_name = updateUserDto.last_name;
-    }
-
-    if (updateUserDto.email) {
-      data.email = updateUserDto.email;
-    }
-
-    if (updateUserDto.phone_number) {
-      data.phone_number = updateUserDto.phone_number;
-    }
-
-    // Image Upload
-    if (image) {
-      const oldImage = await this.prisma.user.findFirst({
-        where: { id: userId },
-        select: { avatar: true },
-      });
-
-      if (oldImage?.avatar) {
-        await FileStorage.delete(
-          appConfig().storageUrl.avatar + oldImage.avatar,
-        );
+      if (updateUserDto.first_name) {
+        data.first_name = updateUserDto.first_name;
       }
 
-      const fileName = `${StringHelper.randomString()}${image.originalname}`;
+      if (updateUserDto.last_name) {
+        data.last_name = updateUserDto.last_name;
+      }
 
-      await FileStorage.put(
-        appConfig().storageUrl.avatar + fileName,
-        image.buffer,
-      );
+      if (updateUserDto.email) {
+        data.email = updateUserDto.email;
+      }
 
-      data.avatar = fileName;
-    }
+      if (updateUserDto.phone_number) {
+        data.phone_number = updateUserDto.phone_number;
+      }
 
-    const user = await UserRepository.getUserDetails(userId);
+      // Image Upload
+      if (image) {
+        const oldImage = await this.prisma.user.findFirst({
+          where: { id: userId },
+          select: { avatar: true },
+        });
 
-    if (!user) {
+        if (oldImage?.avatar) {
+          await FileStorage.delete(
+            appConfig().storageUrl.avatar + oldImage.avatar,
+          );
+        }
+
+        const fileName = `${StringHelper.randomString()}${image.originalname}`;
+
+        await FileStorage.put(
+          appConfig().storageUrl.avatar + fileName,
+          image.buffer,
+        );
+
+        data.avatar = fileName;
+      }
+
+      const user = await UserRepository.getUserDetails(userId);
+
+      if (!user) {
+        return {
+          success: false,
+          message: 'User not found',
+        };
+      }
+
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: data,
+      });
+
+      return {
+        success: true,
+        message: 'User updated successfully',
+      };
+    } catch (error) {
       return {
         success: false,
-        message: 'User not found',
+        message: error.message,
       };
     }
-
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: data,
-    });
-
-    return {
-      success: true,
-      message: 'User updated successfully',
-    };
-  } catch (error) {
-    return {
-      success: false,
-      message: error.message,
-    };
   }
-}
 
   async updateUserAddress(
     userId: string,
@@ -552,84 +551,84 @@ export class AuthService {
     }
   }
 
-  async register({ email, password }: { email: string; password: string }) {
-    try {
-      // Check if email already exists
-      const userEmailExist = await UserRepository.exist({
-        field: 'email',
-        value: String(email),
-      });
+  // async register({ email, password }: { email: string; password: string }) {
+  //   try {
+  //     // Check if email already exists
+  //     const userEmailExist = await UserRepository.exist({
+  //       field: 'email',
+  //       value: String(email),
+  //     });
 
-      if (userEmailExist) {
-        return {
-          success: false,
-          statusCode: 409,
-          message: 'Email already exists',
-        };
-      }
+  //     if (userEmailExist) {
+  //       return {
+  //         success: false,
+  //         statusCode: 409,
+  //         message: 'Email already exists',
+  //       };
+  //     }
 
-      // Create the user (no need to check for name uniqueness)
-      const user = await UserRepository.createUser({
-        email,
-        password,
-      });
+  //     // Create the user (no need to check for name uniqueness)
+  //     const user = await UserRepository.createUser({
+  //       email,
+  //       password,
+  //     });
 
-      if (!user || user.success === false) {
-        return {
-          success: false,
-          statusCode: 500,
-          message: 'Failed to create account',
-        };
-      }
+  //     if (!user || user.success === false) {
+  //       return {
+  //         success: false,
+  //         statusCode: 500,
+  //         message: 'Failed to create account',
+  //       };
+  //     }
 
-      // Create Stripe customer (if needed)
-      const stripeCustomer = await StripePayment.createCustomer({
-        user_id: user.data.id,
-        email: email,
-      });
+  //     // Create Stripe customer (if needed)
+  //     const stripeCustomer = await StripePayment.createCustomer({
+  //       user_id: user.data.id,
+  //       email: email,
+  //     });
 
-      if (stripeCustomer) {
-        await this.prisma.user.update({
-          where: { id: user.data.id },
-          data: { billing_id: stripeCustomer.id },
-        });
-      }
+  //     if (stripeCustomer) {
+  //       await this.prisma.user.update({
+  //         where: { id: user.data.id },
+  //         data: { billing_id: stripeCustomer.id },
+  //       });
+  //     }
 
-      // Notify admin
-      const adminUsers = await this.prisma.user.findMany({
-        where: { type: 'ADMIN' },
-        select: { id: true },
-      });
+  //     // Notify admin
+  //     const adminUsers = await this.prisma.user.findMany({
+  //       where: { type: 'ADMIN' },
+  //       select: { id: true },
+  //     });
 
-      for (const admin of adminUsers) {
-        const dataToEmit = await this.notificationService.createNotification({
-          receiver_id: admin.id,
-          sender_id: user.data.id,
-          message: `New user registered: ${user.data.email}`,
-          type: 'register',
-          post_id: null,
-        });
+  //     for (const admin of adminUsers) {
+  //       const dataToEmit = await this.notificationService.createNotification({
+  //         receiver_id: admin.id,
+  //         sender_id: user.data.id,
+  //         message: `New user registered: ${user.data.email}`,
+  //         type: 'register',
+  //         post_id: null,
+  //       });
 
-        this.notificationGateway.notifyAdmin(admin.id, dataToEmit);
-      }
+  //       this.notificationGateway.notifyAdmin(admin.id, dataToEmit);
+  //     }
 
-      return {
-        success: true,
-        statusCode: 201,
-        message: 'Registered successfully',
-        data: {
-          userId: user.data.id,
-          email: user.data.email,
-        },
-      };
-    } catch (error) {
-      return {
-        success: false,
-        statusCode: 500,
-        message: error?.message || 'Something went wrong',
-      };
-    }
-  }
+  //     return {
+  //       success: true,
+  //       statusCode: 201,
+  //       message: 'Registered successfully',
+  //       data: {
+  //         userId: user.data.id,
+  //         email: user.data.email,
+  //       },
+  //     };
+  //   } catch (error) {
+  //     return {
+  //       success: false,
+  //       statusCode: 500,
+  //       message: error?.message || 'Something went wrong',
+  //     };
+  //   }
+  // }
 
   //   async getAllUsers() {
   //   try {
@@ -670,6 +669,106 @@ export class AuthService {
   //   }
   // }
 
+  async register({
+    email,
+    password,
+    confirm_password,
+    first_name,
+    last_name,
+  }: {
+    email: string;
+    password: string;
+    confirm_password: string;
+    first_name: string;
+    last_name: string;
+  }) {
+    try {
+      if (password !== confirm_password) {
+        return {
+          success: false,
+          statusCode: 400,
+          message: 'Passwords do not match',
+        };
+      }
+
+      const userEmailExist = await UserRepository.exist({
+        field: 'email',
+        value: String(email),
+      });
+
+      if (userEmailExist) {
+        return {
+          success: false,
+          statusCode: 409,
+          message: 'Email already exists',
+        };
+      }
+
+      const user = await UserRepository.createUser({
+        email,
+        password,
+        first_name,
+        last_name,
+        name: `${first_name} ${last_name}`.trim(),
+      });
+
+      if (!user || user.success === false) {
+        return {
+          success: false,
+          statusCode: 500,
+          message: 'Failed to create account',
+        };
+      }
+
+      const stripeCustomer = await StripePayment.createCustomer({
+        user_id: user.data.id,
+        email,
+      });
+
+      if (stripeCustomer) {
+        await this.prisma.user.update({
+          where: { id: user.data.id },
+          data: { billing_id: stripeCustomer.id },
+        });
+      }
+
+      const adminUsers = await this.prisma.user.findMany({
+        where: { type: 'ADMIN' },
+        select: { id: true },
+      });
+
+      for (const admin of adminUsers) {
+        const dataToEmit = await this.notificationService.createNotification({
+          receiver_id: admin.id,
+          sender_id: user.data.id,
+          message: `New user registered: ${user.data.email}`,
+          type: 'register',
+          post_id: null,
+        });
+
+        this.notificationGateway.notifyAdmin(admin.id, dataToEmit);
+      }
+
+      return {
+        success: true,
+        statusCode: 201,
+        message: 'Registered successfully',
+        data: {
+          userId: user.data.id,
+          email: user.data.email,
+          first_name: user.data.first_name,
+          last_name: user.data.last_name,
+          name: user.data.name,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        statusCode: 500,
+        message: error?.message || 'Something went wrong',
+      };
+    }
+  }
   async getUsersWithPagination(page = 1, limit = 10) {
     try {
       const skip = (page - 1) * limit;

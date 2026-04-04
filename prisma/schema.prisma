@@ -802,6 +802,20 @@ enum TrialPeriod {
   TRIAL_14_DAYS
 }
 
+// enum Brand {
+//   BUTET
+//   CWD
+//   DEVOUCOUX
+//   FORSTIER
+//   MEYER
+//   VOLTAIRE
+// }
+
+// enum seatSize {
+//   17
+//   17.5
+//   18
+// }
 
 model UsedSaddle {
   id          String   @id @default(cuid())
@@ -812,6 +826,8 @@ model UsedSaddle {
   stockQuantity   Int
   category    productcategory 
   usedsaddlecategory String
+  // discipline  Discpline
+  // brand       Brand
   basePrice_usd   Int
   basePrice_eur   Int
   country     saddlecountry

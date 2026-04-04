@@ -254,8 +254,6 @@
 //         );
 //       }
 
-
-
 //       if (type && ArrayHelper.inArray(type, Object.values(Role))) {
 //         data['type'] = type;
 
@@ -610,7 +608,6 @@
 //   }
 // }
 
-
 import * as bcrypt from 'bcrypt';
 import * as speakeasy from 'speakeasy';
 import * as QRCode from 'qrcode';
@@ -803,6 +800,126 @@ export class UserRepository {
    * @param data Object containing user details including social IDs
    * @returns
    */
+  // static async createUser({
+  //   name,
+  //   first_name,
+  //   last_name,
+  //   email,
+  //   password,
+  //   phone_number,
+  //   role_id = null,
+  //   type = 'user',
+  //   facebook_id,       // Added this
+  //   google_id,         // Added this
+  //   avatar,            // Added this
+  //   email_verified_at, // Added this
+  // }: {
+  //   name?: string;
+  //   first_name?: string;
+  //   last_name?: string;
+  //   email: string;
+  //   password?: string; // Made optional as social logins might not have a direct password
+  //   phone_number?: string;
+  //   role_id?: string;
+  //   type?: string;
+  //   facebook_id?: string;       // Added this to the inline type
+  //   google_id?: string;         // Added this to the inline type
+  //   avatar?: string;            // Added this to the inline type
+  //   email_verified_at?: Date;   // Added this to the inline type
+  // }) {
+  //   try {
+  //     const userData: any = {};
+
+  //     if (name) {
+  //       userData.name = name;
+  //     }
+  //     if (first_name) {
+  //       userData.first_name = first_name;
+  //     }
+  //     if (last_name) {
+  //       userData.last_name = last_name;
+  //     }
+  //     if (phone_number) {
+  //       userData.phone_number = phone_number;
+  //     }
+  //     if (email) {
+  //       // Check if email already exist
+  //       const userEmailExist = await UserRepository.exist({
+  //         field: 'email',
+  //         value: String(email),
+  //       });
+
+  //       if (userEmailExist) {
+  //         return {
+  //           success: false,
+  //           message: 'Email already exist',
+  //         };
+  //       }
+
+  //       userData.email = email;
+  //     }
+  //     if (password) {
+  //       userData.password = await bcrypt.hash(
+  //         password,
+  //         appConfig().security.salt,
+  //       );
+  //     }
+
+  //     // Add social login fields to userData
+  //     if (facebook_id) { // Use the parameter directly
+  //       userData.facebook_id = facebook_id;
+  //     }
+  //     if (google_id) { // Use the parameter directly
+  //       userData.google_id = google_id;
+  //     }
+  //     if (avatar) { // Use the parameter directly
+  //       userData.avatar = avatar;
+  //     }
+  //     if (email_verified_at) { // Use the parameter directly
+  //       userData.email_verified_at = email_verified_at;
+  //     }
+
+  //     if (type && ArrayHelper.inArray(type, Object.values(Role))) {
+  //       userData.type = type;
+  //     } else {
+  //       // Default to 'user' if no valid type is provided, or handle as an error
+  //       userData.type = 'user';
+  //     }
+
+  //     const user = await prisma.user.create({
+  //       data: {
+  //         ...userData,
+  //       },
+  //     });
+
+  //     if (user) {
+  //       if (role_id) {
+  //         // attach role
+  //         await this.attachRole({
+  //           user_id: user.id,
+  //           role_id: role_id, // Use the parameter directly
+  //         });
+  //       }
+
+  //       return {
+  //         success: true,
+  //         message: 'User created successfully',
+  //         data: user,
+  //       };
+  //     } else {
+  //       return {
+  //         success: false,
+  //         message: 'User creation failed',
+  //       };
+  //     }
+  //   } catch (error) {
+  //     return {
+  //       success: false,
+  //       message: error.message,
+  //     };
+  //   }
+  // }
+
   static async createUser({
     name,
     first_name,
@@ -812,23 +929,23 @@ export class UserRepository {
     phone_number,
     role_id = null,
     type = 'user',
-    facebook_id,       // Added this
-    google_id,         // Added this
-    avatar,            // Added this
-    email_verified_at, // Added this
+    facebook_id,
+    google_id,
+    avatar,
+    email_verified_at,
   }: {
     name?: string;
     first_name?: string;
     last_name?: string;
     email: string;
-    password?: string; // Made optional as social logins might not have a direct password
+    password?: string;
     phone_number?: string;
-    role_id?: string;
+    role_id?: string | null;
     type?: string;
-    facebook_id?: string;       // Added this to the inline type
-    google_id?: string;         // Added this to the inline type
-    avatar?: string;            // Added this to the inline type
-    email_verified_at?: Date;   // Added this to the inline type
+    facebook_id?: string;
+    google_id?: string;
+    avatar?: string;
+    email_verified_at?: Date;
   }) {
     try {
       const userData: any = {};
@@ -836,31 +953,23 @@ export class UserRepository {
       if (name) {
         userData.name = name;
       }
+
       if (first_name) {
         userData.first_name = first_name;
       }
+
       if (last_name) {
         userData.last_name = last_name;
       }
+
       if (phone_number) {
         userData.phone_number = phone_number;
       }
+
       if (email) {
-        // Check if email already exist
-        const userEmailExist = await UserRepository.exist({
-          field: 'email',
-          value: String(email),
-        });
-
-        if (userEmailExist) {
-          return {
-            success: false,
-            message: 'Email already exist',
-          };
-        }
-
         userData.email = email;
       }
+
       if (password) {
         userData.password = await bcrypt.hash(
           password,
@@ -868,58 +977,55 @@ export class UserRepository {
         );
       }
 
-      // Add social login fields to userData
-      if (facebook_id) { // Use the parameter directly
+      if (facebook_id) {
         userData.facebook_id = facebook_id;
       }
-      if (google_id) { // Use the parameter directly
+
+      if (google_id) {
         userData.google_id = google_id;
       }
-      if (avatar) { // Use the parameter directly
+
+      if (avatar) {
         userData.avatar = avatar;
       }
-      if (email_verified_at) { // Use the parameter directly
+
+      if (email_verified_at) {
         userData.email_verified_at = email_verified_at;
       }
-
 
       if (type && ArrayHelper.inArray(type, Object.values(Role))) {
         userData.type = type;
       } else {
-        // Default to 'user' if no valid type is provided, or handle as an error
         userData.type = 'user';
       }
 
       const user = await prisma.user.create({
-        data: {
-          ...userData,
-        },
+        data: userData,
       });
 
-      if (user) {
-        if (role_id) {
-          // attach role
-          await this.attachRole({
-            user_id: user.id,
-            role_id: role_id, // Use the parameter directly
-          });
-        }
-
-        return {
-          success: true,
-          message: 'User created successfully',
-          data: user,
-        };
-      } else {
+      if (!user) {
         return {
           success: false,
           message: 'User creation failed',
         };
       }
+
+      if (role_id) {
+        await this.attachRole({
+          user_id: user.id,
+          role_id,
+        });
+      }
+
+      return {
+        success: true,
+        message: 'User created successfully',
+        data: user,
+      };
     } catch (error) {
       return {
         success: false,
-        message: error.message,
+        message: error?.message || 'User creation failed',
       };
     }
   }
