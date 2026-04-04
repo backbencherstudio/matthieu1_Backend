@@ -313,7 +313,7 @@ import {
   NotFoundException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { Prisma, saddlecountry } from '@prisma/client';
+import { Prisma, saddlecountry, SeatSize, Brand, Discpline } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UsedSaddleUploadService } from './used-saddle-upload.service';
 import { CreateUsedSaddleDto } from './dto/create-used-saddle.dto';
@@ -382,6 +382,19 @@ export class UsedSaddleService {
     return `US-${out}`;
   }
 
+  private mapSeatSize(value: string): SeatSize {
+    switch (value) {
+      case '17':
+        return 'SIZE_17';
+      case '17.5':
+        return 'SIZE_17_5';
+      case '18':
+        return 'SIZE_18';
+      default:
+        throw new BadRequestException('Invalid seat size');
+    }
+  }
+
   /* ------------------------------------------------ */
   /* CREATE */
   /* ------------------------------------------------ */
@@ -393,14 +406,15 @@ export class UsedSaddleService {
           sku: this.generateSku(),
           title: dto.title,
           description: dto.description,
-          // discipline: dto.discipline,
-          seatSize: dto.seatSize,
-          country: dto.country,
+          seatSize: this.mapSeatSize(dto.seatSize),
           stockQuantity: dto.stockQuantity,
           category: dto.category,
           usedsaddlecategory: dto.usedsaddlecategory,
+          discipline: dto.discipline,
+          brand: dto.brand,
           basePrice_usd: dto.basePrice_usd,
           basePrice_eur: dto.basePrice_eur,
+          country: dto.country,
           isAvailable: true,
         },
       });
@@ -417,84 +431,142 @@ export class UsedSaddleService {
   /* FIND ALL (USER + ADMIN) */
   /* ------------------------------------------------ */
 
+  // async findAll(
+  //   isAdmin: boolean,
+  //   page: number,
+  //   limit: number,
+  //   country?: string,
+  // ) {
+  //   const skip = (page - 1) * limit;
+  //   const region = this.resolveRegion(country);
+
+  //   if (isAdmin) {
+  //     const [items, total] = await Promise.all([
+  //       this.prisma.usedSaddle.findMany({
+  //         where: {
+  //           country: region,
+  //           isAvailable: true,
+  //         },
+  //         include: { images: true },
+  //         orderBy: { created_at: 'desc' },
+  //         skip,
+  //         take: limit,
+  //       }),
+  //       this.prisma.usedSaddle.count({
+  //         where: {
+  //           country: region,
+  //           isAvailable: true,
+  //         },
+  //       }),
+  //     ]);
+
+  //     return {
+  //       data: items.map((saddle) => ({
+  //         ...saddle,
+  //         priceRange_usd: this.calculatePriceRange(saddle.basePrice_usd),
+  //         priceRange_eur: this.calculatePriceRange(saddle.basePrice_eur),
+  //       })),
+  //       meta: {
+  //         page,
+  //         limit,
+  //         total,
+  //         totalPages: Math.ceil(total / limit),
+  //       },
+  //     };
+  //   }
+
+  //   const [items, total] = await Promise.all([
+  //     this.prisma.usedSaddle.findMany({
+  //       where: {
+  //         country: region,
+  //         isAvailable: true,
+  //       },
+  //       select: {
+  //         id: true,
+  //         title: true,
+  //         basePrice_usd: true,
+  //         basePrice_eur: true,
+  //         images: {
+  //           take: 1,
+  //           select: { url: true },
+  //         },
+  //       },
+  //       orderBy: { created_at: 'desc' },
+  //       skip,
+  //       take: limit,
+  //     }),
+  //     this.prisma.usedSaddle.count({
+  //       where: {
+  //         country: region,
+  //         isAvailable: true,
+  //       },
+  //     }),
+  //   ]);
+
+  //   return {
+  //     data: items.map((saddle) => ({
+  //       id: saddle.id,
+  //       title: saddle.title,
+  //       image: saddle.images[0]?.url || null,
+  //       ...this.formatPriceRange(saddle, country),
+  //     })),
+  //     meta: {
+  //       page,
+  //       limit,
+  //       total,
+  //       totalPages: Math.ceil(total / limit),
+  //     },
+  //   };
+  // }
+
   async findAll(
-    isAdmin: boolean,
-    page: number,
-    limit: number,
-    country?: string,
-  ) {
-    const skip = (page - 1) * limit;
-    const region = this.resolveRegion(country);
+  isAdmin: boolean,
+  page: number,
+  limit: number,
+  country?: string,
+  brand?: Brand,
+  seatSize?: string,
+  discipline?: Discpline,
+) {
+  const skip = (page - 1) * limit;
+  const region = this.resolveRegion(country);
 
-    if (isAdmin) {
-      const [items, total] = await Promise.all([
-        this.prisma.usedSaddle.findMany({
-          where: {
-            country: region,
-            isAvailable: true,
-          },
-          include: { images: true },
-          orderBy: { created_at: 'desc' },
-          skip,
-          take: limit,
-        }),
-        this.prisma.usedSaddle.count({
-          where: {
-            country: region,
-            isAvailable: true,
-          },
-        }),
-      ]);
+  const whereCondition: Prisma.UsedSaddleWhereInput = {
+    country: region,
+    isAvailable: true,
+  };
 
-      return {
-        data: items.map((saddle) => ({
-          ...saddle,
-          priceRange_usd: this.calculatePriceRange(saddle.basePrice_usd),
-          priceRange_eur: this.calculatePriceRange(saddle.basePrice_eur),
-        })),
-        meta: {
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit),
-        },
-      };
-    }
+  if (brand) {
+    whereCondition.brand = brand;
+  }
 
+  if (discipline) {
+    whereCondition.discipline = discipline;
+  }
+
+  if (seatSize) {
+    whereCondition.seatSize = this.mapSeatSize(seatSize);
+  }
+
+  if (isAdmin) {
     const [items, total] = await Promise.all([
       this.prisma.usedSaddle.findMany({
-        where: {
-          country: region,
-          isAvailable: true,
-        },
-        select: {
-          id: true,
-          title: true,
-          basePrice_usd: true,
-          basePrice_eur: true,
-          images: {
-            take: 1,
-            select: { url: true },
-          },
-        },
+        where: whereCondition,
+        include: { images: true },
         orderBy: { created_at: 'desc' },
         skip,
         take: limit,
       }),
       this.prisma.usedSaddle.count({
-        where: {
-          country: region,
-          isAvailable: true,
-        },
+        where: whereCondition,
       }),
     ]);
 
     return {
       data: items.map((saddle) => ({
-        id: saddle.id,
-        title: saddle.title,
-        image: saddle.images[0]?.url || null,
-        ...this.formatPriceRange(saddle, country),
+        ...saddle,
+        priceRange_usd: this.calculatePriceRange(saddle.basePrice_usd),
+        priceRange_eur: this.calculatePriceRange(saddle.basePrice_eur),
       })),
       meta: {
         page,
@@ -504,6 +576,44 @@ export class UsedSaddleService {
       },
     };
   }
+
+  const [items, total] = await Promise.all([
+    this.prisma.usedSaddle.findMany({
+      where: whereCondition,
+      select: {
+        id: true,
+        title: true,
+        basePrice_usd: true,
+        basePrice_eur: true,
+        images: {
+          take: 1,
+          select: { url: true },
+        },
+      },
+      orderBy: { created_at: 'desc' },
+      skip,
+      take: limit,
+    }),
+    this.prisma.usedSaddle.count({
+      where: whereCondition,
+    }),
+  ]);
+
+  return {
+    data: items.map((saddle) => ({
+      id: saddle.id,
+      title: saddle.title,
+      image: saddle.images[0]?.url || null,
+      ...this.formatPriceRange(saddle, country),
+    })),
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+}
 
   /* ------------------------------------------------ */
   /* ADMIN FIND ALL */
@@ -590,9 +700,15 @@ export class UsedSaddleService {
   /* ------------------------------------------------ */
 
   async update(id: string, dto: UpdateUsedSaddleDto) {
+    const data: any = { ...dto };
+
+    if (dto.seatSize) {
+      data.seatSize = this.mapSeatSize(dto.seatSize);
+    }
+
     return this.prisma.usedSaddle.update({
       where: { id },
-      data: dto,
+      data,
       include: { images: true },
     });
   }
