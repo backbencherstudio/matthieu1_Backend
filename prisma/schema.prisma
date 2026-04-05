@@ -759,6 +759,11 @@ enum tackSubcategory {
   OTHER
 }
 
+enum saddleSize {
+  SIZE_12_5
+  SIZE_14_5
+}
+
 model SaddlesProduct {
   id              String    @id @default(cuid())
   name            String
@@ -767,7 +772,7 @@ model SaddlesProduct {
   header_description String?
   price_usd           String
   price_eur           String
-  sizes           String[]
+  size           saddleSize
   stockQuantity   Int?
   description     String?
   country         saddlecountry
