@@ -15,7 +15,7 @@ import { ProductUploadService } from './product-upload.service';
 import { CreateTackproductDto } from './dto/create-tackproduct.dto';
 import { UpdateTackproductDto } from './dto/update-tackproduct.dto';
 import { resolveCurrencyFromCountry } from 'src/common/utils/currency.util';
-import {  resolveRegionFromCountry } from 'src/common/utils/region.util';
+import { resolveRegionFromCountry } from 'src/common/utils/region.util';
 
 @Injectable()
 export class TackproductService {
@@ -241,10 +241,9 @@ export class TackproductService {
     category: productcategory,
     country?: string,
   ) {
-
     const region = resolveRegionFromCountry(country);
     const products = await this.prisma.tackProduct.findMany({
-      where: { category , country: region },
+      where: { category, country: region },
       include: {
         variants: {
           where: { isDefault: true }, // 👈 user only default variant
@@ -338,16 +337,119 @@ export class TackproductService {
     }
   }
 
+  // async getProductForUser(
+  //   productId: string,
+  //   colorId?: string,
+  //   sizeId?: string,
+  //   country?: string,
+  // ) {
+  //   // 1️⃣ Check product exists
+  //   const region = resolveRegionFromCountry(country);
+  //   const product = await this.prisma.tackProduct.findUnique({
+  //     where: { id: productId, country: region },
+  //     select: {
+  //       id: true,
+  //       name: true,
+  //       sku: true,
+  //       description: true,
+  //       category: true,
+  //       subcategory: true,
+  //       country: true,
+  //     },
+  //   });
+
+  //   if (!product) {
+  //     throw new NotFoundException('Product not found');
+  //   }
+
+  //   // 2️⃣ Find specific variant if filters provided
+  //   let variant;
+
+  //   if (colorId || sizeId) {
+  //     variant = await this.prisma.variant.findFirst({
+  //       where: {
+  //         TackProductId: productId,
+  //         ...(colorId && { colorId }),
+  //         ...(sizeId && { sizeId }),
+  //       },
+  //       include: {
+  //         images: true,
+  //       },
+  //     });
+
+  //     if (!variant) {
+  //       throw new NotFoundException('Selected variant not available');
+  //     }
+  //   } else {
+  //     // 3️⃣ Otherwise return default variant
+  //     variant = await this.prisma.variant.findFirst({
+  //       where: {
+  //         TackProductId: productId,
+  //         isDefault: true,
+  //       },
+  //       include: {
+  //         images: true,
+  //       },
+  //     });
+
+  //     if (!variant) {
+  //       throw new NotFoundException('No default variant available');
+  //     }
+  //   }
+
+  //   // 🔥 Remove null/undefined fields helper
+  //   const removeNullFields = (obj: any) =>
+  //     Object.fromEntries(
+  //       Object.entries(obj).filter(
+  //         ([_, value]) => value !== null && value !== undefined,
+  //       ),
+  //     );
+
+  //   const cleanedProduct = removeNullFields({
+  //     id: product.id,
+  //     name: product.name,
+  //     sku: product.sku,
+  //     country: product.country,
+  //     description: product.description,
+  //     category: product.subcategory
+  //       ? `${product.category} → ${product.subcategory}`
+  //       : product.category,
+  //   });
+
+  //   const cleanedVariant = removeNullFields({
+  //     id: variant.id,
+  //     colorId: variant.colorId,
+  //     color: variant.color,
+  //     sizeId: variant.sizeId,
+  //     size: variant.size,
+  //     // price: variant.price,
+  //     ...this.formatVariantPrice(variant, country),
+  //     stockQuantity: variant.stockQuantity,
+  //     images: variant.images?.length
+  //       ? variant.images.map((img) => img.url)
+  //       : undefined,
+  //   });
+
+  //   return {
+  //     ...cleanedProduct,
+  //     variant: cleanedVariant,
+  //   };
+  // }
+
   async getProductForUser(
     productId: string,
     colorId?: string,
     sizeId?: string,
     country?: string,
   ) {
-    // 1️⃣ Check product exists
     const region = resolveRegionFromCountry(country);
-    const product = await this.prisma.tackProduct.findUnique({
-      where: { id: productId, country: region },
+
+    // 1️⃣ Check product exists
+    const product = await this.prisma.tackProduct.findFirst({
+      where: {
+        id: productId,
+        country: region,
+      },
       select: {
         id: true,
         name: true,
@@ -363,39 +465,18 @@ export class TackproductService {
       throw new NotFoundException('Product not found');
     }
 
-    // 2️⃣ Find specific variant if filters provided
-    let variant;
+    // 2️⃣ Get all variants
+    const variants = await this.prisma.variant.findMany({
+      where: {
+        TackProductId: productId,
+      },
+      include: {
+        images: true,
+      },
+    });
 
-    if (colorId || sizeId) {
-      variant = await this.prisma.variant.findFirst({
-        where: {
-          TackProductId: productId,
-          ...(colorId && { colorId }),
-          ...(sizeId && { sizeId }),
-        },
-        include: {
-          images: true,
-        },
-      });
-
-      if (!variant) {
-        throw new NotFoundException('Selected variant not available');
-      }
-    } else {
-      // 3️⃣ Otherwise return default variant
-      variant = await this.prisma.variant.findFirst({
-        where: {
-          TackProductId: productId,
-          isDefault: true,
-        },
-        include: {
-          images: true,
-        },
-      });
-
-      if (!variant) {
-        throw new NotFoundException('No default variant available');
-      }
+    if (!variants.length) {
+      throw new NotFoundException('No variants available for this product');
     }
 
     // 🔥 Remove null/undefined fields helper
@@ -417,23 +498,51 @@ export class TackproductService {
         : product.category,
     });
 
-    const cleanedVariant = removeNullFields({
-      id: variant.id,
-      colorId: variant.colorId,
-      color: variant.color,
-      sizeId: variant.sizeId,
-      size: variant.size,
-      // price: variant.price,
-      ...this.formatVariantPrice(variant, country),
-      stockQuantity: variant.stockQuantity,
-      images: variant.images?.length
-        ? variant.images.map((img) => img.url)
-        : undefined,
-    });
+    const cleanedVariants = variants.map((variant) =>
+      removeNullFields({
+        id: variant.id,
+        colorId: variant.colorId,
+        color: variant.color,
+        sizeId: variant.sizeId,
+        size: variant.size,
+        isDefault: variant.isDefault,
+        ...this.formatVariantPrice(variant, country),
+        stockQuantity: variant.stockQuantity,
+        images: variant.images?.length
+          ? variant.images.map((img) => img.url)
+          : undefined,
+      }),
+    );
+
+    // 3️⃣ Selected Variant Logic (as per your requirement)
+    let selectedVariant;
+
+    if (colorId || sizeId) {
+      // 👉 Query based selection
+      selectedVariant = cleanedVariants.find(
+        (variant) =>
+          (!colorId || variant.colorId === colorId) &&
+          (!sizeId || variant.sizeId === sizeId),
+      );
+
+      if (!selectedVariant) {
+        throw new NotFoundException('Selected variant not available');
+      }
+    } else {
+      // 👉 Only default variant
+      selectedVariant = cleanedVariants.find(
+        (variant) => variant.isDefault === true,
+      );
+
+      if (!selectedVariant) {
+        throw new NotFoundException('Default variant not found');
+      }
+    }
 
     return {
       ...cleanedProduct,
-      variant: cleanedVariant,
+      selectedVariant,
+      variants: cleanedVariants,
     };
   }
 
