@@ -22,12 +22,12 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       '/api/auth/forgot-password',
       '/api/auth/reset-password',
       '/api/auth/verify-email',
+      '/api/auth/verify-otp',
       '/api/firebase-auth/google',
       '/api/contact-us',
       '/api/used-saddles/public',
       '/api/checkout/address',
       '/api/checkout/summary',
-
     ];
 
     const isCartRoute = request.path.startsWith('/api/cart');
