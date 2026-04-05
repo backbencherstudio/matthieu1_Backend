@@ -162,7 +162,6 @@
 //       country: region,
 //     };
 
-    
 //     if (subcategory) {
 //       const products = await this.prisma.saddlesProduct.findMany({
 //         where: {
@@ -400,7 +399,6 @@
 //   }
 // }
 
-
 import {
   BadRequestException,
   Injectable,
@@ -408,10 +406,7 @@ import {
 } from '@nestjs/common';
 import { CreateSadlleDto } from './dto/create-sadlle.dto';
 import { UpdateSadlleDto } from './dto/update-sadlle.dto';
-import {
-  productcategory,
-  saddleSubcategory,
-} from '@prisma/client';
+import { productcategory, saddleSubcategory, saddleSize } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SaddleUploadService } from './saddle-upload.service';
 import { resolveCurrencyFromCountry } from 'src/common/utils/currency.util';
@@ -427,9 +422,7 @@ export class SadllesService {
   private formatPrice(product: any, country?: string) {
     const currency = resolveCurrencyFromCountry(country);
 
-    const price = currency === 'USD'
-      ? product.price_usd
-      : product.price_eur;
+    const price = currency === 'USD' ? product.price_usd : product.price_eur;
 
     return {
       price,
@@ -465,11 +458,22 @@ export class SadllesService {
     return sku!;
   }
 
+  private mapSize(size: string): saddleSize {
+    if (size === '12.5') return saddleSize.SIZE_12_5;
+    if (size === '14.5') return saddleSize.SIZE_14_5;
+
+    throw new BadRequestException(
+      'Invalid size. Allowed values are 12.5 and 14.5',
+    );
+  }
+
   /* ------------------------------------------------ */
   /* CREATE */
   /* ------------------------------------------------ */
 
   async create(dto: CreateSadlleDto) {
+    let mappedSize: saddleSize | null = null;
+
     if (dto.category === productcategory.LEADLINE) {
       if (dto.stockQuantity === undefined || dto.stockQuantity === null) {
         throw new BadRequestException(
@@ -481,17 +485,41 @@ export class SadllesService {
         throw new BadRequestException('stockQuantity must be 0 or greater');
       }
 
-      const existing = await this.prisma.saddlesProduct.count({
-        where: { category: productcategory.LEADLINE },
+      if (!dto.size) {
+        throw new BadRequestException('size is required for LEADLINE product');
+      }
+
+      mappedSize = this.mapSize(dto.size);
+
+      const existingCount = await this.prisma.saddlesProduct.count({
+        where: {
+          category: productcategory.LEADLINE,
+        },
       });
 
-      if (existing >= 1) {
-        throw new BadRequestException('Only one LEADLINE product is allowed');
+      if (existingCount >= 4) {
+        throw new BadRequestException(
+          'Maximum 4 LEADLINE products are allowed',
+        );
+      }
+
+      const duplicateLeadline = await this.prisma.saddlesProduct.findFirst({
+        where: {
+          category: productcategory.LEADLINE,
+          country: dto.country,
+          size: mappedSize,
+        },
+      });
+
+      if (duplicateLeadline) {
+        throw new BadRequestException(
+          `LEADLINE product already exists for country ${dto.country} and size ${dto.size}`,
+        );
       }
     }
 
     if (dto.category === productcategory.SADDLES) {
-      if (dto.stockQuantity !== undefined) {
+      if (dto.stockQuantity !== undefined && dto.stockQuantity !== null) {
         throw new BadRequestException(
           'SADDLES product does not support stockQuantity',
         );
@@ -502,7 +530,9 @@ export class SadllesService {
       }
 
       const count = await this.prisma.saddlesProduct.count({
-        where: { subcategory: dto.subcategory },
+        where: {
+          subcategory: dto.subcategory,
+        },
       });
 
       if (count >= 4) {
@@ -523,26 +553,17 @@ export class SadllesService {
         country: dto.country,
 
         stockQuantity:
-          dto.category === productcategory.LEADLINE
-            ? dto.stockQuantity
-            : null,
+          dto.category === productcategory.LEADLINE ? dto.stockQuantity : null,
 
-        sizes:
-          dto.category === productcategory.LEADLINE
-            ? (dto.sizes ?? [])
-            : [],
+        size: dto.category === productcategory.LEADLINE ? mappedSize : null,
 
         category: dto.category,
 
         subcategory:
-          dto.category === productcategory.SADDLES
-            ? dto.subcategory
-            : null,
+          dto.category === productcategory.SADDLES ? dto.subcategory : null,
 
         header_title:
-          dto.category === productcategory.SADDLES
-            ? dto.header_title
-            : null,
+          dto.category === productcategory.SADDLES ? dto.header_title : null,
 
         header_description:
           dto.category === productcategory.SADDLES
@@ -550,14 +571,10 @@ export class SadllesService {
             : null,
 
         description:
-          dto.category === productcategory.SADDLES
-            ? dto.description
-            : null,
+          dto.category === productcategory.SADDLES ? dto.description : null,
 
         colors:
-          dto.category === productcategory.SADDLES
-            ? (dto.colors ?? [])
-            : [],
+          dto.category === productcategory.SADDLES ? (dto.colors ?? []) : [],
 
         piping_color:
           dto.category === productcategory.SADDLES
@@ -577,7 +594,6 @@ export class SadllesService {
   /* ------------------------------------------------ */
 
   async findAll(subcategory?: saddleSubcategory, country?: string) {
-
     const region = resolveRegionFromCountry(country);
 
     const baseWhere = {
@@ -586,7 +602,6 @@ export class SadllesService {
     };
 
     if (subcategory) {
-
       const products = await this.prisma.saddlesProduct.findMany({
         where: {
           ...baseWhere,
@@ -638,7 +653,6 @@ export class SadllesService {
     };
 
     for (const product of products) {
-
       if (grouped[product.subcategory] === 'Comming Soon') {
         grouped[product.subcategory] = [];
       }
@@ -659,7 +673,6 @@ export class SadllesService {
   /* ------------------------------------------------ */
 
   async findOne(id: string, country?: string) {
-
     const region = resolveRegionFromCountry(country);
 
     const product = await this.prisma.saddlesProduct.findFirst({
@@ -688,7 +701,6 @@ export class SadllesService {
   /* ------------------------------------------------ */
 
   async getLeadlineProduct(country?: string) {
-
     const region = resolveRegionFromCountry(country);
 
     const product = await this.prisma.saddlesProduct.findFirst({
@@ -708,7 +720,7 @@ export class SadllesService {
     return {
       id: product.id,
       name: product.name,
-      size: product.sizes,
+      size: product.size,
       images: product.images,
       stockQuantity: product.stockQuantity,
       ...this.formatPrice(product, country),
@@ -720,7 +732,6 @@ export class SadllesService {
   /* ------------------------------------------------ */
 
   async update(id: string, dto: UpdateSadlleDto) {
-
     const product = await this.prisma.saddlesProduct.findUnique({
       where: { id },
       include: { images: true },
@@ -737,12 +748,16 @@ export class SadllesService {
         price_usd: dto.price_usd ?? product.price_usd,
         price_eur: dto.price_eur ?? product.price_eur,
         header_title: dto.header_title ?? product.header_title,
-        header_description: dto.header_description ?? product.header_description,
+        header_description:
+          dto.header_description ?? product.header_description,
         description: dto.description ?? product.description,
         colors: dto.colors ?? product.colors,
         piping_color: dto.piping_color ?? product.piping_color,
         leather_type: dto.leather_type ?? product.leather_type,
-        sizes: dto.sizes ?? product.sizes,
+        size:
+          dto.size !== undefined && dto.size !== null
+            ? this.mapSize(dto.size)
+            : product.size,
         stockQuantity: dto.stockQuantity ?? product.stockQuantity,
       },
       include: { images: true },
@@ -754,7 +769,6 @@ export class SadllesService {
   /* ------------------------------------------------ */
 
   async addImages(saddleId: string, urls: string[]) {
-
     await this.prisma.saddleProductImage.createMany({
       data: urls.map((url) => ({
         url,
@@ -766,7 +780,6 @@ export class SadllesService {
   }
 
   async delete(id: string) {
-
     const product = await this.prisma.saddlesProduct.findUnique({
       where: { id },
       include: { images: true },
@@ -795,7 +808,6 @@ export class SadllesService {
   }
 
   async deleteImage(imageId: string) {
-
     const image = await this.prisma.saddleProductImage.findUnique({
       where: { id: imageId },
     });

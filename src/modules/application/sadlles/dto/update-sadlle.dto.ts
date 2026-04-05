@@ -28,11 +28,8 @@ export class UpdateSadlleDto {
   @IsOptional()
   stockQuantity?: number;
 
-  @IsOptional()
-  @Transform(normalizeArray)
-  @IsArray()
-  @IsString({ each: true })
-  sizes?: string[];
+ @IsString()
+  size: string;
 
   @IsOptional()
   description?: string;
