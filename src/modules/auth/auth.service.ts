@@ -955,6 +955,12 @@ export class AuthService {
             },
           });
 
+          // delete otp code
+          await UcodeRepository.deleteToken({
+            email: email,
+            token: token,
+          });
+
           return {
             success: true,
             message: 'Email verified successfully',
@@ -1323,5 +1329,27 @@ export class AuthService {
     });
 
     return { message: '2FA enabled successfully' };
+  }
+
+  async verifyOtpOnly({ email, token }: { email: string; token: string }) {
+    try {
+      const isValid = await UcodeRepository.checkTokenOnly({ email, token });
+      if (isValid) {
+        return {
+          success: true,
+          message: 'OTP is valid',
+        };
+      } else {
+        return {
+          success: false,
+          message: 'Invalid or expired OTP',
+        };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message,
+      };
+    }
   }
 }

@@ -376,6 +376,26 @@ export class AuthController {
     }
   }
 
+  @ApiOperation({ summary: 'Verify OTP only (no deletion)' })
+  @Post('verify-otp')
+  async verifyOtp(@Body() data: { email: string; token: string }) {
+    try {
+      const { email, token } = data;
+      if (!email) {
+        throw new HttpException('Email not provided', HttpStatus.BAD_REQUEST);
+      }
+      if (!token) {
+        throw new HttpException('Token not provided', HttpStatus.BAD_REQUEST);
+      }
+      return await this.authService.verifyOtpOnly({ email, token });
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || 'Something went wrong',
+      };
+    }
+  }
+
   // change password if user want to change the password
   // @ApiOperation({ summary: 'Change password' })
   // @ApiBearerAuth()

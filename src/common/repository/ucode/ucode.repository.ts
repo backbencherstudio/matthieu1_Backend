@@ -24,10 +24,18 @@ export class UcodeRepository {
 
     const userDetails = await UserRepository.getUserDetails(userId);
     if (userDetails && userDetails.email) {
+      const targetEmail = email ?? userDetails.email;
+
+      // Delete existing tokens for this email before creating a new one
+      await prisma.ucode.deleteMany({
+        where: {
+          email: targetEmail,
+        },
+      });
+
       let token: string;
       if (isOtp) {
         // create 6 digit otp code
-        // token = String(Math.floor(100000 + Math.random() * 900000));
         token = String(randomInt(100000, 1000000));
       } else {
         token = uuid();
@@ -36,7 +44,7 @@ export class UcodeRepository {
         data: {
           user_id: userId,
           token: token,
-          email: email ?? userDetails.email,
+          email: targetEmail,
           expired_at: expired_at,
         },
       });
@@ -104,12 +112,6 @@ export class UcodeRepository {
             },
           });
           if (data) {
-            // delete this token
-            // await prisma.ucode.delete({
-            //   where: {
-            //     id: data.id,
-            //   },
-            // });
             return true;
           } else {
             return false;
@@ -127,6 +129,33 @@ export class UcodeRepository {
     } else {
       return false;
     }
+  }
+
+  /**
+   * check if token exists and is valid without deleting it
+   */
+  static async checkTokenOnly({
+    email,
+    token,
+  }: {
+    email: string;
+    token: string;
+  }) {
+    const date = DateHelper.now().toISOString();
+    const data = await prisma.ucode.findFirst({
+      where: {
+        AND: [
+          { token: token },
+          { email: email },
+          {
+            expired_at: {
+              gte: date,
+            },
+          },
+        ],
+      },
+    });
+    return !!data;
   }
 
   /**
