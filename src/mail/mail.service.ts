@@ -134,4 +134,30 @@ export class MailService {
       console.log(error);
     }
   }
+
+  // Email to admin on new saddle alert
+  async sendSaddleAlertToAdmin({
+    email,
+    data,
+  }: {
+    email: string;
+    data: any;
+  }) {
+    try {
+      const from = `${process.env.APP_NAME} <${appConfig().mail.from}>`;
+      const subject = `New Saddle Alert Created: ${data.alertId}`;
+
+      await this.queue.add('sendSaddleAlertToAdmin', {
+        to: email,
+        from: from,
+        subject: subject,
+        template: 'saddle-alert',
+        context: {
+          data: data,
+        },
+      });
+    } catch (error) {
+      console.log(error);
+    }
+  }
 }

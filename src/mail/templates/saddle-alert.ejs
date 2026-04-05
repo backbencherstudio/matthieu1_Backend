@@ -1,0 +1,33 @@
+<div style="font-family: sans-serif; line-height: 1.6; color: #333;">
+  <p>Hello Admin,</p>
+
+  <p>A new Saddle Alert has been created. Here are the details:</p>
+
+  <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+    <tr>
+      <td style="padding: 8px; border: 1px solid #ddd; width: 30%;"><strong>Alert ID</strong></td>
+      <td style="padding: 8px; border: 1px solid #ddd;"><%= data.alertId %></td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border: 1px solid #ddd;"><strong>ID</strong></td>
+      <td style="padding: 8px; border: 1px solid #ddd;"><%= data.id %></td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border: 1px solid #ddd;"><strong>Customer</strong></td>
+      <td style="padding: 8px; border: 1px solid #ddd;"><%= data.customerFirstName %> <%= data.customerLastName %> , <%= data.customerEmail %></td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border: 1px solid #ddd;"><strong>Preferences</strong></td>
+      <td style="padding: 8px; border: 1px solid #ddd;"><%= data.brand %>, <%= data.discpline %>, <%= data.seatsSize %>, <%= data.color %></td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border: 1px solid #ddd;"><strong>Price Range</strong></td>
+      <td style="padding: 8px; border: 1px solid #ddd;"><%= data.priceMin %> - <%= data.priceMax %></td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border: 1px solid #ddd;"><strong>Created Date</strong></td>
+      <td style="padding: 8px; border: 1px solid #ddd;"><%= data.createdAt %></td>
+    </tr>
+  </table>
+</div>
+
