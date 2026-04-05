@@ -467,10 +467,14 @@ model CartItem {
   // ---- LEADLINE ----
   leadlineId    String?
   leadline      SaddlesProduct? @relation(fields: [leadlineId], references: [id] , onDelete: Cascade)
+
+  trialPeriod   TrialPeriod?
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
+
+
 
 
 
@@ -803,18 +807,26 @@ enum TrialPeriod {
 }
 
 enum Brand {
+  AMERIGO
+  ANTARES
+  ARION
   BUTET
   CWD
   DEVOUCOUX
+  ERREPLUS
   FORSTIER
+  HERMES
   MEYER
+  N2_SADDLERY
   VOLTAIRE
 }
 
 enum SeatSize {
+  SIZE_16_5 @map("16.5")
   SIZE_17   @map("17")
   SIZE_17_5 @map("17.5")
   SIZE_18   @map("18")
+  SIZE_18_5 @map("18.5")
 }
 
 model UsedSaddle {

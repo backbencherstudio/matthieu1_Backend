@@ -330,6 +330,32 @@ export class CartService {
     private couponService: CouponService,
   ) {}
 
+  private getResolvedTrialPeriod(trialPeriod?: string) {
+    if (
+      trialPeriod === 'NO_TRIAL' ||
+      trialPeriod === 'TRIAL_7_DAYS' ||
+      trialPeriod === 'TRIAL_14_DAYS'
+    ) {
+      return trialPeriod;
+    }
+
+    return 'TRIAL_7_DAYS';
+  }
+
+  private calculateTrialAdjustedPrice(basePrice: number, trialPeriod?: string) {
+    const selectedTrialPeriod = this.getResolvedTrialPeriod(trialPeriod);
+
+    if (selectedTrialPeriod === 'NO_TRIAL') {
+      return basePrice - 150;
+    }
+
+    if (selectedTrialPeriod === 'TRIAL_14_DAYS') {
+      return basePrice + 150;
+    }
+
+    return basePrice;
+  }
+
   private async getOrCreateCart(params: {
     userId?: string;
     sessionId?: string;
@@ -358,11 +384,53 @@ export class CartService {
 
   /* ADD TO CART */
 
+  // async addToCart(
+  //   params: { userId?: string; sessionId?: string },
+  //   dto: AddToCartDto,
+  // ) {
+  //   const cart = await this.getOrCreateCart(params);
+
+  //   const existingItem = await this.prisma.cartItem.findFirst({
+  //     where: {
+  //       cartId: cart.id,
+  //       tackProductId: dto.tackProductId ?? null,
+  //       variantId: dto.variantId ?? null,
+  //       usedSaddleId: dto.usedSaddleId ?? null,
+  //       leadlineId: dto.leadlineId ?? null,
+  //     },
+  //   });
+
+  //   if (existingItem) {
+  //     return { success: false, message: 'Product already exists in cart' };
+  //   }
+
+  //   const created = await this.prisma.cartItem.create({
+  //     data: {
+  //       cartId: cart.id,
+  //       tackProductId: dto.tackProductId ?? null,
+  //       variantId: dto.variantId ?? null,
+  //       usedSaddleId: dto.usedSaddleId ?? null,
+  //       leadlineId: dto.leadlineId ?? null,
+  //       quantity: dto.quantity,
+  //     },
+  //   });
+
+  //   return {
+  //     success: true,
+  //     message: 'Item added to cart successfully',
+  //     data: created,
+  //   };
+  // }
+
   async addToCart(
     params: { userId?: string; sessionId?: string },
     dto: AddToCartDto,
   ) {
     const cart = await this.getOrCreateCart(params);
+
+    const selectedTrialPeriod = dto.usedSaddleId
+      ? this.getResolvedTrialPeriod(dto.trialPeriod)
+      : undefined;
 
     const existingItem = await this.prisma.cartItem.findFirst({
       where: {
@@ -371,6 +439,9 @@ export class CartService {
         variantId: dto.variantId ?? null,
         usedSaddleId: dto.usedSaddleId ?? null,
         leadlineId: dto.leadlineId ?? null,
+        ...(dto.usedSaddleId
+          ? { trialPeriod: selectedTrialPeriod as any }
+          : {}),
       },
     });
 
@@ -386,6 +457,7 @@ export class CartService {
         usedSaddleId: dto.usedSaddleId ?? null,
         leadlineId: dto.leadlineId ?? null,
         quantity: dto.quantity,
+        trialPeriod: selectedTrialPeriod as any,
       },
     });
 
@@ -403,147 +475,145 @@ export class CartService {
   //   couponCode?: string,
   //   country?: string,
   // ) {
-
-  //   const cart = await this.getOrCreateCart(params)
-
-  //   const currency = resolveCurrencyFromCountry(country)
-
-  //   // ⭐ coupon store in cart
-  //   if(couponCode){
-
-  //     await this.prisma.cart.update({
-  //       where:{ id:cart.id },
-  //       data:{ couponCode }
-  //     })
-
-  //   }
+  //   const cart = await this.getOrCreateCart(params);
+  //   const currency = resolveCurrencyFromCountry(country);
 
   //   const cartData = await this.prisma.cart.findUnique({
-  //     where:{ id:cart.id },
-  //     include:{
-  //       items:{
-  //         include:{
-  //           variant:{ include:{ Tackproduct:true, images:true }},
-  //           usedSaddle:{ include:{ images:true }},
-  //           leadline:{ include:{ images:true }},
+  //     where: { id: cart.id },
+  //     include: {
+  //       items: {
+  //         include: {
+  //           variant: { include: { Tackproduct: true, images: true } },
+  //           usedSaddle: { include: { images: true } },
+  //           leadline: { include: { images: true } },
+  //         },
+  //       },
+  //     },
+  //   });
+
+  //   const formattedItems = (cartData?.items || [])
+  //     .map((item) => {
+  //       if (item.usedSaddle) {
+  //         const price =
+  //           currency === 'USD'
+  //             ? item.usedSaddle.basePrice_usd
+  //             : item.usedSaddle.basePrice_eur;
+
+  //         return {
+  //           quantity: item.quantity,
+  //           itemId: item.id,
+  //           itemName: item.usedSaddle.title,
+  //           itemImage: item.usedSaddle.images?.[0]?.url ?? null,
+  //           price: Number(price),
+  //           currency,
+  //           totalPrice: Number(price) * item.quantity,
+  //           usedSaddleId: item.usedSaddle.id,
+  //         };
+  //       }
+
+  //       if (item.leadline) {
+  //         const price =
+  //           currency === 'USD'
+  //             ? item.leadline.price_usd
+  //             : item.leadline.price_eur;
+
+  //         return {
+  //           quantity: item.quantity,
+  //           itemId: item.id,
+  //           itemName: item.leadline.name,
+  //           itemImage: item.leadline.images?.[0]?.url ?? null,
+  //           price: Number(price),
+  //           currency,
+  //           totalPrice: Number(price) * item.quantity,
+  //           leadlineId: item.leadline.id,
+  //         };
+  //       }
+
+  //       if (item.variant) {
+  //         const price =
+  //           currency === 'USD'
+  //             ? item.variant.price_usd
+  //             : item.variant.price_eur;
+
+  //         return {
+  //           quantity: item.quantity,
+  //           itemId: item.id,
+  //           itemName: item.variant.Tackproduct?.name,
+  //           itemImage: item.variant.images?.[0]?.url ?? null,
+  //           price: Number(price),
+  //           currency,
+  //           totalPrice: Number(price) * item.quantity,
+  //           variantId: item.variant.id,
+  //           tackProductId: item.variant.Tackproduct?.id ?? null,
+  //         };
+  //       }
+
+  //       return null;
+  //     })
+  //     .filter(Boolean);
+
+  //   const subtotal = formattedItems.reduce((sum, item) => {
+  //     return sum + Number(item.price) * item.quantity;
+  //   }, 0);
+
+  //   const shipping = subtotal > 0 ? 15 : 0;
+  //   const tax = subtotal * 0.08;
+
+  //   let discount = 0;
+  //   let couponMessage: string | null = null;
+  //   let appliedCouponCode: string | null = null;
+
+  //   // ✅ Coupon only applies if query coupon is provided
+  //   if (couponCode) {
+  //     try {
+  //       let coupon;
+
+  //       if (params.userId) {
+  //         coupon = await this.couponService.validateCoupon(
+  //           couponCode,
+  //           params.userId,
+  //         );
+  //       } else {
+  //         coupon = await this.prisma.coupon.findUnique({
+  //           where: { code: couponCode },
+  //         });
+
+  //         if (!coupon) {
+  //           throw new Error('Invalid coupon');
+  //         }
+
+  //         if (coupon.expiresAt < new Date()) {
+  //           throw new Error('Coupon expired');
   //         }
   //       }
+
+  //       discount = subtotal * (coupon.discount / 100);
+  //       couponMessage = 'Coupon applied successfully';
+  //       appliedCouponCode = coupon.code;
+  //     } catch (error) {
+  //       throw new BadRequestException('Invalid coupon code');
   //     }
-  //   })
-
-  //   const formattedItems = (cartData?.items || []).map((item)=>{
-
-  //     if(item.usedSaddle){
-
-  //       const price =
-  //         currency === 'USD'
-  //           ? item.usedSaddle.basePrice_usd
-  //           : item.usedSaddle.basePrice_eur
-
-  //       return{
-  //         quantity:item.quantity,
-  //         itemName:item.usedSaddle.title,
-  //         itemImage:item.usedSaddle.images?.[0]?.url ?? null,
-  //         price,
-  //         currency,
-  //         totalPrice:price * item.quantity
-  //       }
-
-  //     }
-
-  //     if(item.leadline){
-
-  //       const price =
-  //         currency === 'USD'
-  //           ? item.leadline.price_usd
-  //           : item.leadline.price_eur
-
-  //       return{
-  //         quantity:item.quantity,
-  //         itemName:item.leadline.name,
-  //         itemImage:item.leadline.images?.[0]?.url ?? null,
-  //         price:Number(price),
-  //         currency,
-  //         totalPrice:Number(price) * item.quantity
-  //       }
-
-  //     }
-
-  //     if(item.variant){
-
-  //       const price =
-  //         currency === 'USD'
-  //           ? item.variant.price_usd
-  //           : item.variant.price_eur
-
-  //       return{
-  //         quantity:item.quantity,
-  //         itemName:item.variant.Tackproduct?.name,
-  //         itemImage:item.variant.images?.[0]?.url ?? null,
-  //         price,
-  //         currency,
-  //         totalPrice:price * item.quantity
-  //       }
-
-  //     }
-
-  //     return null
-
-  //   }).filter(Boolean)
-
-  //   const subtotal = formattedItems.reduce((sum,item)=>{
-  //     return sum + Number(item.price) * item.quantity
-  //   },0)
-
-  //   const shipping = subtotal > 0 ? 15 : 0
-  //   const tax = subtotal * 0.08
-
-  //   let discount = 0
-  //   let couponMessage = null
-
-  //   if(cartData?.couponCode && params.userId){
-
-  //     try{
-
-  //       const coupon = await this.couponService.validateCoupon(
-  //         cartData.couponCode,
-  //         params.userId
-  //       )
-
-  //       discount = subtotal * (coupon.discount / 100)
-
-  //       couponMessage = "Coupon applied successfully"
-
-  //     }catch{
-
-  //       couponMessage = "Coupon code invalid"
-
-  //     }
-
   //   }
 
-  //   const total = subtotal + shipping + tax - discount
+  //   const total = subtotal + shipping + tax - discount;
 
-  //   return{
-
-  //     success:true,
-  //     message:'Cart retrieved successfully',
-
-  //     data:{
-  //       items:formattedItems,
-
-  //       summary:{
+  //   return {
+  //     success: true,
+  //     message: 'Cart retrieved successfully',
+  //     data: {
+  //       items: formattedItems,
+  //       summary: {
   //         currency,
   //         subtotal,
   //         shipping,
   //         tax,
+  //         couponCode: appliedCouponCode,
   //         couponMessage,
-  //         couponDiscount:discount,
-  //         total
-  //       }
-  //     }
-  //   }
-
+  //         couponDiscount: discount,
+  //         total,
+  //       },
+  //     },
+  //   };
   // }
 
   async getCart(
@@ -552,53 +622,7 @@ export class CartService {
     country?: string,
   ) {
     const cart = await this.getOrCreateCart(params);
-
     const currency = resolveCurrencyFromCountry(country);
-
-    /**
-     * 1️⃣ যদি নতুন coupon আসে → validate করে cart এ save করবো
-     */
-
-    if (couponCode) {
-      console.log('Incoming coupon:', couponCode);
-
-      try {
-        let coupon;
-
-        // 🔥 validate for both user & guest
-        if (params.userId) {
-          coupon = await this.couponService.validateCoupon(
-            couponCode,
-            params.userId,
-          );
-        } else {
-          coupon = await this.prisma.coupon.findUnique({
-            where: { code: couponCode },
-          });
-
-          if (!coupon) {
-            throw new Error();
-          }
-        }
-
-        // ✅ ALWAYS update
-        const updatedCart = await this.prisma.cart.update({
-          where: { id: cart.id },
-          data: {
-            couponCode: couponCode,
-          },
-        });
-
-        console.log('Saved coupon in DB:', updatedCart.couponCode);
-      } catch (error) {
-        console.log('Coupon failed:', error);
-        throw new BadRequestException('Invalid coupon code');
-      }
-    }
-
-    /**
-     * 2️⃣ cart আবার fetch করবো (updated coupon সহ)
-     */
 
     const cartData = await this.prisma.cart.findUnique({
       where: { id: cart.id },
@@ -613,17 +637,18 @@ export class CartService {
       },
     });
 
-    /**
-     * 3️⃣ cart items format
-     */
-
     const formattedItems = (cartData?.items || [])
       .map((item) => {
         if (item.usedSaddle) {
-          const price =
+          const basePrice =
             currency === 'USD'
               ? item.usedSaddle.basePrice_usd
               : item.usedSaddle.basePrice_eur;
+
+          const price = this.calculateTrialAdjustedPrice(
+            Number(basePrice),
+            item.trialPeriod ?? 'TRIAL_7_DAYS',
+          );
 
           return {
             quantity: item.quantity,
@@ -633,9 +658,8 @@ export class CartService {
             price,
             currency,
             totalPrice: price * item.quantity,
-
-            // ✅ ADD THIS
             usedSaddleId: item.usedSaddle.id,
+            trialPeriod: item.trialPeriod ?? 'TRIAL_7_DAYS',
           };
         }
 
@@ -647,13 +671,12 @@ export class CartService {
 
           return {
             quantity: item.quantity,
+            itemId: item.id,
             itemName: item.leadline.name,
             itemImage: item.leadline.images?.[0]?.url ?? null,
             price: Number(price),
             currency,
             totalPrice: Number(price) * item.quantity,
-
-            // ✅ ADD
             leadlineId: item.leadline.id,
           };
         }
@@ -669,11 +692,9 @@ export class CartService {
             itemId: item.id,
             itemName: item.variant.Tackproduct?.name,
             itemImage: item.variant.images?.[0]?.url ?? null,
-            price,
+            price: Number(price),
             currency,
-            totalPrice: price * item.quantity,
-
-            // ✅ ADD
+            totalPrice: Number(price) * item.quantity,
             variantId: item.variant.id,
             tackProductId: item.variant.Tackproduct?.id ?? null,
           };
@@ -683,11 +704,7 @@ export class CartService {
       })
       .filter(Boolean);
 
-    /**
-     * 4️⃣ calculation
-     */
-
-    const subtotal = formattedItems.reduce((sum, item) => {
+    const subtotal = formattedItems.reduce((sum, item: any) => {
       return sum + Number(item.price) * item.quantity;
     }, 0);
 
@@ -696,55 +713,52 @@ export class CartService {
 
     let discount = 0;
     let couponMessage: string | null = null;
+    let appliedCouponCode: string | null = null;
 
-    /**
-     * 5️⃣ যদি cart এ coupon থাকে → discount apply
-     */
-
-    if (cartData?.couponCode) {
+    if (couponCode) {
       try {
         let coupon;
 
         if (params.userId) {
           coupon = await this.couponService.validateCoupon(
-            cartData.couponCode,
+            couponCode,
             params.userId,
           );
         } else {
           coupon = await this.prisma.coupon.findUnique({
-            where: { code: cartData.couponCode },
+            where: { code: couponCode },
           });
+
+          if (!coupon) {
+            throw new Error('Invalid coupon');
+          }
+
+          if (coupon.expiresAt < new Date()) {
+            throw new Error('Coupon expired');
+          }
         }
 
-        if (coupon) {
-          discount = subtotal * (coupon.discount / 100);
-
-          couponMessage = 'Coupon applied successfully';
-        }
-      } catch {
-        couponMessage = 'Coupon code invalid';
+        discount = subtotal * (coupon.discount / 100);
+        couponMessage = 'Coupon applied successfully';
+        appliedCouponCode = coupon.code;
+      } catch (error) {
+        throw new BadRequestException('Invalid coupon code');
       }
     }
-
-    /**
-     * 6️⃣ final total
-     */
 
     const total = subtotal + shipping + tax - discount;
 
     return {
       success: true,
       message: 'Cart retrieved successfully',
-
       data: {
         items: formattedItems,
-
         summary: {
           currency,
           subtotal,
           shipping,
           tax,
-          couponCode,
+          couponCode: appliedCouponCode,
           couponMessage,
           couponDiscount: discount,
           total,
@@ -752,7 +766,6 @@ export class CartService {
       },
     };
   }
-
   /* UPDATE QUANTITY */
 
   async updateQuantity(
