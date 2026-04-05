@@ -301,10 +301,10 @@ export class AuthController {
       const email = data.email;
       const token = data.token;
       if (!email) {
-        throw new HttpException('Email not provided', HttpStatus.UNAUTHORIZED);
+        throw new HttpException('Email not provided', HttpStatus.BAD_REQUEST);
       }
       if (!token) {
-        throw new HttpException('Token not provided', HttpStatus.UNAUTHORIZED);
+        throw new HttpException('Token not provided', HttpStatus.BAD_REQUEST);
       }
 
       // ✅ Decode token (without verification)
