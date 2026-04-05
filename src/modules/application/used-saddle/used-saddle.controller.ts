@@ -68,41 +68,6 @@ export class UsedSaddleController {
 
   // ================= PUBLIC =================
 
-  // @Get('public')
-  // @UseGuards(OptionalJwtAuthGuard)
-  // async getAllPublic(
-  //   @Req() req: Request,
-  //   @Query('page') page = '1',
-  //   @Query('limit') limit = '10',
-  // ) {
-  //   let isAdmin = false;
-
-  //   const user = req.user as any;
-
-  //   if (user) {
-  //     const userDetails = await UserRepository.getUserDetails(user.userId);
-  //     isAdmin = userDetails?.type?.includes(Role.ADMIN);
-  //   }
-
-  //   const pageNumber = Math.max(parseInt(page, 10) || 1, 1);
-  //   const pageSize = Math.min(parseInt(limit, 10) || 10, 50);
-
-  //   const country = (req.headers['x-country'] || '').toString();
-
-  //   const data = await this.service.findAll(
-  //     isAdmin,
-  //     pageNumber,
-  //     pageSize,
-  //     country,
-  //   );
-
-  //   return {
-  //     statusCode: 200,
-  //     message: 'Used saddles fetched successfully',
-  //     ...data,
-  //   };
-  // }
-
   @Get('public')
   @UseGuards(OptionalJwtAuthGuard)
   async getAllPublic(
@@ -144,9 +109,36 @@ export class UsedSaddleController {
     };
   }
 
+  // @Get('public/:id')
+  // @UseGuards(OptionalJwtAuthGuard)
+  // async findOnePublic(@Param('id') id: string, @Req() req: Request) {
+  //   let isAdmin = false;
+
+  //   const user = req.user as any;
+
+  //   if (user) {
+  //     const userDetails = await UserRepository.getUserDetails(user.userId);
+  //     isAdmin = userDetails?.type?.includes(Role.ADMIN);
+  //   }
+
+  //   const country = (req.headers['x-country'] || '').toString();
+
+  //   const data = await this.service.findOne(id, isAdmin, country);
+
+  //   return {
+  //     statusCode: 200,
+  //     message: 'Used saddle fetched successfully',
+  //     data,
+  //   };
+  // }
+
   @Get('public/:id')
   @UseGuards(OptionalJwtAuthGuard)
-  async findOnePublic(@Param('id') id: string, @Req() req: Request) {
+  async findOnePublic(
+    @Param('id') id: string,
+    @Req() req: Request,
+    @Query('trialPeriod') trialPeriod?: string,
+  ) {
     let isAdmin = false;
 
     const user = req.user as any;
@@ -158,7 +150,7 @@ export class UsedSaddleController {
 
     const country = (req.headers['x-country'] || '').toString();
 
-    const data = await this.service.findOne(id, isAdmin, country);
+    const data = await this.service.findOne(id, isAdmin, country, trialPeriod);
 
     return {
       statusCode: 200,

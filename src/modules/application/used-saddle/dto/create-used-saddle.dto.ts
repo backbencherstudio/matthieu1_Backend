@@ -154,8 +154,8 @@ export class CreateUsedSaddleDto {
   description: string;
 
   @IsNotEmpty({ message: 'Seat size is required' })
-  @IsIn(['17', '17.5', '18'], {
-    message: 'Seat size must be 17, 17.5 or 18',
+  @IsIn(['16.5', '17', '17.5', '18', '18.5'], {
+    message: 'Seat size must be 16.5, 17, 17.5, 18 or 18.5',
   })
   seatSize: string;
 
