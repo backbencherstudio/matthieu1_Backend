@@ -5,24 +5,44 @@
 
   <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
     <tr>
-      <td style="padding: 8px; border: 1px solid #ddd; width: 30%;"><strong>Alert ID</strong></td>
-      <td style="padding: 8px; border: 1px solid #ddd;"><%= data.alertId %></td>
+      <td style="padding: 8px; border: 1px solid #ddd; width: 30%;"><strong>Customer Name</strong></td>
+      <td style="padding: 8px; border: 1px solid #ddd;"><%= data.customerFirstName %> <%= data.customerLastName %></td>
     </tr>
     <tr>
-      <td style="padding: 8px; border: 1px solid #ddd;"><strong>ID</strong></td>
-      <td style="padding: 8px; border: 1px solid #ddd;"><%= data.id %></td>
+      <td style="padding: 8px; border: 1px solid #ddd;"><strong>Email</strong></td>
+      <td style="padding: 8px; border: 1px solid #ddd;"><%= data.customerEmail %></td>
     </tr>
     <tr>
-      <td style="padding: 8px; border: 1px solid #ddd;"><strong>Customer</strong></td>
-      <td style="padding: 8px; border: 1px solid #ddd;"><%= data.customerFirstName %> <%= data.customerLastName %> , <%= data.customerEmail %></td>
+      <td style="padding: 8px; border: 1px solid #ddd;"><strong>Phone Number</strong></td>
+      <td style="padding: 8px; border: 1px solid #ddd;"><%= data.phoneNumber %></td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border: 1px solid #ddd;"><strong>Town</strong></td>
+      <td style="padding: 8px; border: 1px solid #ddd;"><%= data.town %></td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border: 1px solid #ddd;"><strong>State</strong></td>
+      <td style="padding: 8px; border: 1px solid #ddd;"><%= data.state %></td>
     </tr>
     <tr>
       <td style="padding: 8px; border: 1px solid #ddd;"><strong>Preferences</strong></td>
-      <td style="padding: 8px; border: 1px solid #ddd;"><%= data.brand %>, <%= data.discpline %>, <%= data.seatsSize %>, <%= data.color %></td>
+      <td style="padding: 8px; border: 1px solid #ddd;"><%= data.brand %>, <%= data.discpline %></td>
     </tr>
     <tr>
       <td style="padding: 8px; border: 1px solid #ddd;"><strong>Price Range</strong></td>
       <td style="padding: 8px; border: 1px solid #ddd;"><%= data.priceMin %> - <%= data.priceMax %></td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border: 1px solid #ddd;"><strong>Seat Sizes</strong></td>
+      <td style="padding: 8px; border: 1px solid #ddd;"><%= data.seatsSize %></td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border: 1px solid #ddd;"><strong>Color</strong></td>
+      <td style="padding: 8px; border: 1px solid #ddd;"><%= data.color %></td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; border: 1px solid #ddd;"><strong>Additional Notes</strong></td>
+      <td style="padding: 8px; border: 1px solid #ddd;"><%= data.notes || 'N/A' %></td>
     </tr>
     <tr>
       <td style="padding: 8px; border: 1px solid #ddd;"><strong>Created Date</strong></td>
@@ -30,4 +50,5 @@
     </tr>
   </table>
 </div>
+
 

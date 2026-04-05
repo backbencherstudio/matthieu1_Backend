@@ -4,6 +4,7 @@ import { UpdateSaddleAlertDto } from './dto/update-saddle-alert.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { MailService } from 'src/mail/mail.service';
 import { Role } from 'src/common/guard/role/role.enum';
+import appConfig from 'src/config/app.config';
 
 @Injectable()
 export class SaddleAlertService {
@@ -110,29 +111,27 @@ export class SaddleAlertService {
     });
 
     try {
-      const admins = await this.prisma.user.findMany({
-        where: { type: Role.ADMIN },
-        select: { email: true },
-      });
+      const receiverEmail = appConfig().mail.saddle_alert_receiver;
 
-      const formattedDate = new Date(alert.createdAt).toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
+      if (receiverEmail) {
+        const formattedDate = new Date(alert.createdAt).toLocaleString(
+          'en-US',
+          {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          },
+        );
 
-      for (const admin of admins) {
-        if (admin.email) {
-          await this.mailService.sendSaddleAlertToAdmin({
-            email: admin.email,
-            data: {
-              ...alert,
-              createdAt: formattedDate,
-            },
-          });
-        }
+        await this.mailService.sendSaddleAlertToAdmin({
+          email: receiverEmail,
+          data: {
+            ...alert,
+            createdAt: formattedDate,
+          },
+        });
       }
     } catch (error) {
       console.log('Error sending saddle alert email:', error);

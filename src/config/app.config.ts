@@ -45,6 +45,7 @@ export default () => ({
     user: process.env.MAIL_USERNAME,
     password: process.env.MAIL_PASSWORD,
     from: process.env.MAIL_FROM_NAME,
+    saddle_alert_receiver: process.env.SADDLE_ALERT_RECEIVER_EMAIL,
   },
 
   auth: {
@@ -67,19 +68,17 @@ export default () => ({
       priceid_yearly: process.env.STRIPE_SUBSCRIPTION_PRICE_ID_YEARLY,
     },
 
-
     paypal: {
       mode: process.env.PAYPAL_MODE || 'sandbox',
       client_key: process.env.PAYPAL_CLIENT_KEY,
       secret_key: process.env.PAYPAL_SECRET_KEY,
       api: process.env.PAYPAL_API || 'https://api-m.sandbox.paypal.com',
-      product_id: process.env.PAYPAL_PRODUCT_ID, 
+      product_id: process.env.PAYPAL_PRODUCT_ID,
       priceid_monthly: process.env.PAYPAL_SUBSCRIPTION_PLAN_ID_MONTHLY,
-      priceid_yearly: process.env.PAYPAL_SUBSCRIPTION_PLAN_ID_YEARLY, 
+      priceid_yearly: process.env.PAYPAL_SUBSCRIPTION_PLAN_ID_YEARLY,
       webhook_id: process.env.PAYPAL_WEBHOOK_ID,
     },
   },
-
 
   storageUrl: {
     rootUrl: './public/storage',
