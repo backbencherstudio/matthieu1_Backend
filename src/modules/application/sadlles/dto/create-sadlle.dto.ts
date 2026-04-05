@@ -7,7 +7,11 @@ import {
   Min,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
-import { productcategory, saddlecountry, saddleSubcategory } from '@prisma/client';
+import {
+  productcategory,
+  saddlecountry,
+  saddleSubcategory,
+} from '@prisma/client';
 
 const normalizeArray = ({ value }: { value: any }) => {
   if (value === undefined || value === null) return undefined;
@@ -38,11 +42,8 @@ export class CreateSadlleDto {
   @IsOptional()
   stockQuantity?: number;
 
-  @IsOptional()
-  @Transform(normalizeArray)
-  @IsArray()
-  @IsString({ each: true })
-  sizes?: string[];
+  @IsString()
+  size: string;
 
   @IsOptional()
   @IsString()
