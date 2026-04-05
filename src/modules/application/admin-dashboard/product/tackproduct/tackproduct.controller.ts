@@ -19,7 +19,11 @@ import { Role } from 'src/common/guard/role/role.enum';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { ProductUploadService } from './product-upload.service';
-import { productcategory, saddlecountry, tackSubcategory } from '@prisma/client';
+import {
+  productcategory,
+  saddlecountry,
+  tackSubcategory,
+} from '@prisma/client';
 import { CreateTackproductDto } from './dto/create-tackproduct.dto';
 import { UpdateTackproductDto } from './dto/update-tackproduct.dto';
 import { TackproductService } from './tackproduct.service';
@@ -111,7 +115,7 @@ export class TackproductController {
     } catch (error) {
       return {
         message: 'Failed to create tack product',
-        error: String(error?.message || error),
+        error: String((error as Error)?.message || error),
       };
     }
   }
@@ -135,7 +139,7 @@ export class TackproductController {
     } catch (error) {
       return {
         message: 'Failed to list tack products',
-        error: String(error?.message || error),
+        error: String((error as Error).message || error),
       };
     }
   }
@@ -157,14 +161,13 @@ export class TackproductController {
   //for admin dashboard
   @Roles(Role.ADMIN)
   @Get('oneproduct/:id')
-  async findOne(
-    @Param('id') id: string) {
+  async findOne(@Param('id') id: string) {
     try {
       return await this.tackproductService.findOne(id);
     } catch (error) {
       return {
         message: 'Failed to fetch tack product',
-        error: String(error?.message || error),
+        error: String((error as Error)?.message || error),
       };
     }
   }
@@ -178,7 +181,12 @@ export class TackproductController {
     @Query('sizeId') sizeId?: string,
     @Headers('x-country') country?: string,
   ) {
-    return this.tackproductService.getProductForUser(id, colorId, sizeId, country);
+    return this.tackproductService.getProductForUser(
+      id,
+      colorId,
+      sizeId,
+      country,
+    );
   }
 
   @Roles(Role.ADMIN)
@@ -243,7 +251,7 @@ export class TackproductController {
     } catch (error) {
       return {
         message: 'Failed to update tack product',
-        error: String(error?.message || error),
+        error: String((error as Error)?.message || error),
       };
     }
   }
@@ -261,7 +269,7 @@ export class TackproductController {
     } catch (error) {
       return {
         message: 'Failed to delete tack product',
-        error: String(error?.message || error),
+        error: String((error as Error)?.message || error),
       };
     }
   }
