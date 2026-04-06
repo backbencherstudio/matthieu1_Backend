@@ -62,6 +62,8 @@ export class AuthService {
         select: {
           id: true,
           name: true,
+          first_name: true,
+          last_name: true,
           bio: true,
           email: true,
           username: true,
@@ -314,7 +316,7 @@ export class AuthService {
         data: {
           ...data,
           ...((data.first_name || data.last_name) && {
-            name: `${data.first_name && user.first_name} ${data.last_name && user.last_name}`,
+            name: `${data.first_name && data.first_name} ${data.last_name && data.last_name}`,
           }),
         },
       });
