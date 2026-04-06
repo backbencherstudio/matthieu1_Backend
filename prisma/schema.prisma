@@ -772,7 +772,7 @@ model SaddlesProduct {
   header_description String?
   price_usd           String
   price_eur           String
-  size           saddleSize
+  size           saddleSize?
   stockQuantity   Int?
   description     String?
   country         saddlecountry

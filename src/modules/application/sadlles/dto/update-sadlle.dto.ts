@@ -28,8 +28,9 @@ export class UpdateSadlleDto {
   @IsOptional()
   stockQuantity?: number;
 
- @IsString()
-  size: string;
+  @IsOptional()
+  @IsString()
+  size?: string;
 
   @IsOptional()
   description?: string;

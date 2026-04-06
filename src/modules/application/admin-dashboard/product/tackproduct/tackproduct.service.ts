@@ -544,6 +544,16 @@ export class TackproductService {
       selectedVariant,
       variants: cleanedVariants,
     };
+    // return {
+    //   ...cleanedProduct,
+    //   selectedVariant: selectedVariant
+    //     ? {
+    //         ...selectedVariant,
+    //         images: selectedVariant.images || [],
+    //       }
+    //     : null,
+    //   variants: cleanedVariants,
+    // };
   }
 
   /* ---------------- UPDATE / DELETE / VARIANT METHODS ---------------- */
