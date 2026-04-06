@@ -42,8 +42,9 @@ export class CreateSadlleDto {
   @IsOptional()
   stockQuantity?: number;
 
+  @IsOptional()
   @IsString()
-  size: string;
+  size?: string;
 
   @IsOptional()
   @IsString()

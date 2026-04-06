@@ -85,7 +85,16 @@ export class CartController {
     const sessionId = userId ? undefined : this.getOrSetGuestSession(req, res);
     const country = req.headers['x-country']?.toString();
 
-    return this.cartService.getCart({ userId, sessionId }, couponCode, country);
+    return this.cartService.getCart(
+      { userId, sessionId },
+      couponCode,
+      country,
+      {
+        // failOnInvalidCoupon: true,
+        saveCouponToCart: true,
+        clearSavedCouponOnNewCoupon: false,
+      },
+    );
   }
 
   @Patch(':itemId')
