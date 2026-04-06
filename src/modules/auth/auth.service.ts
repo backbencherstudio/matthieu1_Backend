@@ -14,7 +14,6 @@ import { MailService } from '../../mail/mail.service';
 import { UcodeRepository } from '../../common/repository/ucode/ucode.repository';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { FileStorage } from '../../common/lib/Disk/FileStorage';
-import { DateHelper } from '../../common/helper/date.helper';
 import { StripePayment } from '../../common/lib/Payment/stripe/StripePayment';
 import { StringHelper } from '../../common/helper/string.helper';
 import { addMinutes } from 'date-fns';
@@ -63,8 +62,6 @@ export class AuthService {
         select: {
           id: true,
           name: true,
-          first_name: true,
-          last_name: true,
           bio: true,
           email: true,
           username: true,
