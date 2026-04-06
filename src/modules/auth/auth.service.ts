@@ -63,6 +63,8 @@ export class AuthService {
         select: {
           id: true,
           name: true,
+          first_name: true,
+          last_name: true,
           bio: true,
           email: true,
           username: true,
@@ -312,7 +314,12 @@ export class AuthService {
 
       await this.prisma.user.update({
         where: { id: userId },
-        data: data,
+        data: {
+          ...data,
+          ...((data.first_name || data.last_name) && {
+            name: `${data.first_name && user.first_name} ${data.last_name && user.last_name}`,
+          }),
+        },
       });
 
       return {
