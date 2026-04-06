@@ -14,7 +14,6 @@ import { MailService } from '../../mail/mail.service';
 import { UcodeRepository } from '../../common/repository/ucode/ucode.repository';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { FileStorage } from '../../common/lib/Disk/FileStorage';
-import { DateHelper } from '../../common/helper/date.helper';
 import { StripePayment } from '../../common/lib/Payment/stripe/StripePayment';
 import { StringHelper } from '../../common/helper/string.helper';
 import { addMinutes } from 'date-fns';
@@ -312,7 +311,12 @@ export class AuthService {
 
       await this.prisma.user.update({
         where: { id: userId },
-        data: data,
+        data: {
+          ...data,
+          ...((data.first_name || data.last_name) && {
+            name: `${data.first_name && user.first_name} ${data.last_name && user.last_name}`,
+          }),
+        },
       });
 
       return {
