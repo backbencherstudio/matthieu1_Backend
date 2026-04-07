@@ -6,6 +6,7 @@ import {
 import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { StripePayment } from 'src/common/lib/Payment/stripe/StripePayment';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class PaymentService {
@@ -45,6 +46,13 @@ export class PaymentService {
         throw new Error('Order not found');
       }
       let paymentIntent;
+
+      if (
+        order.status === 'PAID' ||
+        order.payment_transaction?.status === 'PAID'
+      ) {
+        throw new Error('Order already paid');
+      }
 
       if (
         order.payment_transaction &&
@@ -137,19 +145,151 @@ export class PaymentService {
     }
   }
 
-  findAll() {
-    return `This action returns all payment`;
+  async getAllTransaction(query: {
+    search: string;
+    status: 'all' | 'pending' | 'paid' | 'failed' | 'cancelled';
+    duration: 'all' | 'day' | 'week' | 'month' | 'year';
+    page: number;
+    limit: number;
+  }) {
+    try {
+      const { search, status, duration, page = 1, limit = 10 } = query;
+      const pageNumber = Number(page) || 1;
+      const limitNumber = Number(limit) || 10;
+      const skip = (pageNumber - 1) * limitNumber;
+      const where: Prisma.PaymentTransactionWhereInput = {};
+      if (search) {
+        where.OR = [
+          { custom_transaction_id: { contains: search } },
+          { payment_intent_id: { contains: search } },
+        ];
+      }
+      if (status !== 'all') {
+        switch (status) {
+          case 'pending':
+            where.status = 'PENDING';
+            break;
+          case 'paid':
+            where.status = 'PAID';
+            break;
+          case 'failed':
+            where.status = 'FAILED';
+            break;
+          case 'cancelled':
+            where.status = 'CANCELLED';
+            break;
+        }
+      }
+      const startOfDay = (date: Date): Date => {
+        const d = new Date(date);
+        d.setHours(0, 0, 0, 0);
+        return d;
+      };
+
+      const endOfDay = (date: Date): Date => {
+        const d = new Date(date);
+        d.setHours(23, 59, 59, 999);
+        return d;
+      };
+
+      if (duration !== 'all') {
+        const now = new Date();
+        const todayStart = startOfDay(now);
+        const todayEnd = endOfDay(now);
+
+        switch (duration) {
+          case 'day':
+            where.created_at = {
+              gte: todayStart,
+              lt: todayEnd, // Ajker puro din (23:59:59 porjonto)
+            };
+            break;
+          case 'week':
+            where.created_at = {
+              gte: startOfDay(
+                new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+              ),
+              lt: todayStart, // Ajker 00:00 theke pichone 7 din shuru theke
+            };
+            break;
+          case 'month':
+            where.created_at = {
+              gte: startOfDay(
+                new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
+              ),
+              lt: todayStart,
+            };
+            break;
+          case 'year':
+            where.created_at = {
+              gte: startOfDay(
+                new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000),
+              ),
+              lt: todayStart,
+            };
+        }
+      }
+      const transactions = await this.prisma.paymentTransaction.findMany({
+        where,
+        skip,
+        take: limitNumber,
+      });
+      const total = await this.prisma.paymentTransaction.count({
+        where,
+      });
+      return {
+        success: true,
+        message: 'Transactions fetched successfully',
+        data: transactions,
+        meta_data: {
+          page: pageNumber,
+          limit: limitNumber,
+          total,
+          search,
+          status,
+          duration,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to fetch transactions',
+      };
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} payment`;
-  }
-
-  update(id: number, updatePaymentDto: UpdatePaymentDto) {
-    return `This action updates a #${id} payment`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} payment`;
+  async getStats() {
+    try {
+      const totalTransactions = await this.prisma.paymentTransaction.count();
+      const pendingTransactions = await this.prisma.paymentTransaction.count({
+        where: { status: 'PENDING' },
+      });
+      const paidTransactions = await this.prisma.paymentTransaction.count({
+        where: { status: 'PAID' },
+      });
+      const failedTransactions = await this.prisma.paymentTransaction.count({
+        where: { status: 'FAILED' },
+      });
+      const cancelledTransactions = await this.prisma.paymentTransaction.count({
+        where: { status: 'CANCELLED' },
+      });
+      return {
+        success: true,
+        message: 'Stats fetched successfully',
+        data: {
+          total_transactions: totalTransactions,
+          pending_transactions: pendingTransactions,
+          paid_transactions: paidTransactions,
+          failed_transactions: failedTransactions,
+          cancelled_transactions: cancelledTransactions,
+          success_rate: (paidTransactions / totalTransactions) * 100,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error?.message || 'Failed to fetch stats',
+      };
+    }
   }
 }
