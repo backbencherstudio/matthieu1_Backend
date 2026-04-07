@@ -28,6 +28,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       '/api/used-saddles/public',
       '/api/checkout/address',
       '/api/checkout/summary',
+      '/api/payment/stripe/webhook',
     ];
 
     const isCartRoute = request.path.startsWith('/api/cart');
