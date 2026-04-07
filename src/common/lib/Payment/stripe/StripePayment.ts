@@ -14,6 +14,10 @@ const STRIPE_WEBHOOK_SECRET = appConfig().payment.stripe.webhook_secret;
  * Stripe payment method helper
  */
 export class StripePayment {
+  static async retrievePaymentIntent(intent_id: string): Promise<stripe.PaymentIntent> {
+    return await Stripe.paymentIntents.retrieve(intent_id);
+  }
+
   static async createPaymentMethod({
     card,
     billing_details,
@@ -163,6 +167,11 @@ export class StripePayment {
       currency: currency,
       metadata: metadata,
       ...(receipt_email && { receipt_email }),
+      automatic_payment_methods: {
+        enabled: true,
+        allow_redirects: 'always',
+      },
+      setup_future_usage: undefined,
     });
   }
 

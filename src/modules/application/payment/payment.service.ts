@@ -145,6 +145,40 @@ export class PaymentService {
     }
   }
 
+  async verifyPayment(intent_id: string) {
+    try {
+      const paymentIntent =
+        await StripePayment.retrievePaymentIntent(intent_id);
+
+      const order = await this.prisma.order.findUnique({
+        where: { id: paymentIntent?.metadata?.order_id },
+        include: { payment_transaction: true },
+      });
+
+      if (!order) {
+        throw new Error('Order not found');
+      }
+
+      if (
+        paymentIntent.status !== 'succeeded' ||
+        order.status !== 'PAID' ||
+        order.payment_transaction?.status !== 'PAID'
+      ) {
+        throw new Error('Payment intent verification failed');
+      }
+
+      return {
+        success: true,
+        message: 'Payment intent verified successfully',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error?.message || 'Payment intent verification failed',
+      };
+    }
+  }
+
   async getAllTransaction(query: {
     search: string;
     status: 'all' | 'pending' | 'paid' | 'failed' | 'cancelled';
