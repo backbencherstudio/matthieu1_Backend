@@ -5,8 +5,8 @@ import { Fetch } from '../../Fetch';
 
 const STRIPE_SECRET_KEY = appConfig().payment.stripe.secret_key;
 
-const Stripe = new stripe("sk_test_51QrFSbJD40kEg8yvAZuwuh1RjXjDEt6ybfexsIGqELf4gZho1m9YmcvxNtqG29LZgFuDPbqyRC4Gx8ThVQ4kRriR00ZHkC47Yj", {
-  // apiVersion: '2025-08-27.basil',
+const Stripe = new stripe(STRIPE_SECRET_KEY, {
+  apiVersion: '2025-08-27.basil',
 });
 
 const STRIPE_WEBHOOK_SECRET = appConfig().payment.stripe.webhook_secret;
@@ -130,17 +130,39 @@ export class StripePayment {
     currency,
     customer_id,
     metadata,
+    receipt_email,
   }: {
     amount: number;
     currency: string;
     customer_id: string;
     metadata?: stripe.MetadataParam;
+    receipt_email?: string;
   }): Promise<stripe.PaymentIntent> {
     return Stripe.paymentIntents.create({
       amount: amount * 100, // amount in cents
       currency: currency,
       customer: customer_id,
       metadata: metadata,
+      ...(receipt_email && { receipt_email }),
+    });
+  }
+
+  static async createOneTimePaymentIntent({
+    amount,
+    currency,
+    metadata,
+    receipt_email,
+  }: {
+    amount: number;
+    currency: string;
+    metadata?: stripe.MetadataParam;
+    receipt_email?: string;
+  }): Promise<stripe.PaymentIntent> {
+    return Stripe.paymentIntents.create({
+      amount: amount * 100, // amount in cents
+      currency: currency,
+      metadata: metadata,
+      ...(receipt_email && { receipt_email }),
     });
   }
 
@@ -151,8 +173,9 @@ export class StripePayment {
    * @returns
    */
   static async createCheckoutSession() {
-    const success_url = `${appConfig().app.url
-      }/success?session_id={CHECKOUT_SESSION_ID}`;
+    const success_url = `${
+      appConfig().app.url
+    }/success?session_id={CHECKOUT_SESSION_ID}`;
     const cancel_url = `${appConfig().app.url}/failed`;
 
     const session = await Stripe.checkout.sessions.create({
@@ -188,8 +211,9 @@ export class StripePayment {
     customer: string,
     price: string,
   ) {
-    const success_url = `${appConfig().app.url
-      }/success?session_id={CHECKOUT_SESSION_ID}`;
+    const success_url = `${
+      appConfig().app.url
+    }/success?session_id={CHECKOUT_SESSION_ID}`;
     const cancel_url = `${appConfig().app.url}/failed`;
 
     const session = await Stripe.checkout.sessions.create({
@@ -285,42 +309,37 @@ export class StripePayment {
     return invoice;
   }
 
-
-
-
   // ----------------------------------------------------------my own methods----------------------------------------------------------
-static async createSubscription(
-  customerId: string,
-  priceId: string,
-  subscriptionId: string,
-  paymentMethodId: string,
-  userId: string
-) {
-  const subscription = await Stripe.subscriptions.create({
-    customer: customerId,
-    items: [{ price: priceId }],
-    default_payment_method: paymentMethodId,
-    payment_behavior: 'default_incomplete',
-    expand: ['latest_invoice.payment_intent'],
-    metadata: {
-      subscriptionId,
-      userId
-    },
-  });
+  static async createSubscription(
+    customerId: string,
+    priceId: string,
+    subscriptionId: string,
+    paymentMethodId: string,
+    userId: string,
+  ) {
+    const subscription = await Stripe.subscriptions.create({
+      customer: customerId,
+      items: [{ price: priceId }],
+      default_payment_method: paymentMethodId,
+      payment_behavior: 'default_incomplete',
+      expand: ['latest_invoice.payment_intent'],
+      metadata: {
+        subscriptionId,
+        userId,
+      },
+    });
 
-  const invoice = subscription.latest_invoice as any;
+    const invoice = subscription.latest_invoice as any;
 
-  const paidInvoice = await Stripe.invoices.pay(invoice.id, {
-    expand: ['payment_intent'],
-  });
+    const paidInvoice = await Stripe.invoices.pay(invoice.id, {
+      expand: ['payment_intent'],
+    });
 
-  return {
-    ...subscription,
-    latest_invoice: paidInvoice,
-  };
-}
-
-
+    return {
+      ...subscription,
+      latest_invoice: paidInvoice,
+    };
+  }
 
   // -----------------------payout system start--------------------------------
 
@@ -496,7 +515,9 @@ static async createSubscription(
     return event;
   }
 
-  static async cancelSubscription(subscriptionId: string): Promise<stripe.Subscription> {
+  static async cancelSubscription(
+    subscriptionId: string,
+  ): Promise<stripe.Subscription> {
     return await Stripe.subscriptions.cancel(subscriptionId);
   }
 }
