@@ -1,34 +1,45 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+} from '@nestjs/common';
 import { PaymentService } from './payment.service';
-import { CreatePaymentDto } from './dto/create-payment.dto';
+import {
+  CreatePaymentDto,
+  CreatePaymentIntentDto,
+} from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
 
 @Controller('payment')
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
-  @Post()
-  create(@Body() createPaymentDto: CreatePaymentDto) {
-    return this.paymentService.create(createPaymentDto);
+  @Post('intent')
+  createPaymentIntent(@Body() createPaymentIntentDto: CreatePaymentIntentDto) {
+    return this.paymentService.createPaymentIntent(createPaymentIntentDto);
   }
 
-  @Get()
-  findAll() {
-    return this.paymentService.findAll();
+  @Get('transactions')
+  getAllTransaction(
+    @Query()
+    query: {
+      search: string;
+      status: 'all' | 'pending' | 'paid' | 'failed' | 'cancelled';
+      duration: 'all' | 'day' | 'week' | 'month' | 'year';
+      page: number;
+      limit: number;
+    },
+  ) {
+    return this.paymentService.getAllTransaction(query);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.paymentService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updatePaymentDto: UpdatePaymentDto) {
-    return this.paymentService.update(+id, updatePaymentDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.paymentService.remove(+id);
+  @Get('stats')
+  getStats() {
+    return this.paymentService.getStats();
   }
 }
