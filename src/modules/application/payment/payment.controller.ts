@@ -1,19 +1,6 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, Param } from '@nestjs/common';
 import { PaymentService } from './payment.service';
-import {
-  CreatePaymentDto,
-  CreatePaymentIntentDto,
-} from './dto/create-payment.dto';
-import { UpdatePaymentDto } from './dto/update-payment.dto';
+import { CreatePaymentIntentDto } from './dto/create-payment.dto';
 
 @Controller('payment')
 export class PaymentController {
@@ -22,6 +9,11 @@ export class PaymentController {
   @Post('intent')
   createPaymentIntent(@Body() createPaymentIntentDto: CreatePaymentIntentDto) {
     return this.paymentService.createPaymentIntent(createPaymentIntentDto);
+  }
+
+  @Get('verify/:intent_id')
+  verifyPayment(@Param('intent_id') intent_id: string) {
+    return this.paymentService.verifyPayment(intent_id);
   }
 
   @Get('transactions')
