@@ -30,7 +30,7 @@ export class StripeController {
           break;
         case 'payment_intent.succeeded':
           const paymentIntent = event.data.object;
-          console.log(paymentIntent);
+          // console.log(paymentIntent);
           // await TransactionRepository.updateTransaction({
           //   reference_number: paymentIntent.id,
           //   status: 'succeeded',
@@ -42,7 +42,7 @@ export class StripeController {
           break;
         case 'payment_intent.payment_failed':
           const failedPaymentIntent = event.data.object;
-          console.log(failedPaymentIntent);
+          // console.log(failedPaymentIntent);
           await this.stripeService.paymentIntentFailed(failedPaymentIntent);
         // Update transaction status in database
         // await TransactionRepository.updateTransaction({
@@ -59,7 +59,7 @@ export class StripeController {
           //   status: 'canceled',
           //   raw_status: canceledPaymentIntent.status,
           // });
-          console.log(canceledPaymentIntent);
+          // console.log(canceledPaymentIntent);
           await this.stripeService.paymentIntentCanceled(canceledPaymentIntent);
           break;
         case 'payment_intent.requires_action':
