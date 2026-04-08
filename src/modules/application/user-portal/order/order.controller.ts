@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Param,
-  Req,
-  Res,
-} from '@nestjs/common';
+import { Controller, Post, Get, Param, Req, Res } from '@nestjs/common';
 import { OrderService } from './order.service';
 import { Response } from 'express';
 import { randomUUID } from 'crypto';
@@ -61,19 +54,13 @@ export class OrderController {
    * 🚀 Create Order
    */
   @Post()
-  async createOrder(
-    @Req() req,
-    @Res({ passthrough: true }) res: Response,
-  ) {
+  async createOrder(@Req() req, @Res({ passthrough: true }) res: Response) {
     const userId = this.extractUserIdFromToken(req);
     const sessionId = userId ? undefined : this.getOrSetGuestSession(req, res);
 
     const country = req.headers['x-country']?.toString();
 
-    return this.orderService.createOrder(
-      { userId, sessionId },
-      country,
-    );
+    return this.orderService.createOrder({ userId, sessionId }, country);
   }
 
   /**
@@ -93,5 +80,10 @@ export class OrderController {
   @Get(':id')
   async getOrder(@Param('id') id: string) {
     return this.orderService.getOrderById(id);
+  }
+
+  @Get('all')
+  async getAllOrders() {
+    return this.orderService.getAllOrders(); // Call the new method to fetch all orders
   }
 }

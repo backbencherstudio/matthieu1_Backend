@@ -75,6 +75,28 @@ export class CartController {
     return this.cartService.addToCart({ userId, sessionId }, dto);
   }
 
+  // @Get()
+  // async getCart(
+  //   @Req() req,
+  //   @Res({ passthrough: true }) res: Response,
+  //   @Query('coupon') couponCode?: string,
+  // ) {
+  //   const userId = this.extractUserIdFromToken(req);
+  //   const sessionId = userId ? undefined : this.getOrSetGuestSession(req, res);
+  //   const country = req.headers['x-country']?.toString();
+
+  //   return this.cartService.getCart(
+  //     { userId, sessionId },
+  //     couponCode,
+  //     country,
+  //     {
+  //       // failOnInvalidCoupon: true,
+  //       saveCouponToCart: true,
+  //       clearSavedCouponOnNewCoupon: false,
+  //     },
+  //   );
+  // }
+
   @Get()
   async getCart(
     @Req() req,
@@ -90,7 +112,6 @@ export class CartController {
       couponCode,
       country,
       {
-        // failOnInvalidCoupon: true,
         saveCouponToCart: true,
         clearSavedCouponOnNewCoupon: false,
       },

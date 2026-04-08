@@ -28,12 +28,12 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       '/api/used-saddles/public',
       '/api/checkout/address',
       '/api/checkout/summary',
-      // '/api/sadlles/public',
+      '/api/sadlles/public',
      
 
     ];
 
-    //  const isDynamicSadllesRoute = request.path.startsWith('/api/sadlles/') && request.path !== '/api/sadlles';
+     const isDynamicSadllesRoute = request.path.startsWith('/api/sadlles/public/') && request.path !== '/api/sadlles';
 
     const isCartRoute = request.path.startsWith('/api/cart');
 
@@ -45,8 +45,8 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     if (
       publicRoutes.includes(request.path) ||
       isCartRoute ||
-      isUsedSaddlePublic
-      // isDynamicSadllesRoute
+      isUsedSaddlePublic||
+      isDynamicSadllesRoute
     ) {
       return true;
     }
@@ -65,67 +65,3 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   }
 }
 
-
-// import {
-//   ExecutionContext,
-//   Injectable,
-//   UnauthorizedException,
-// } from '@nestjs/common';
-// import { JwtService } from '@nestjs/jwt';
-// import { AuthGuard } from '@nestjs/passport';
-
-// @Injectable()
-// export class JwtAuthGuard extends AuthGuard('jwt') {
-//   constructor(private jwtService: JwtService) {
-//     super();
-//   }
-
-//   canActivate(context: ExecutionContext) {
-//     // Get the request object
-//     const request = context.switchToHttp().getRequest();
-
-//     // List of explicit public routes that don't require authentication
-//     const publicRoutes = [
-//       '/api/auth/login',
-//       '/api/auth/register',
-//       '/api/auth/forgot-password',
-//       '/api/auth/reset-password',
-//       '/api/auth/verify-email',
-//       '/api/auth/verify-otp',
-//       '/api/firebase-auth/google',
-//       '/api/contact-us',
-//       '/api/used-saddles/public',
-//       '/api/checkout/address',
-//       '/api/checkout/summary',
-//       '/api/sadlles',        // Public route for /sadlles
-//       '/api/sadlles/id',     // Public route for /sadlles/:id
-//     ];
-
-//     // Match dynamic route like /sadlles/:id
-//     const isDynamicSadllesRoute = request.path.startsWith('/api/sadlles/') && request.path !== '/api/sadlles';
-    
-//     // Handle cart and other specific routes
-//     const isCartRoute = request.path.startsWith('/api/cart');
-//     const isUsedSaddlePublic = request.path.startsWith('/api/used-saddles/public');
-
-//     // If the route is public or one of the conditions, allow it to pass without authentication
-//     if (
-//       publicRoutes.includes(request.path) ||
-//       isCartRoute ||
-//       isUsedSaddlePublic ||
-//       isDynamicSadllesRoute
-//     ) {
-//       return true;
-//     }
-
-//     // If not a public route or exempted, check for JWT auth
-//     return super.canActivate(context);
-//   }
-
-//   handleRequest(err, user, info) {
-//     if (err || !user) {
-//       throw err || new UnauthorizedException('Token is expired or invalid');
-//     }
-//     return { ...user, isPrivate: user.isPrivate, type: user.type };
-//   }
-// }
