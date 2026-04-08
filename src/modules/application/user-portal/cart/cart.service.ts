@@ -624,6 +624,234 @@ export class CartService {
   //   };
   // }
 
+  // async getCart(
+  //   params: { userId?: string; sessionId?: string },
+  //   couponCode?: string,
+  //   country?: string,
+  //   options?: {
+  //     failOnInvalidCoupon?: boolean;
+  //     saveCouponToCart?: boolean;
+  //     clearSavedCouponOnNewCoupon?: boolean;
+  //   },
+  // ) {
+  //   const {
+  //     failOnInvalidCoupon = false,
+  //     saveCouponToCart = false,
+  //     clearSavedCouponOnNewCoupon = false,
+  //   } = options || {};
+
+  //   const cart = await this.getOrCreateCart(params);
+  //   const currency = resolveCurrencyFromCountry(country);
+
+  //   const cartData = await this.prisma.cart.findUnique({
+  //     where: { id: cart.id },
+  //     include: {
+  //       items: {
+  //         include: {
+  //           variant: { include: { Tackproduct: true, images: true } },
+  //           usedSaddle: { include: { images: true } },
+  //           leadline: { include: { images: true } },
+  //         },
+  //       },
+  //     },
+
+  //   });
+
+  //   const formattedItems = (cartData?.items || [])
+  //     .map((item) => {
+  //       if (item.usedSaddle) {
+  //         const basePrice =
+  //           currency === 'USD'
+  //             ? item.usedSaddle.basePrice_usd
+  //             : item.usedSaddle.basePrice_eur;
+
+  //         const price = this.calculateTrialAdjustedPrice(
+  //           Number(basePrice),
+  //           item.trialPeriod ?? 'TRIAL_7_DAYS',
+  //         );
+
+  //         return {
+  //           quantity: item.quantity,
+  //           itemId: item.id,
+  //           sku: item.usedSaddle.sku,
+  //           itemName: item.usedSaddle.title,
+  //           itemImage: item.usedSaddle.images?.[0]?.url ?? null,
+  //           price,
+  //           currency,
+  //           totalPrice: price * item.quantity,
+  //           usedSaddleId: item.usedSaddle.id,
+  //           trialPeriod: item.trialPeriod ?? 'TRIAL_7_DAYS',
+  //         };
+  //       }
+
+  //       if (item.leadline) {
+  //         const price =
+  //           currency === 'USD'
+  //             ? item.leadline.price_usd
+  //             : item.leadline.price_eur;
+
+  //         return {
+  //           quantity: item.quantity,
+  //           itemId: item.id,
+  //           sku: item.leadline.sku,
+  //           itemName: item.leadline.name,
+  //           itemImage: item.leadline.images?.[0]?.url ?? null,
+  //           price: Number(price),
+  //           currency,
+  //           totalPrice: Number(price) * item.quantity,
+  //           leadlineId: item.leadline.id,
+  //         };
+  //       }
+
+  //       if (item.variant) {
+  //         const price =
+  //           currency === 'USD'
+  //             ? item.variant.price_usd
+  //             : item.variant.price_eur;
+
+  //         return {
+  //           quantity: item.quantity,
+  //           itemId: item.id,
+  //           sku: item.variant.Tackproduct?.sku ?? null,
+  //           itemName: item.variant.Tackproduct?.name ?? null,
+  //           itemImage: item.variant.images?.[0]?.url ?? null,
+  //           price: Number(price),
+  //           currency,
+  //           totalPrice: Number(price) * item.quantity,
+  //           variantId: item.variant.id,
+  //           tackProductId: item.variant.Tackproduct?.id ?? null,
+  //         };
+  //       }
+
+  //       return null;
+  //     })
+  //     .filter(Boolean);
+
+  //   const subtotal = formattedItems.reduce((sum, item: any) => {
+  //     return sum + Number(item.price) * item.quantity;
+  //   }, 0);
+
+  //   const shipping = subtotal > 0 ? 15 : 0;
+  //   const tax = subtotal * 0.08;
+
+  //   let discount = 0;
+  //   let couponMessage: string | null = null;
+  //   let appliedCouponCode: string | null = null;
+
+  //   const hasNewCouponInQuery = !!couponCode;
+
+  //   // cart endpoint hit without coupon => clear previously saved coupon
+  //   if (!hasNewCouponInQuery && saveCouponToCart && cart.couponCode) {
+  //     await this.prisma.cart.update({
+  //       where: { id: cart.id },
+  //       data: { couponCode: null },
+  //     });
+
+  //     cart.couponCode = null;
+  //   }
+
+  //   // cart endpoint hit with coupon => old saved coupon clear first
+  //   if (hasNewCouponInQuery && saveCouponToCart && cart.couponCode) {
+  //     await this.prisma.cart.update({
+  //       where: { id: cart.id },
+  //       data: { couponCode: null },
+  //     });
+
+  //     cart.couponCode = null;
+  //   }
+
+  //   const couponToUse = couponCode ?? cart.couponCode ?? null;
+
+  //   if (couponToUse) {
+  //     try {
+  //       let coupon;
+
+  //       if (params.userId) {
+  //         coupon = await this.couponService.validateCoupon(
+  //           couponToUse,
+  //           params.userId,
+  //         );
+  //       } else {
+  //         coupon = await this.prisma.coupon.findUnique({
+  //           where: { code: couponToUse },
+  //         });
+
+  //         if (!coupon) {
+  //           throw new Error('Invalid coupon code');
+  //         }
+
+  //         if (coupon.expiresAt < new Date()) {
+  //           throw new Error('Coupon expired');
+  //         }
+  //       }
+
+  //       discount = subtotal * (coupon.discount / 100);
+  //       couponMessage = 'Coupon applied successfully';
+  //       appliedCouponCode = coupon.code;
+
+  //       // cart থেকে valid coupon apply হলে save হবে
+  //       if (hasNewCouponInQuery && saveCouponToCart) {
+  //         await this.prisma.cart.update({
+  //           where: { id: cart.id },
+  //           data: { couponCode: coupon.code },
+  //         });
+  //       }
+
+  //       // checkout summary তে new valid coupon use হলে save হবে না,
+  //       // কিন্তু old saved coupon different হলে সেটা clear হবে
+  //       if (
+  //         hasNewCouponInQuery &&
+  //         !saveCouponToCart &&
+  //         clearSavedCouponOnNewCoupon &&
+  //         cart.couponCode &&
+  //         cart.couponCode !== coupon.code
+  //       ) {
+  //         await this.prisma.cart.update({
+  //           where: { id: cart.id },
+  //           data: { couponCode: null },
+  //         });
+  //       }
+  //     } catch (error) {
+  //       discount = 0;
+  //       appliedCouponCode = null;
+  //       couponMessage =
+  //         error instanceof Error ? error.message : 'Invalid coupon code';
+
+  //       // saved coupon invalid হলে সেটা clear হবে
+  //       if (!hasNewCouponInQuery && cart.couponCode) {
+  //         await this.prisma.cart.update({
+  //           where: { id: cart.id },
+  //           data: { couponCode: null },
+  //         });
+  //       }
+
+  //       if (failOnInvalidCoupon) {
+  //         throw new BadRequestException(couponMessage);
+  //       }
+  //     }
+  //   }
+
+  //   const total = subtotal + shipping + tax - discount;
+
+  //   return {
+  //     success: true,
+  //     message: 'Cart retrieved successfully',
+  //     data: {
+  //       items: formattedItems,
+  //       summary: {
+  //         currency,
+  //         subtotal,
+  //         shipping,
+  //         tax,
+  //         couponCode: appliedCouponCode,
+  //         couponMessage,
+  //         couponDiscount: discount,
+  //         total,
+  //       },
+  //     },
+  //   };
+  // }
+
   async getCart(
     params: { userId?: string; sessionId?: string },
     couponCode?: string,
@@ -658,6 +886,8 @@ export class CartService {
 
     const formattedItems = (cartData?.items || [])
       .map((item) => {
+        let createdAt = item.createdAt;
+
         if (item.usedSaddle) {
           const basePrice =
             currency === 'USD'
@@ -680,6 +910,7 @@ export class CartService {
             totalPrice: price * item.quantity,
             usedSaddleId: item.usedSaddle.id,
             trialPeriod: item.trialPeriod ?? 'TRIAL_7_DAYS',
+            createdAt, // Add createdAt to the returned item
           };
         }
 
@@ -699,6 +930,7 @@ export class CartService {
             currency,
             totalPrice: Number(price) * item.quantity,
             leadlineId: item.leadline.id,
+            createdAt, // Add createdAt to the returned item
           };
         }
 
@@ -719,12 +951,17 @@ export class CartService {
             totalPrice: Number(price) * item.quantity,
             variantId: item.variant.id,
             tackProductId: item.variant.Tackproduct?.id ?? null,
+            createdAt, // Add createdAt to the returned item
           };
         }
 
         return null;
       })
-      .filter(Boolean);
+      .filter(Boolean)
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      ); // Sorting by createdAt in descending order
 
     const subtotal = formattedItems.reduce((sum, item: any) => {
       return sum + Number(item.price) * item.quantity;
@@ -739,7 +976,6 @@ export class CartService {
 
     const hasNewCouponInQuery = !!couponCode;
 
-    // cart endpoint hit without coupon => clear previously saved coupon
     if (!hasNewCouponInQuery && saveCouponToCart && cart.couponCode) {
       await this.prisma.cart.update({
         where: { id: cart.id },
@@ -749,7 +985,6 @@ export class CartService {
       cart.couponCode = null;
     }
 
-    // cart endpoint hit with coupon => old saved coupon clear first
     if (hasNewCouponInQuery && saveCouponToCart && cart.couponCode) {
       await this.prisma.cart.update({
         where: { id: cart.id },
@@ -788,7 +1023,6 @@ export class CartService {
         couponMessage = 'Coupon applied successfully';
         appliedCouponCode = coupon.code;
 
-        // cart থেকে valid coupon apply হলে save হবে
         if (hasNewCouponInQuery && saveCouponToCart) {
           await this.prisma.cart.update({
             where: { id: cart.id },
@@ -796,8 +1030,6 @@ export class CartService {
           });
         }
 
-        // checkout summary তে new valid coupon use হলে save হবে না,
-        // কিন্তু old saved coupon different হলে সেটা clear হবে
         if (
           hasNewCouponInQuery &&
           !saveCouponToCart &&
@@ -816,7 +1048,6 @@ export class CartService {
         couponMessage =
           error instanceof Error ? error.message : 'Invalid coupon code';
 
-        // saved coupon invalid হলে সেটা clear হবে
         if (!hasNewCouponInQuery && cart.couponCode) {
           await this.prisma.cart.update({
             where: { id: cart.id },
