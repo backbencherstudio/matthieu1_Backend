@@ -28,7 +28,6 @@ import { CreateTackproductDto } from './dto/create-tackproduct.dto';
 import { UpdateTackproductDto } from './dto/update-tackproduct.dto';
 import { TackproductService } from './tackproduct.service';
 
-@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('tackproduct')
 export class TackproductController {
   constructor(
@@ -36,7 +35,34 @@ export class TackproductController {
     private readonly uploadService: ProductUploadService,
   ) {}
 
+  @Get('user/show-all/:category')
+  async showAllForUser(
+    @Param('category') category: productcategory,
+    @Headers('x-country') country: string,
+  ) {
+    return this.tackproductService.getProductsGroupedBySubcategoryForUser(
+      category,
+      country,
+    );
+  }
+
+  @Get('user/product/:id')
+  async getProductForUser(
+    @Param('id') id: string,
+    @Query('colorId') colorId?: string,
+    @Query('sizeId') sizeId?: string,
+    @Headers('x-country') country?: string,
+  ) {
+    return this.tackproductService.getProductForUser(
+      id,
+      colorId,
+      sizeId,
+      country,
+    );
+  }
+
   //---------------------------- CREATE ----------------------------
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Post('create')
   @UseInterceptors(AnyFilesInterceptor({ storage: memoryStorage() }))
@@ -121,6 +147,7 @@ export class TackproductController {
   }
 
   /* ---------------- LIST ---------------- */
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Get('list')
   async findAll(
@@ -144,21 +171,9 @@ export class TackproductController {
     }
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.USER)
-  @Get('user/show-all/:category')
-  async showAllForUser(
-    @Param('category') category: productcategory,
-    @Headers('x-country') country: string,
-  ) {
-    return this.tackproductService.getProductsGroupedBySubcategoryForUser(
-      category,
-      country,
-    );
-  }
-
   /* ---------------- FIND ONE ---------------- */
   //for admin dashboard
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Get('oneproduct/:id')
   async findOne(@Param('id') id: string) {
@@ -172,23 +187,7 @@ export class TackproductController {
     }
   }
 
-  //for user portal
-  @Roles(Role.USER)
-  @Get('user/product/:id')
-  async getProductForUser(
-    @Param('id') id: string,
-    @Query('colorId') colorId?: string,
-    @Query('sizeId') sizeId?: string,
-    @Headers('x-country') country?: string,
-  ) {
-    return this.tackproductService.getProductForUser(
-      id,
-      colorId,
-      sizeId,
-      country,
-    );
-  }
-
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Patch(':id')
   @UseInterceptors(AnyFilesInterceptor({ storage: memoryStorage() }))
@@ -258,6 +257,7 @@ export class TackproductController {
 
   /* ---------------- DELETE ---------------- */
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Delete(':id')
   async remove(@Param('id') id: string) {

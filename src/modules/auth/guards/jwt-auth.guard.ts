@@ -29,11 +29,15 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       '/api/checkout/address',
       '/api/checkout/summary',
       '/api/sadlles/public',
-     
-
+      '/api/tackproduct/user',
     ];
 
-     const isDynamicSadllesRoute = request.path.startsWith('/api/sadlles/public/') && request.path !== '/api/sadlles';
+    const isDynamicSadllesRoute =
+      request.path.startsWith('/api/sadlles/public/') &&
+      request.path !== '/api/sadlles';
+
+     const isDynamicTackRoute = request.path.startsWith('/api/tackproduct/user') && request.path !== '/api/tackproduct';
+
 
     const isCartRoute = request.path.startsWith('/api/cart');
 
@@ -45,8 +49,9 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     if (
       publicRoutes.includes(request.path) ||
       isCartRoute ||
-      isUsedSaddlePublic||
+      isUsedSaddlePublic ||
       isDynamicSadllesRoute
+      || isDynamicTackRoute
     ) {
       return true;
     }
@@ -64,4 +69,3 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     return { ...user, isPrivate: user.isPrivate, type: user.type };
   }
 }
-
