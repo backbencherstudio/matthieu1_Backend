@@ -96,7 +96,7 @@ export class PaymentService {
               client_secret: paymentIntent.client_secret,
               amount: order.total,
               currency: order?.currency?.trim()?.toLowerCase() || 'usd',
-              status: 'pending',
+              status: 'PENDING',
               type: 'order',
             },
           });
@@ -122,7 +122,7 @@ export class PaymentService {
               client_secret: paymentIntent?.client_secret,
               amount: order.total,
               currency: order?.currency?.trim()?.toLowerCase() || 'usd',
-              status: 'pending',
+              status: 'PENDING',
               type: 'order',
             },
           });
@@ -141,6 +141,82 @@ export class PaymentService {
       return {
         success: false,
         message: error?.message || 'Payment intent creation failed',
+      };
+    }
+  }
+
+  async verifyPayment(intent_id: string) {
+    try {
+      const paymentIntent =
+        await StripePayment.retrievePaymentIntent(intent_id);
+
+      const order = await this.prisma.order.findUnique({
+        where: { id: paymentIntent?.metadata?.order_id },
+        include: { payment_transaction: true },
+      });
+
+      if (!order) {
+        throw new Error('Order not found');
+      }
+
+      // Check if the payment intent status is not succeeded or if the order or payment transaction are not in pending state
+      if (paymentIntent.status === 'succeeded' && order.status !== 'PAID') {
+        // If payment is successful, update the order status to PAID
+        await this.prisma.order.update({
+          where: { id: order.id },
+          data: { status: 'PAID' },
+        });
+
+        await this.prisma.paymentTransaction.update({
+          where: { order_id: order.id },
+          data: { status: 'PAID' },
+        });
+
+        return {
+          success: true,
+          message: 'Payment is successful and order is marked as PAID',
+        };
+      } else if (
+        paymentIntent.status === 'canceled' ||
+        order.payment_transaction?.status === 'FAILED'
+      ) {
+        // If payment has failed, mark the order as failed
+        await this.prisma.order.update({
+          where: { id: order.id },
+          data: { status: 'FAILED' },
+        });
+
+        await this.prisma.paymentTransaction.update({
+          where: { order_id: order.id },
+          data: { status: 'FAILED' },
+        });
+
+        return {
+          success: false,
+          message: 'Payment failed, order is marked as FAILED',
+        };
+      } else if (
+        order.status === 'PENDING' &&
+        order.payment_transaction?.status === 'PENDING'
+      ) {
+        // If the order and transaction are still pending, return the pending status
+        return {
+          success: false,
+          data: {
+            status: order.status,
+          },
+          message: 'Payment is pending',
+        };
+      } else {
+        return {
+          success: false,
+          message: 'Unexpected payment status',
+        };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: error?.message || 'Payment intent verification failed',
       };
     }
   }

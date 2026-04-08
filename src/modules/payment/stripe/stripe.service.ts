@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { StripePayment } from '../../../common/lib/Payment/stripe/StripePayment';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { OrderStatus } from '@prisma/client';
 
 @Injectable()
 export class StripeService {
@@ -11,6 +12,7 @@ export class StripeService {
 
   async paymentIntentSuccess(paymentIntent: any) {
     try {
+      console.log(paymentIntent);
       if (!paymentIntent) {
         throw new Error('Payment intent not found');
       }
@@ -20,23 +22,34 @@ export class StripeService {
           id: order_id,
         },
       });
+      console.log(order);
       if (order) {
-        await this.prisma.order.update({
-          where: {
-            id: order_id,
-          },
-          data: {
-            status: 'PAID',
-            payment_transaction: {
-              update: {
+        const [updateTransaction, updateOrder] = await this.prisma.$transaction(
+          [
+            this.prisma.paymentTransaction.update({
+              where: { order_id: order_id },
+              data: {
                 status: 'PAID',
                 reference_number: paymentIntent?.id,
                 paid_currency: paymentIntent?.currency,
                 raw_status: paymentIntent?.status,
               },
-            },
-          },
-        });
+            }),
+            this.prisma.order.update({
+              where: {
+                id: order_id,
+              },
+              data: {
+                status: 'PAID',
+              },
+            }),
+          ],
+        );
+        console.log(
+          'Transaction and Order updated:',
+          updateTransaction,
+          updateOrder,
+        );
       }
     } catch (error) {
       console.log(error);
@@ -55,20 +68,22 @@ export class StripeService {
         },
       });
       if (order) {
+        await this.prisma.paymentTransaction.update({
+          where: { order_id: order_id },
+          data: {
+            status: 'FAILED',
+            reference_number: paymentIntent?.id,
+            paid_currency: paymentIntent?.currency,
+            raw_status: paymentIntent?.status,
+          },
+        });
+
         await this.prisma.order.update({
           where: {
             id: order_id,
           },
           data: {
             status: 'FAILED',
-            payment_transaction: {
-              update: {
-                status: 'FAILED',
-                reference_number: paymentIntent?.id,
-                paid_currency: paymentIntent?.currency,
-                raw_status: paymentIntent?.status,
-              },
-            },
           },
         });
       }
@@ -89,20 +104,22 @@ export class StripeService {
         },
       });
       if (order) {
+        await this.prisma.paymentTransaction.update({
+          where: { order_id: order_id },
+          data: {
+            status: 'CANCELED',
+            reference_number: paymentIntent?.id,
+            paid_currency: paymentIntent?.currency,
+            raw_status: paymentIntent?.status,
+          },
+        });
+
         await this.prisma.order.update({
           where: {
             id: order_id,
           },
           data: {
             status: 'FAILED',
-            payment_transaction: {
-              update: {
-                status: 'CANCELED',
-                reference_number: paymentIntent?.id,
-                paid_currency: paymentIntent?.currency,
-                raw_status: paymentIntent?.status,
-              },
-            },
           },
         });
       }
