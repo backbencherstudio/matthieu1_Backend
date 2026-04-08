@@ -42,6 +42,8 @@ export class PaymentController {
     return this.paymentService.getAllTransaction(query);
   }
 
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
   @Get('stats')
   getStats() {
     return this.paymentService.getStats();
