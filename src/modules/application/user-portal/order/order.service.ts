@@ -287,28 +287,19 @@ export class OrderService {
    * 💳 Payment success update
    */
   async markAsPaid(orderId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (order?.status === OrderStatus.INPROCESS) {
+      throw new BadRequestException('Order already paid');
+    }
+
     return this.prisma.order.update({
       where: { id: orderId },
       data: {
-        status: OrderStatus.PAID,
+        status: OrderStatus.INPROCESS,
       },
     });
-  }
-
-  async getAllOrders() {
-    // শুধুমাত্র Order গুলি ফেচ করার জন্য 'include' বাদ দেওয়া হলো
-    const orders = await this.prisma.order.findMany({
-      orderBy: { createdAt: 'desc' }, // অর্ডারগুলি সৃষ্টির তারিখ অনুসারে সাজানো
-    });
-
-    if (orders.length === 0) {
-      throw new BadRequestException('No orders found'); // যদি কোনো অর্ডার না পাওয়া যায়
-    }
-
-    return {
-      success: true,
-      message: 'All orders retrieved successfully',
-      data: orders, // শুধু অর্ডার গুলি ফেচ হবে
-    };
   }
 }

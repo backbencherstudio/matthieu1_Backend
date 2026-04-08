@@ -40,7 +40,7 @@ export class StripeService {
                 id: order_id,
               },
               data: {
-                status: 'PAID',
+                status: 'INPROCESS',
               },
             }),
           ],
@@ -83,7 +83,7 @@ export class StripeService {
             id: order_id,
           },
           data: {
-            status: 'FAILED',
+            status: 'CANCLE',
           },
         });
       }
@@ -119,7 +119,7 @@ export class StripeService {
             id: order_id,
           },
           data: {
-            status: 'FAILED',
+            status: 'CANCLE',
           },
         });
       }
