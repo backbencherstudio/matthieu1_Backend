@@ -397,31 +397,60 @@ export class SadllesService {
     return products;
   }
 
-  async getLeadlineProduct(country?: string) {
-    const region = resolveRegionFromCountry(country);
+  // async getLeadlineProduct(country?: string) {
+  //   const region = resolveRegionFromCountry(country);
 
-    const product = await this.prisma.saddlesProduct.findFirst({
+  //   const product = await this.prisma.saddlesProduct.findFirst({
+  //     where: {
+  //       category: productcategory.LEADLINE,
+  //       country: region,
+  //     },
+  //     include: {
+  //       images: true,
+  //     },
+  //   });
+
+  //   if (!product) {
+  //     throw new NotFoundException('Leadline product not found');
+  //   }
+
+  //   return {
+  //     id: product.id,
+  //     name: product.name,
+  //     size: product.size,
+  //     images: product.images,
+  //     stockQuantity: product.stockQuantity,
+  //     ...this.formatPrice(product, country),
+  //   };
+  // }
+
+  async getLeadlineProduct(country?: string) {
+    const region = resolveRegionFromCountry(country); // Resolve the region based on the country header
+
+    // Fetch all leadline products matching the country
+    const products = await this.prisma.saddlesProduct.findMany({
       where: {
-        category: productcategory.LEADLINE,
-        country: region,
+        category: productcategory.LEADLINE, // Ensure we're filtering for LEADLINE category
+        country: region, // Filter products by the resolved region (country)
       },
       include: {
-        images: true,
+        images: true, // Include images of the product
       },
     });
 
-    if (!product) {
-      throw new NotFoundException('Leadline product not found');
+    if (products.length === 0) {
+      throw new NotFoundException('No leadline products found');
     }
 
-    return {
+    // Map the products to return the necessary fields
+    return products.map((product) => ({
       id: product.id,
       name: product.name,
       size: product.size,
       images: product.images,
       stockQuantity: product.stockQuantity,
-      ...this.formatPrice(product, country),
-    };
+      ...this.formatPrice(product, country), // Format the price for the specific country
+    }));
   }
 
   async getSpecificLeadlineforUser(id: string, country?: string) {
