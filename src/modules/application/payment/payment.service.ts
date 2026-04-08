@@ -307,16 +307,64 @@ export class PaymentService {
       }
       const transactions = await this.prisma.paymentTransaction.findMany({
         where,
+        select: {
+          id: true,
+          created_at: true,
+          amount: true,
+          status: true,
+          currency: true,
+          custom_transaction_id: true,
+          withdraw_via: true,
+          payment_gateway: true,
+          order: {
+            select: {
+              id: true,
+              _count: {
+                select: {
+                  items: true,
+                },
+              },
+            },
+          },
+          user: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+        },
         skip,
         take: limitNumber,
       });
       const total = await this.prisma.paymentTransaction.count({
         where,
       });
+
+      const formattedTransactions = transactions.map((transaction) => {
+        return {
+          id: transaction.id,
+          created_at: transaction.created_at,
+          amount: transaction.amount,
+          status: transaction.status,
+          currency: transaction.currency,
+          custom_transaction_id: transaction.custom_transaction_id,
+          withdraw_via: transaction.withdraw_via,
+          payment_gateway: transaction.payment_gateway,
+
+          order: {
+            id: transaction.order.id,
+            items_count: transaction.order._count.items,
+          },
+          user: {
+            name: transaction.user.name,
+            email: transaction.user.email,
+          },
+        };
+      });
       return {
         success: true,
         message: 'Transactions fetched successfully',
-        data: transactions,
+        data: formattedTransactions,
         meta_data: {
           page: pageNumber,
           limit: limitNumber,
