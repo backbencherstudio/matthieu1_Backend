@@ -96,7 +96,7 @@ export class PaymentService {
               client_secret: paymentIntent.client_secret,
               amount: order.total,
               currency: order?.currency?.trim()?.toLowerCase() || 'usd',
-              status: 'pending',
+              status: 'PENDING',
               type: 'order',
             },
           });
@@ -122,7 +122,7 @@ export class PaymentService {
               client_secret: paymentIntent?.client_secret,
               amount: order.total,
               currency: order?.currency?.trim()?.toLowerCase() || 'usd',
-              status: 'pending',
+              status: 'PENDING',
               type: 'order',
             },
           });
