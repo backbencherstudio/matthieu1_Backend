@@ -168,11 +168,16 @@ export class AuthController {
   //     };
   //   }
   // }
-  async getUsers(@Query('page') page = '1', @Query('limit') limit = '10') {
+  async getUsers(
+    @Query('page') page = '1',
+    @Query('limit') limit = '10',
+    @Query('search') search = '',
+  ) {
     try {
       return await this.authService.getUsersWithPagination(
         Number(page),
         Number(limit),
+        search,
       );
     } catch (error) {
       return {
