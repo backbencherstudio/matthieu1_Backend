@@ -48,7 +48,7 @@ export class PaymentService {
       let paymentIntent;
 
       if (
-        order.status === 'PAID' ||
+        order.status === 'INPROCESS' ||
         order.payment_transaction?.status === 'PAID'
       ) {
         throw new Error('Order already paid');
@@ -160,11 +160,11 @@ export class PaymentService {
       }
 
       // Check if the payment intent status is not succeeded or if the order or payment transaction are not in pending state
-      if (paymentIntent.status === 'succeeded' && order.status !== 'PAID') {
+      if (paymentIntent.status === 'succeeded' && order.status !== 'INPROCESS') {
         // If payment is successful, update the order status to PAID
         await this.prisma.order.update({
           where: { id: order.id },
-          data: { status: 'PAID' },
+          data: { status: 'INPROCESS' },
         });
 
         await this.prisma.paymentTransaction.update({
@@ -183,7 +183,7 @@ export class PaymentService {
         // If payment has failed, mark the order as failed
         await this.prisma.order.update({
           where: { id: order.id },
-          data: { status: 'FAILED' },
+          data: { status: 'CANCLE' },
         });
 
         await this.prisma.paymentTransaction.update({

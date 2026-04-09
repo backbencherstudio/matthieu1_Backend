@@ -63,32 +63,7 @@ export class CheckoutService {
     };
   }
 
-  // async getSummary(
-  //   params: { userId?: string; sessionId?: string },
-  //   couponCode?: string,
-  //   country?: string,
-  // ) {
-  //   // get cart with calculations
-  //   const cart = await this.cartService.getCart(params, couponCode, country);
 
-  //   // get latest saved address
-  //   const address = await this.prisma.checkoutAddress.findFirst({
-  //     where: params.userId
-  //       ? { userId: params.userId }
-  //       : { sessionId: params.sessionId },
-  //     orderBy: { createdAt: 'desc' },
-  //   });
-
-  //   return {
-  //     success: true,
-  //     message: 'Checkout summary retrieved successfully',
-  //     data: {
-  //       items: cart.data.items,
-  //       address,
-  //       summary: cart.data.summary,
-  //     },
-  //   };
-  // }
 
   async getSummary(
     params: { userId?: string; sessionId?: string },
@@ -118,4 +93,5 @@ export class CheckoutService {
       },
     };
   }
+
 }
