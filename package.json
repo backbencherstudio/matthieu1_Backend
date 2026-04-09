@@ -7,7 +7,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-    "postbuild": "copy ./config/firebase/firebase-service-account.json ./dist/config/firebase/firebase-service-account.json",
+    "postbuild": "echo 'No need to copy firebase-service-account.json file.'",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
