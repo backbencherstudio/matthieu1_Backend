@@ -775,7 +775,7 @@ export class AuthService {
       };
     }
   }
-  async getUsersWithPagination(page = 1, limit = 10) {
+  async getUsersWithPagination(page = 1, limit = 10, search = '') {
     try {
       const skip = (page - 1) * limit;
 
@@ -784,6 +784,13 @@ export class AuthService {
           where: {
             type: 'user',
             deleted_at: null,
+            ...(search && {
+              OR: [
+                { email: { contains: search, mode: 'insensitive' } },
+                { name: { contains: search, mode: 'insensitive' } },
+                { username: { contains: search, mode: 'insensitive' } },
+              ],
+            }),
           },
           skip,
           take: limit,
