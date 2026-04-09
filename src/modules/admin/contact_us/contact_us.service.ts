@@ -1,7 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateContactUsDto } from './dto/create-contact_us.dto';
-import { PrismaClient } from '@prisma/client';
 
 @Injectable()
 export class ContactUsService {
@@ -22,14 +25,21 @@ export class ContactUsService {
 
   // Get all contact messages
   async findAll() {
-    const messages = await this.prisma.contact_us.findMany({
-      orderBy: { created_at: 'desc' },
-    });
+    try {
+      const messages = await this.prisma.contact_us.findMany({
+        orderBy: [{ created_at: 'desc' }],
+      });
 
-    return {
-      success: true,
-      data: messages,
-    };
+      return {
+        success: true,
+        message: 'Contact messages retrieved successfully.',
+        data: messages,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Failed to retrieve contact messages',
+      );
+    }
   }
 
   // Get single message by ID
