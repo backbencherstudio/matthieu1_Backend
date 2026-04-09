@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { CreateSaddleAlertDto } from './dto/create-saddle-alert.dto';
 import { UpdateSaddleAlertDto } from './dto/update-saddle-alert.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -205,8 +205,20 @@ export class SaddleAlertService {
   }
 
   async remove(id: string) {
-    return await this.prisma.customerAlert.delete({
-      where: { id },
-    });
+    try {
+      // Attempt to delete the alert from the database
+      const data = await this.prisma.customerAlert.delete({
+        where: { id },
+      });
+
+      return data;
+    } catch (error) {
+
+      if (error) {
+        throw new NotFoundException(`Saddle alert with ID ${id} not found`);
+      }
+
+      throw new InternalServerErrorException('Error deleting the saddle alert');
+    }
   }
 }

@@ -7,7 +7,12 @@ export class AdminOrderService {
   constructor(private prisma: PrismaService) {}
 
   // Admin can get all orders
-  async getAllOrders(page: number = 1, limit: number = 10, search?: string) {
+  async getAllOrders(
+    page: number = 1,
+    limit: number = 10,
+    search?: string,
+    status?: string,
+  ) {
     if (limit > 100) {
       throw new BadRequestException('Limit cannot exceed 100');
     }
@@ -15,6 +20,25 @@ export class AdminOrderService {
     const skip = (page - 1) * limit;
 
     const where: any = {};
+
+    if (status) {
+      const normalizedStatus = status.toString().trim().toUpperCase();
+      const statusMap: Record<string, OrderStatus> = {
+        PENDING: OrderStatus.PENDING,
+        DELIVERED: OrderStatus.DELIVERED,
+        INPROCESS: OrderStatus.INPROCESS,
+        CANCEL: OrderStatus.CANCLE,
+        CANCLE: OrderStatus.CANCLE,
+      };
+
+      const orderStatus = statusMap[normalizedStatus];
+      if (!orderStatus) {
+        throw new BadRequestException('Invalid order status');
+      }
+
+      where.status = orderStatus;
+    }
+
     if (search) {
       where.OR = [
         { orderNumber: { contains: search, mode: 'insensitive' } },
@@ -79,8 +103,7 @@ export class AdminOrderService {
       OrderStatus.PENDING,
       OrderStatus.DELIVERED,
       OrderStatus.INPROCESS,
-      OrderStatus.CANCLE
-      
+      OrderStatus.CANCLE,
     ];
     if (!validStatuses.includes(status)) {
       throw new BadRequestException('Invalid order status');
