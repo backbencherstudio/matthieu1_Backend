@@ -528,6 +528,7 @@ model Favorite {
   saddleProductId String?
   saddleProduct   SaddlesProduct? @relation(fields: [saddleProductId], references: [id], onDelete: Cascade)
 
+
   usedSaddleProductId String?
   usedSaddleProduct   UsedSaddle? @relation(fields: [usedSaddleProductId], references: [id], onDelete: Cascade)
 
@@ -681,6 +682,34 @@ model contact_us {
   updated_at DateTime @updatedAt
 
   @@map("contact_us")
+}
+
+enum try_saddle_discipline {
+HUNTER
+JUMPER
+EQUTATION
+DRESSAGE
+CROSS_COUNTRY
+OTHER
+}
+
+model try_saddles {
+  id         String   @id @default(cuid())
+  first_name String
+  last_name  String
+  email      String
+  phone      String
+  address    String
+  country    String
+  city       String
+  state      String
+  zip_code   String
+  message    String
+  discipline try_saddle_discipline
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("try_saddles")
 }
 
 model Expert {

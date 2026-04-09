@@ -8,6 +8,7 @@ import {
   UseGuards,
   BadRequestException,
   Param,
+  Headers,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { SavedProductService } from './saved-product.service';
@@ -23,21 +24,54 @@ export class SavedProductController {
   constructor(private readonly savedProductService: SavedProductService) {}
 
   // ---------------- ADD FAVORITE ----------------
+  // @Post()
+  // add(
+  //   @Req() req: Request,
+  //   @Body('tackProductId') tackProductId?: string,
+  //   @Body('saddleProductId') saddleProductId?: string,
+  // ) {
+  //   const userId = (req as any).user.userId;
+
+  //   if (!tackProductId && !saddleProductId) {
+  //     throw new BadRequestException(
+  //       'Either tackProductId or saddleProductId is required',
+  //     );
+  //   }
+
+  //   if (tackProductId && saddleProductId) {
+  //     throw new BadRequestException(
+  //       'Only one product type can be saved at a time',
+  //     );
+  //   }
+
+  //   return this.savedProductService.addFavorite(
+  //     userId,
+  //     tackProductId,
+  //     saddleProductId,
+  //   );
+  // }
+
+  // ---------------- ADD FAVORITE ----------------
   @Post()
   add(
     @Req() req: Request,
     @Body('tackProductId') tackProductId?: string,
     @Body('saddleProductId') saddleProductId?: string,
+    @Body('usedSaddleProductId') usedSaddleProductId?: string, // Added usedSaddleProductId
   ) {
     const userId = (req as any).user.userId;
 
-    if (!tackProductId && !saddleProductId) {
+    if (!tackProductId && !saddleProductId && !usedSaddleProductId) {
       throw new BadRequestException(
-        'Either tackProductId or saddleProductId is required',
+        'Either tackProductId, saddleProductId, or usedSaddleProductId is required',
       );
     }
 
-    if (tackProductId && saddleProductId) {
+    if (
+      (tackProductId && saddleProductId) ||
+      (tackProductId && usedSaddleProductId) ||
+      (saddleProductId && usedSaddleProductId)
+    ) {
       throw new BadRequestException(
         'Only one product type can be saved at a time',
       );
@@ -47,14 +81,15 @@ export class SavedProductController {
       userId,
       tackProductId,
       saddleProductId,
+      usedSaddleProductId, // Pass usedSaddleProductId
     );
   }
 
   // ---------------- LIST FAVORITES ----------------
   @Get()
-  list(@Req() req: Request) {
+  list(@Req() req: Request, @Headers('x-country') country?: string) {
     const userId = (req as any).user.userId;
-    return this.savedProductService.listFavorites(userId);
+    return this.savedProductService.listFavorites(userId, country);
   }
 
   // ---------------- REMOVE FAVORITE ----------------

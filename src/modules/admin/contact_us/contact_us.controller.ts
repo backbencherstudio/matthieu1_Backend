@@ -27,7 +27,7 @@ export class ContactUsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN)
+  // @Roles(Role.ADMIN)
   @Get()
   findAll() {
     return this.contactUsService.findAll();

@@ -20,6 +20,7 @@ import { CouponModule } from './admin-dashboard/coupon/coupon.module';
 import { PaymentModule } from './payment/payment.module';
 import { CheckoutAddressModule } from './user-portal/checkout-address/checkout-address.module';
 import { OrderModule } from './user-portal/order/order.module';
+import { TrySaddleModule } from './try-saddle/try-saddle.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { OrderModule } from './user-portal/order/order.module';
     PaymentModule,
     CheckoutAddressModule,
     OrderModule,
+    TrySaddleModule,
   ],
 })
 export class ApplicationModule {}
