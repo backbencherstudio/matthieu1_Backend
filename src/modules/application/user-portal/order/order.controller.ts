@@ -82,8 +82,4 @@ export class OrderController {
     return this.orderService.getOrderById(id);
   }
 
-  @Get('all')
-  async getAllOrders() {
-    return this.orderService.getAllOrders(); // Call the new method to fetch all orders
-  }
 }

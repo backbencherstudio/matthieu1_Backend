@@ -941,8 +941,9 @@ model CheckoutAddress {
 
 enum OrderStatus {
   PENDING
-  PAID
-  FAILED
+  DELIVERED
+  INPROCESS
+  CANCLE
 }
 
 model Order {
@@ -967,6 +968,8 @@ model Order {
   items               OrderItem[]
   address             OrderAddress?
   payment_transaction PaymentTransaction?
+
+  @@index([createdAt])
 }
 
 model OrderItem {
