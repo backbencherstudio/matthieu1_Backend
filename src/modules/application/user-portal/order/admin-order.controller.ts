@@ -28,10 +28,16 @@ export class AdminOrderController {
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
     @Query('search') search?: string,
+    @Query('status') status?: string,
   ) {
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = parseInt(limit, 10) || 10;
-    return this.adminOrderService.getAllOrders(pageNum, limitNum, search);
+    return this.adminOrderService.getAllOrders(
+      pageNum,
+      limitNum,
+      search,
+      status,
+    );
   }
 
   /**

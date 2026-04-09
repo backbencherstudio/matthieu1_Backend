@@ -111,95 +111,12 @@ export class BlogsController {
       );
     }
   }
-  // async create(
-  //   @Body() body: any,
-  //   @UploadedFiles()
-  //   files: {
-  //     thumbnail?: Express.Multer.File[];
-  //     contentImages?: Express.Multer.File[];
-  //   },
-  // ) {
-  //   try {
-  //     let thumbnailImageUrl: string | undefined;
-  //     let thumbnailVideoUrl: string | undefined;
 
-  //     // Upload Thumbnail
-  //     if (files?.thumbnail?.length) {
-  //       const file = files.thumbnail[0];
 
-  //       const thumbUrl = await this.blogUpload.uploadOne(
-  //         'blogs/thumbnail',
-  //         file,
-  //       );
-
-  //       if (file.mimetype.startsWith('image/')) {
-  //         thumbnailImageUrl = thumbUrl;
-  //       } else if (file.mimetype.startsWith('video/')) {
-  //         thumbnailVideoUrl = thumbUrl;
-  //       } else {
-  //         throw new BadRequestException('Thumbnail must be image or video');
-  //       }
-  //     }
-
-  //     // Upload content images
-  //     const uploadedImages = await this.blogUpload.uploadMany(
-  //       'blogs/content',
-  //       files?.contentImages || [],
-  //     );
-
-  //     // Safe JSON parse
-  //     let contentImagesMeta: any[] = [];
-  //     try {
-  //       contentImagesMeta = body.contentImagesMeta
-  //         ? JSON.parse(body.contentImagesMeta)
-  //         : [];
-  //     } catch {
-  //       throw new BadRequestException('Invalid contentImagesMeta JSON format');
-  //     }
-
-  //     const contentImages = uploadedImages.map((url, i) => ({
-  //       imageUrl: url,
-  //       imageTitle: contentImagesMeta[i]?.imageTitle || '',
-  //       imageDetail: contentImagesMeta[i]?.imageDetail || '',
-  //       imageDescription: contentImagesMeta[i]?.imageDescription || '',
-  //     }));
-
-  //     const tags =
-  //       body.tags === undefined
-  //         ? []
-  //         : Array.isArray(body.tags)
-  //           ? body.tags.filter(Boolean)
-  //           : [body.tags];
-
-  //     const data = await this.blogsService.create({
-  //       title: body.title,
-  //       authorName: body.authorName,
-  //       descriptions: body.descriptions,
-  //       tags,
-  //       category: body.category as Blog_Category,
-  //       thumbnailImageUrl,
-  //       thumbnailVideoUrl,
-  //       contentImages,
-  //       status: (body.status as BlogStatus) || BlogStatus.DRAFT,
-  //     });
-
-  //     return {
-  //       statusCode: 201,
-  //       message: 'Blog created successfully',
-  //       data,
-  //     };
-  //   } catch (err) {
-  //     if (err instanceof HttpException) throw err;
-
-  //     throw new InternalServerErrorException(
-  //       err?.message || 'Failed to create blog',
-  //     );
-  //   }
-  // }
 
   // =========================
   // UPDATE BLOG
-  // =========================
+  // ========================
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Patch(':id')

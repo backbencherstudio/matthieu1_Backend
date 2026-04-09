@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateJobPortalDto } from './dto/create-job-portal.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { JobUploadService } from './job-upload.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class JobPortalService {
@@ -21,18 +22,80 @@ export class JobPortalService {
     };
   }
 
-  async findAll(page: number = 1, limit: number = 10) {
+  // async findAll(page: number = 1, limit: number = 10) {
+  //   const skip = (page - 1) * limit;
+
+  //   const [data, total] = await Promise.all([
+  //     this.prisma.job.findMany({
+  //       skip,
+  //       take: limit,
+  //       orderBy: {
+  //         createdAt: 'desc',
+  //       },
+  //     }),
+  //     this.prisma.job.count(),
+  //   ]);
+
+  //   const totalPages = Math.ceil(total / limit);
+
+  //   return {
+  //     data,
+  //     meta: {
+  //       total,
+  //       page,
+  //       limit,
+  //       totalPages,
+  //       hasNextPage: page < totalPages,
+  //       hasPreviousPage: page > 1,
+  //     },
+  //   };
+  // }
+
+  async findAll(page: number = 1, limit: number = 10, search?: string) {
     const skip = (page - 1) * limit;
+
+    // Make sure mode is set correctly for case-insensitive search
+    const searchFilter = search
+      ? {
+          OR: [
+            {
+              firstName: {
+                contains: search,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+            {
+              lastName: {
+                contains: search,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+            { email: { contains: search, mode: Prisma.QueryMode.insensitive } },
+            { phone: { contains: search, mode: Prisma.QueryMode.insensitive } },
+            { town: { contains: search, mode: Prisma.QueryMode.insensitive } },
+            { state: { contains: search, mode: Prisma.QueryMode.insensitive } },
+            {
+              experience: {
+                contains: search,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+          ],
+        }
+      : {};
 
     const [data, total] = await Promise.all([
       this.prisma.job.findMany({
         skip,
         take: limit,
+        where: searchFilter, // apply search filter here
         orderBy: {
           createdAt: 'desc',
         },
       }),
-      this.prisma.job.count(),
+      this.prisma.job.count({
+        where: searchFilter, // apply search filter to count as well
+      }),
     ]);
 
     const totalPages = Math.ceil(total / limit);

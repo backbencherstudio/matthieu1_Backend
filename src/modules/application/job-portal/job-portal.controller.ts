@@ -54,8 +54,6 @@ export class JobPortalController {
     });
 
     return {
-      success: true,
-      message: 'Job application created successfully',
       data,
     };
   }
@@ -63,10 +61,14 @@ export class JobPortalController {
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
-  async findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
+  async findAll(
+    @Query('page') page?: string, 
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+  ) {
     const pageNumber = page ? parseInt(page, 10) : 1;
     const limitNumber = limit ? parseInt(limit, 10) : 10;
-    const data = await this.jobPortalService.findAll(pageNumber, limitNumber);
+    const data = await this.jobPortalService.findAll(pageNumber, limitNumber, search);
     return {
       success: true,
       message: 'Job applications fetched successfully',
