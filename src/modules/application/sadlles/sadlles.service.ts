@@ -5,9 +5,16 @@ import {
 } from '@nestjs/common';
 import { CreateSadlleDto } from './dto/create-sadlle.dto';
 import { UpdateSadlleDto } from './dto/update-sadlle.dto';
-import { productcategory, saddleSubcategory } from '@prisma/client';
+import {
+  productcategory,
+  saddleSubcategory,
+  saddleSize,
+  saddlecountry,
+} from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SaddleUploadService } from './saddle-upload.service';
+import { resolveCurrencyFromCountry } from 'src/common/utils/currency.util';
+import { resolveRegionFromCountry } from 'src/common/utils/region.util';
 
 @Injectable()
 export class SadllesService {
@@ -16,12 +23,25 @@ export class SadllesService {
     private readonly uploadService: SaddleUploadService,
   ) {}
 
+  private formatPrice(product: any, country?: string) {
+    const currency = resolveCurrencyFromCountry(country);
+
+    const price = currency === 'USD' ? product.price_usd : product.price_eur;
+
+    return {
+      price,
+      currency,
+    };
+  }
+
   private generateSku(): string {
     const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let result = '';
+
     for (let i = 0; i < 5; i++) {
       result += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
     }
+
     return `SD${result}`;
   }
 
@@ -31,85 +51,92 @@ export class SadllesService {
 
     while (exists) {
       sku = this.generateSku();
+
       const found = await this.prisma.saddlesProduct.findUnique({
         where: { sku },
       });
+
       exists = !!found;
     }
 
     return sku!;
   }
 
-  // ================= CREATE =================
-  // async create(dto: CreateSadlleDto) {
-  //   if (dto.category && dto.category !== productcategory.SADDLES) {
-  //     throw new BadRequestException('Category must be SADDLES');
-  //   }
+  private mapSize(size: string): saddleSize {
+    if (size === '12.5') return saddleSize.SIZE_12_5;
+    if (size === '14.5') return saddleSize.SIZE_14_5;
 
-  //   const count = await this.prisma.saddlesProduct.count({
-  //     where: { subcategory: dto.subcategory },
-  //   });
+    throw new BadRequestException(
+      'Invalid size. Allowed values are 12.5 and 14.5',
+    );
+  }
 
-  //   if (count >= 4) {
-  //     throw new BadRequestException(
-  //       `Each subcategory can have less than 4 products. (${dto.subcategory}) limit reached.`,
-  //     );
-  //   }
-
-  //   const sku = await this.generateUniqueSku();
-
-  //   return this.prisma.saddlesProduct.create({
-  //     data: {
-  //       name: dto.name,
-  //       sku,
-  //       header_title: dto.header_title,
-  //       header_description: dto.header_description,
-  //       price: dto.price,
-  //       description: dto.description,
-  //       colors: dto.colors ?? [],
-  //       piping_color: dto.piping_color ?? [],
-  //       leather_type: dto.leather_type ?? [],
-  //       category: productcategory.SADDLES,
-  //       subcategory: dto.subcategory,
-  //     },
-  //   });
-  // }
+  /* ------------------------------------------------ */
+  /* CREATE */
+  /* ------------------------------------------------ */
 
   async create(dto: CreateSadlleDto) {
-    // ================= LEADLINE =================
-    if (dto.category === productcategory.LEADLINE) {
-      // only one leadline product
-      const existing = await this.prisma.saddlesProduct.count({
-        where: { category: productcategory.LEADLINE },
-      });
+    let mappedSize: saddleSize | null = null;
 
-      if (existing >= 1) {
-        throw new BadRequestException('Only one LEADLINE product is allowed');
+    if (dto.category === productcategory.LEADLINE) {
+      if (dto.stockQuantity === undefined || dto.stockQuantity === null) {
+        throw new BadRequestException(
+          'stockQuantity is required for LEADLINE product',
+        );
       }
 
-      if (
-        dto.subcategory ||
-        dto.colors?.length ||
-        dto.piping_color?.length ||
-        dto.leather_type?.length ||
-        dto.header_title ||
-        dto.header_description ||
-        dto.description
-      ) {
+      if (dto.stockQuantity < 0) {
+        throw new BadRequestException('stockQuantity must be 0 or greater');
+      }
+
+      if (!dto.size) {
+        throw new BadRequestException('size is required for LEADLINE product');
+      }
+
+      mappedSize = this.mapSize(dto.size);
+
+      const existingCount = await this.prisma.saddlesProduct.count({
+        where: {
+          category: productcategory.LEADLINE,
+        },
+      });
+
+      if (existingCount >= 4) {
         throw new BadRequestException(
-          'LEADLINE product supports only name, price, sizes and images',
+          'Maximum 4 LEADLINE products are allowed',
+        );
+      }
+
+      const duplicateLeadline = await this.prisma.saddlesProduct.findFirst({
+        where: {
+          category: productcategory.LEADLINE,
+          country: dto.country,
+          size: mappedSize,
+        },
+      });
+
+      if (duplicateLeadline) {
+        throw new BadRequestException(
+          `LEADLINE product already exists for country ${dto.country} and size ${dto.size}`,
         );
       }
     }
 
-    // ================= SADDLES =================
     if (dto.category === productcategory.SADDLES) {
+      if (dto.stockQuantity !== undefined && dto.stockQuantity !== null) {
+        throw new BadRequestException(
+          'SADDLES product does not support stockQuantity',
+        );
+      }
+
       if (!dto.subcategory) {
         throw new BadRequestException('Subcategory is required for SADDLES');
       }
 
       const count = await this.prisma.saddlesProduct.count({
-        where: { subcategory: dto.subcategory },
+        where: {
+          subcategory: dto.subcategory,
+        },
       });
 
       if (count >= 4) {
@@ -125,13 +152,17 @@ export class SadllesService {
       data: {
         name: dto.name,
         sku,
-        price: dto.price,
+        price_usd: dto.price_usd,
+        price_eur: dto.price_eur,
+        country: dto.country,
 
-        // ✅ ARRAY sizes (Leadline only)
-        sizes:
-          dto.category === productcategory.LEADLINE ? (dto.sizes ?? []) : [],
+        stockQuantity:
+          dto.category === productcategory.LEADLINE ? dto.stockQuantity : null,
+
+        size: dto.category === productcategory.LEADLINE ? mappedSize : null,
 
         category: dto.category,
+
         subcategory:
           dto.category === productcategory.SADDLES ? dto.subcategory : null,
 
@@ -162,74 +193,18 @@ export class SadllesService {
     });
   }
 
-  // ================= FIND ALL =================
-  // async findAll(subcategory?: saddleSubcategory) {
-  //   if (subcategory) {
-  //     const products = await this.prisma.saddlesProduct.findMany({
-  //       where: { subcategory },
-  //       select: {
-  //         id: true,
-  //         name: true,
-  //         price: true,
-  //         images: {
-  //           take: 1,
-  //           select: { url: true },
-  //         },
-  //       },
-  //     });
+  /* ------------------------------------------------ */
+  /* FIND ALL */
+  /* ------------------------------------------------ */
 
-  //     if (products.length === 0) return 'Comming Soon';
+  async findAll(subcategory?: saddleSubcategory, country?: string) {
+    const region = resolveRegionFromCountry(country);
 
-  //     return products.map((p) => ({
-  //       id: p.id,
-  //       name: p.name,
-  //       image: p.images[0]?.url || null,
-  //       price: p.price,
-  //     }));
-  //   }
-
-  //   const products = await this.prisma.saddlesProduct.findMany({
-  //     select: {
-  //       id: true,
-  //       name: true,
-  //       subcategory: true,
-  //       price: true,
-  //       images: {
-  //         take: 1,
-  //         select: { url: true },
-  //       },
-  //     },
-  //   });
-
-  //   const grouped: Record<saddleSubcategory, any[] | string> = {
-  //     ARION: 'Comming Soon',
-  //     ATLAS: 'Comming Soon',
-  //     ATHENA: 'Comming Soon',
-  //   };
-
-  //   for (const product of products) {
-  //     if (grouped[product.subcategory] === 'Comming Soon') {
-  //       grouped[product.subcategory] = [];
-  //     }
-
-  //     (grouped[product.subcategory] as any[]).push({
-  //       id: product.id,
-  //       name: product.name,
-  //       image: product.images[0]?.url || null,
-  //       price: product.price,
-  //     });
-  //   }
-
-  //   return grouped;
-  // }
-
-  // ================= FIND ALL SADDLES =================
-  async findAll(subcategory?: saddleSubcategory) {
     const baseWhere = {
       category: productcategory.SADDLES,
+      country: region,
     };
 
-    // -------- Filtered by subcategory --------
     if (subcategory) {
       const products = await this.prisma.saddlesProduct.findMany({
         where: {
@@ -239,7 +214,8 @@ export class SadllesService {
         select: {
           id: true,
           name: true,
-          price: true,
+          price_usd: true,
+          price_eur: true,
           images: {
             take: 1,
             select: { url: true },
@@ -247,24 +223,26 @@ export class SadllesService {
         },
       });
 
-      if (products.length === 0) return 'Comming Soon';
+      if (products.length === 0) {
+        return 'Comming Soon';
+      }
 
       return products.map((p) => ({
         id: p.id,
         name: p.name,
         image: p.images[0]?.url || null,
-        price: p.price,
+        ...this.formatPrice(p, country),
       }));
     }
 
-    // -------- Grouped --------
     const products = await this.prisma.saddlesProduct.findMany({
       where: baseWhere,
       select: {
         id: true,
         name: true,
         subcategory: true,
-        price: true,
+        price_usd: true,
+        price_eur: true,
         images: {
           take: 1,
           select: { url: true },
@@ -287,33 +265,104 @@ export class SadllesService {
         id: product.id,
         name: product.name,
         image: product.images[0]?.url || null,
-        price: product.price,
+        ...this.formatPrice(product, country),
       });
     }
 
     return grouped;
   }
 
-  // ================= FIND ONE =================
-  // async findOne(id: string) {
-  //   const product = await this.prisma.saddlesProduct.findUnique({
-  //     where: { id },
-  //     include: { images: true },
-  //   });
+  async getAllSaddlesForAdmin(page: number, limit: number) {
+    // Calculate the offset (skip) based on the current page
+    const skip = (page - 1) * limit;
 
-  //   if (!product) {
-  //     throw new NotFoundException('Saddle product not found');
-  //   }
+    // Fetch the products with pagination
+    const products = await this.prisma.saddlesProduct.findMany({
+      where: {
+        category: productcategory.SADDLES, // Only fetch saddle category
+      },
+      select: {
+        id: true,
+        name: true,
+        header_title: true,
+        header_description: true,
+        price_usd: true,
+        price_eur: true,
+        stockQuantity: true,
+        description: true,
+        subcategory: true,
+        piping_color: true,
+        leather_type: true,
+        colors: true,
+        images: {
+          take: 1,
+          select: { url: true },
+        },
+      },
+      skip, // Skip products based on the page
+      take: limit, // Limit the number of products per page
+    });
 
-  //   return product;
-  // }
+    // Count the total number of products (without pagination) for pagination metadata
+    const totalProducts = await this.prisma.saddlesProduct.count({
+      where: { category: productcategory.SADDLES },
+    });
 
-  // ================= FIND ONE SADDLE =================
-  async findOne(id: string) {
+    // Calculate total pages
+    const totalPages = Math.ceil(totalProducts / limit);
+
+    // Group products by subcategory
+    const grouped: Record<saddleSubcategory, any[]> = {
+      ARION: [],
+      ATLAS: [],
+      ATHENA: [],
+    };
+
+    for (const product of products) {
+      if (!grouped[product.subcategory]) {
+        grouped[product.subcategory] = []; // Initialize if not already present
+      }
+      grouped[product.subcategory].push({
+        id: product.id,
+        name: product.name,
+        header_title: product.header_title,
+        header_description: product.header_description,
+        price_usd: product.price_usd,
+        price_eur: product.price_eur,
+        stockQuantity: product.stockQuantity,
+        description: product.description,
+        subcategory: product.subcategory,
+        piping_color: product.piping_color,
+        leather_type: product.leather_type,
+        colors: product.colors,
+        image: product.images[0]?.url || null, // Take the first image URL
+      });
+    }
+
+    // Return the paginated data along with pagination metadata
+    return {
+      products: grouped,
+      pagination: {
+        totalProducts,
+        totalPages,
+        currentPage: page,
+        limit,
+      },
+    };
+  }
+
+  /* ------------------------------------------------ */
+  /* FIND ONE */
+  /* ------------------------------------------------ */
+
+  async findOne(id: string, country?: string) {
+    const region = resolveRegionFromCountry(country);
+
     const product = await this.prisma.saddlesProduct.findFirst({
       where: {
         id,
         category: productcategory.SADDLES,
+        country: region,
       },
       include: {
         images: true,
@@ -324,59 +373,122 @@ export class SadllesService {
       throw new NotFoundException('Saddle product not found');
     }
 
-    return product;
+    return {
+      ...product,
+      ...this.formatPrice(product, country),
+    };
   }
 
-  // ================= GET LEADLINE PRODUCT =================
-  async getLeadlineProduct() {
-    const product = await this.prisma.saddlesProduct.findFirst({
+  /* ------------------------------------------------ */
+  /* LEADLINE PRODUCT */
+  /* ------------------------------------------------ */
+
+  // ================= GET ALL LEADLINE FOR ADMIN =================
+  async getAllLeadlinesForAdmin() {
+    // Fetch all products where category is 'LEADLINE'
+    const products = await this.prisma.saddlesProduct.findMany({
+      where: { category: productcategory.LEADLINE }, // Only fetch LEADLINE category
+    });
+
+    if (!products.length) {
+      throw new NotFoundException('No LEADLINE products found');
+    }
+
+    return products;
+  }
+
+  // async getLeadlineProduct(country?: string) {
+  //   const region = resolveRegionFromCountry(country);
+
+  //   const product = await this.prisma.saddlesProduct.findFirst({
+  //     where: {
+  //       category: productcategory.LEADLINE,
+  //       country: region,
+  //     },
+  //     include: {
+  //       images: true,
+  //     },
+  //   });
+
+  //   if (!product) {
+  //     throw new NotFoundException('Leadline product not found');
+  //   }
+
+  //   return {
+  //     id: product.id,
+  //     name: product.name,
+  //     size: product.size,
+  //     images: product.images,
+  //     stockQuantity: product.stockQuantity,
+  //     ...this.formatPrice(product, country),
+  //   };
+  // }
+
+  async getLeadlineProduct(country?: string) {
+    const region = resolveRegionFromCountry(country); // Resolve the region based on the country header
+
+    // Fetch all leadline products matching the country
+    const products = await this.prisma.saddlesProduct.findMany({
       where: {
-        category: productcategory.LEADLINE,
+        category: productcategory.LEADLINE, // Ensure we're filtering for LEADLINE category
+        country: region, // Filter products by the resolved region (country)
       },
+      include: {
+        images: true, // Include images of the product
+      },
+    });
+
+    if (products.length === 0) {
+      throw new NotFoundException('No leadline products found');
+    }
+
+    // Map the products to return the necessary fields
+    return products.map((product) => ({
+      id: product.id,
+      name: product.name,
+      size: product.size,
+      images: product.images,
+      stockQuantity: product.stockQuantity,
+      ...this.formatPrice(product, country), // Format the price for the specific country
+    }));
+  }
+
+  async getSpecificLeadlineforUser(id: string, country?: string) {
+    const region = resolveRegionFromCountry(country); // Resolve region from the provided country
+
+    // Fetch the specific leadline product by ID, with country filtering
+    const product = await this.prisma.saddlesProduct.findUnique({
+      where: { id },
       include: {
         images: true,
       },
     });
 
-    if (!product) {
+    if (!product || product.category !== productcategory.LEADLINE) {
       throw new NotFoundException('Leadline product not found');
     }
 
+    // Country filter: Check if the product's country matches the region
+    if (product.country !== region) {
+      throw new BadRequestException(
+        'This product is not available in the selected country',
+      );
+    }
+
+    // Return the product details along with price formatting for the country
     return {
       id: product.id,
       name: product.name,
-      price: product.price,
-      size: product.sizes,
+      size: product.size,
       images: product.images,
+      stockQuantity: product.stockQuantity,
+      ...this.formatPrice(product, country), // Add price formatting for the region
     };
   }
 
-  // ================= UPDATE =================
-  // async update(id: string, dto: UpdateSadlleDto) {
-  //   const product = await this.prisma.saddlesProduct.findUnique({
-  //     where: { id },
-  //   });
-
-  //   if (!product) {
-  //     throw new NotFoundException('Saddle product not found');
-  //   }
-
-  //   return this.prisma.saddlesProduct.update({
-  //     where: { id },
-  //     data: {
-  //       name: dto.name ?? product.name,
-  //       header_title: dto.header_title ?? product.header_title,
-  //       header_description:
-  //         dto.header_description ?? product.header_description,
-  //       price: dto.price ?? product.price,
-  //       description: dto.description ?? product.description,
-  //       colors: dto.colors ?? product.colors,
-  //       piping_color: dto.piping_color ?? product.piping_color,
-  //       leather_type: dto.leather_type ?? product.leather_type,
-  //     },
-  //     include: { images: true },
-  //   });
-  // }
+  /* ------------------------------------------------ */
+  /* UPDATE */
+  /* ------------------------------------------------ */
 
   async update(id: string, dto: UpdateSadlleDto) {
     const product = await this.prisma.saddlesProduct.findUnique({
@@ -388,58 +500,33 @@ export class SadllesService {
       throw new NotFoundException('Saddle product not found');
     }
 
-    // ================= LEADLINE =================
-    if (product.category === productcategory.LEADLINE) {
-      // ❌ block forbidden fields
-      if (
-        dto.colors?.length ||
-        dto.piping_color?.length ||
-        dto.leather_type?.length ||
-        dto.header_title ||
-        dto.header_description ||
-        dto.description ||
-        (dto as any).subcategory
-      ) {
-        throw new BadRequestException(
-          'LEADLINE product supports only name, price, sizes and images',
-        );
-      }
-
-      return this.prisma.saddlesProduct.update({
-        where: { id },
-        data: {
-          name: dto.name ?? product.name,
-          price: dto.price ?? product.price,
-
-          // ✅ ARRAY update
-          sizes: dto.sizes ?? product.sizes,
-        },
-        include: { images: true },
-      });
-    }
-
-    // ================= SADDLES =================
     return this.prisma.saddlesProduct.update({
       where: { id },
       data: {
         name: dto.name ?? product.name,
+        price_usd: dto.price_usd ?? product.price_usd,
+        price_eur: dto.price_eur ?? product.price_eur,
         header_title: dto.header_title ?? product.header_title,
         header_description:
           dto.header_description ?? product.header_description,
-        price: dto.price ?? product.price,
         description: dto.description ?? product.description,
-
         colors: dto.colors ?? product.colors,
         piping_color: dto.piping_color ?? product.piping_color,
         leather_type: dto.leather_type ?? product.leather_type,
-
-        // ❌ subcategory intentionally NOT updated
+        // size:
+        //   dto.size !== undefined && dto.size !== null
+        //     ? this.mapSize(dto.size)
+        //     : product.size,
+        stockQuantity: dto.stockQuantity ?? product.stockQuantity,
       },
       include: { images: true },
     });
   }
 
-  // ================= ADD IMAGES =================
+  /* ------------------------------------------------ */
+  /* IMAGE MANAGEMENT */
+  /* ------------------------------------------------ */
+
   async addImages(saddleId: string, urls: string[]) {
     await this.prisma.saddleProductImage.createMany({
       data: urls.map((url) => ({
@@ -447,10 +534,10 @@ export class SadllesService {
         SaddlesProductId: saddleId,
       })),
     });
+
     return { message: 'Images added successfully' };
   }
 
-  // ================= DELETE PRODUCT =================
   async delete(id: string) {
     const product = await this.prisma.saddlesProduct.findUnique({
       where: { id },
@@ -461,12 +548,10 @@ export class SadllesService {
       throw new NotFoundException('Saddle product not found');
     }
 
-    // 🔥 DELETE FILES FROM STORAGE
     for (const image of product.images) {
       await this.uploadService.deleteOne(image.url);
     }
 
-    // 🔥 DELETE DB RECORDS
     await this.prisma.saddleProductImage.deleteMany({
       where: { SaddlesProductId: id },
     });
@@ -481,7 +566,6 @@ export class SadllesService {
     };
   }
 
-  // ================= DELETE IMAGE =================
   async deleteImage(imageId: string) {
     const image = await this.prisma.saddleProductImage.findUnique({
       where: { id: imageId },
@@ -491,10 +575,8 @@ export class SadllesService {
       throw new NotFoundException('Image not found');
     }
 
-    // 🔥 DELETE FILE FROM STORAGE
     await this.uploadService.deleteOne(image.url);
 
-    // 🔥 DELETE DB RECORD
     await this.prisma.saddleProductImage.delete({
       where: { id: imageId },
     });
@@ -503,5 +585,91 @@ export class SadllesService {
       message: 'Image deleted successfully',
       data: image.url,
     };
+  }
+
+  // ================= DELETE LEADLINE PRODUCT =================
+  async deleteLeadline(id: string) {
+    const product = await this.prisma.saddlesProduct.findUnique({
+      where: { id },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    if (product.category !== productcategory.LEADLINE) {
+      throw new BadRequestException('This is not a LEADLINE product');
+    }
+
+    // Proceed with deletion of the LEADLINE product
+    await this.prisma.saddlesProduct.delete({
+      where: { id },
+    });
+
+    return {
+      id: product.id,
+      name: product.name,
+    };
+  }
+
+  // ================= GET SPECIFIC LEADLINE =================
+  async getSpecificLeadline(id: string) {
+    const product = await this.prisma.saddlesProduct.findUnique({
+      where: { id },
+      include: { images: true },
+    });
+
+    if (!product || product.category !== productcategory.LEADLINE) {
+      throw new NotFoundException('Leadline product not found');
+    }
+
+    return product;
+  }
+
+  // ================= UPDATE LEADLINE =================
+  async updateLeadline(
+    id: string,
+    dto: UpdateSadlleDto,
+    files: Express.Multer.File[],
+  ) {
+    const product = await this.prisma.saddlesProduct.findUnique({
+      where: { id },
+    });
+
+    if (!product || product.category !== productcategory.LEADLINE) {
+      throw new NotFoundException('Leadline product not found');
+    }
+
+    // Handle file uploads if there are any
+    let imageUrls: string[] = [];
+    if (files && files.length > 0) {
+      imageUrls = await this.uploadService.uploadMany('saddles/images', files); // Assuming you have an upload service
+    }
+
+    // // The `size` field is already validated in the DTO as an enum value, so no need for further mapping
+    // let mappedSize: saddleSize | undefined;
+    // if (dto.size) {
+    //   mappedSize = dto.size; // Since it's already an enum, no need to map to string
+    // }
+
+    // // If 'country' is provided, update it
+    // let updatedCountry: saddlecountry | undefined;
+    // if (dto.country) {
+    //   updatedCountry =
+    //     dto.country === 'USA' ? saddlecountry.USA : saddlecountry.EUROPE;
+    // }
+
+    return this.prisma.saddlesProduct.update({
+      where: { id },
+      data: {
+        name: dto.name ?? product.name,
+        price_usd: dto.price_usd ?? product.price_usd,
+        price_eur: dto.price_eur ?? product.price_eur,
+        stockQuantity: dto.stockQuantity ?? product.stockQuantity,
+        // size: mappedSize ?? product.size, // Directly update size with enum value
+        // country: updatedCountry ?? product.country, // Update country if provided
+        images: { create: imageUrls.map((url) => ({ url })) }, // Upload images if provided
+      },
+    });
   }
 }

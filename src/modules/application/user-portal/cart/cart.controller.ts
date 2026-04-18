@@ -1,45 +1,160 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Req,
+  Res,
+  Query,
+} from '@nestjs/common';
 import { CartService } from './cart.service';
-import { CreateCartDto } from './dto/create-cart.dto';
-import { UpdateCartDto } from './dto/update-cart.dto';
-import { ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
-import { Request } from 'express';
+import { AddToCartDto } from './dto/add-to-cart.dto';
+import { UpdateCartQuantityDto } from './dto/update-cart.dto';
+import { Response } from 'express';
+import { randomUUID } from 'crypto';
+import { JwtService } from '@nestjs/jwt';
+import appConfig from 'src/config/app.config';
 
-
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller('cart')
 export class CartController {
-  constructor(private readonly cartService: CartService) {}
+  constructor(
+    private readonly cartService: CartService,
+    private readonly jwtService: JwtService,
+  ) {}
 
-  @Post()
-  create(@Body() createCartDto: CreateCartDto) {
-    return this.cartService.create(createCartDto);
+  private getOrSetGuestSession(req: any, res: Response) {
+    const cookieName = 'cart_session';
+    let sessionId = req.cookies?.[cookieName];
+
+    if (!sessionId) {
+      sessionId = randomUUID();
+
+      res.cookie(cookieName, sessionId, {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: false, // production হলে true
+        maxAge: 3 * 24 * 60 * 60 * 1000,
+      });
+    }
+
+    return sessionId;
   }
 
-    @Post('add')
-  addToCart( @Req() req: Request, @Body() dto: CreateCartDto) {
-    return this.cartService.addToCart(req.user.userId, dto);
+  private extractUserIdFromToken(req: any): string | null {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return null;
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    try {
+      const decoded = this.jwtService.verify(token, {
+        secret: appConfig().jwt.secret,
+      });
+
+      return decoded.sub; // sub = userId
+    } catch (error) {
+      return null; // invalid/expired token → treat as guest
+    }
   }
+
+  @Post('add')
+  async addToCart(
+    @Req() req,
+    @Res({ passthrough: true }) res: Response,
+    @Body() dto: AddToCartDto,
+  ) {
+    const userId = this.extractUserIdFromToken(req);
+    const sessionId = userId ? undefined : this.getOrSetGuestSession(req, res);
+
+    return this.cartService.addToCart({ userId, sessionId }, dto);
+  }
+
+  // @Get()
+  // async getCart(
+  //   @Req() req,
+  //   @Res({ passthrough: true }) res: Response,
+  //   @Query('coupon') couponCode?: string,
+  // ) {
+  //   const userId = this.extractUserIdFromToken(req);
+  //   const sessionId = userId ? undefined : this.getOrSetGuestSession(req, res);
+  //   const country = req.headers['x-country']?.toString();
+
+  //   return this.cartService.getCart(
+  //     { userId, sessionId },
+  //     couponCode,
+  //     country,
+  //     {
+  //       // failOnInvalidCoupon: true,
+  //       saveCouponToCart: true,
+  //       clearSavedCouponOnNewCoupon: false,
+  //     },
+  //   );
+  // }
 
   @Get()
-  findAll() {
-    return this.cartService.findAll();
+  async getCart(
+    @Req() req,
+    @Res({ passthrough: true }) res: Response,
+    @Query('coupon') couponCode?: string,
+  ) {
+    const userId = this.extractUserIdFromToken(req);
+    const sessionId = userId ? undefined : this.getOrSetGuestSession(req, res);
+    const country = req.headers['x-country']?.toString();
+
+    return this.cartService.getCart(
+      { userId, sessionId },
+      couponCode,
+      country,
+      {
+        saveCouponToCart: true,
+        clearSavedCouponOnNewCoupon: false,
+      },
+    );
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.cartService.findOne(+id);
+  @Patch(':itemId')
+  async updateQuantity(
+    @Req() req,
+    @Res({ passthrough: true }) res: Response,
+    @Param('itemId') itemId: string,
+    @Body() dto: UpdateCartQuantityDto,
+  ) {
+    const userId = this.extractUserIdFromToken(req);
+    const sessionId = userId ? undefined : this.getOrSetGuestSession(req, res);
+
+    return this.cartService.updateQuantity(
+      { userId, sessionId },
+      itemId,
+      dto.quantity,
+    );
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateCartDto: UpdateCartDto) {
-    return this.cartService.update(+id, updateCartDto);
+  // NOTE: `clear` must come before the `:itemId` route otherwise
+  // Nest will interpret "clear" as an itemId and call remove() which
+  // is exactly why the endpoint stopped working previously.
+  @Delete('clear')
+  async clearCart(@Req() req, @Res({ passthrough: true }) res: Response) {
+    const userId = this.extractUserIdFromToken(req);
+    const sessionId = userId ? undefined : this.getOrSetGuestSession(req, res);
+
+    return this.cartService.clearCart({ userId, sessionId });
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.cartService.remove(+id);
+  @Delete(':itemId')
+  async remove(
+    @Req() req,
+    @Res({ passthrough: true }) res: Response,
+    @Param('itemId') itemId: string,
+  ) {
+    const userId = this.extractUserIdFromToken(req);
+    const sessionId = userId ? undefined : this.getOrSetGuestSession(req, res);
+
+    return this.cartService.removeItem({ userId, sessionId }, itemId);
   }
 }

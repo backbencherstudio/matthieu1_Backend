@@ -9,7 +9,8 @@ import { addMonths } from 'date-fns';
 export class StripeController {
   constructor(
     private readonly stripeService: StripeService,
-    private readonly prisma: PrismaService) { }
+    private readonly prisma: PrismaService,
+  ) {}
 
   @Post('webhook')
   async handleWebhook(
@@ -29,6 +30,7 @@ export class StripeController {
           break;
         case 'payment_intent.succeeded':
           const paymentIntent = event.data.object;
+          // console.log(paymentIntent);
           // await TransactionRepository.updateTransaction({
           //   reference_number: paymentIntent.id,
           //   status: 'succeeded',
@@ -36,9 +38,12 @@ export class StripeController {
           //   paid_currency: paymentIntent.currency,
           //   raw_status: paymentIntent.status,
           // });
+          await this.stripeService.paymentIntentSuccess(paymentIntent);
           break;
         case 'payment_intent.payment_failed':
           const failedPaymentIntent = event.data.object;
+          // console.log(failedPaymentIntent);
+          await this.stripeService.paymentIntentFailed(failedPaymentIntent);
         // Update transaction status in database
         // await TransactionRepository.updateTransaction({
         //   reference_number: failedPaymentIntent.id,
@@ -54,6 +59,8 @@ export class StripeController {
           //   status: 'canceled',
           //   raw_status: canceledPaymentIntent.status,
           // });
+          // console.log(canceledPaymentIntent);
+          await this.stripeService.paymentIntentCanceled(canceledPaymentIntent);
           break;
         case 'payment_intent.requires_action':
           const requireActionPaymentIntent = event.data.object;
@@ -68,11 +75,12 @@ export class StripeController {
         case 'customer.subscription.created':
           const subscription = event.data.object;
           console.log('Your metadata:', subscription.metadata.subscriptionId);
-          const existingSubscription = await this.prisma.subscription.findUnique({
-            where: {
-              id: subscription.metadata.subscriptionId,
-            },
-          });
+          const existingSubscription =
+            await this.prisma.subscription.findUnique({
+              where: {
+                id: subscription.metadata.subscriptionId,
+              },
+            });
 
           let currentPeriodEnd: Date;
 
@@ -84,32 +92,28 @@ export class StripeController {
           }
           const updateSubscription = await this.prisma.subscription.update({
             where: {
-              id: subscription.metadata.subscriptionId
+              id: subscription.metadata.subscriptionId,
             },
             data: {
               status: 'COMPLETE',
               currentPeriodEnd: currentPeriodEnd,
-            }
-          })
-          console.log(updateSubscription)
+            },
+          });
+          console.log(updateSubscription);
           if (subscription.metadata.userId) {
             await this.prisma.user.update({
               where: {
-                id: subscription.metadata.userId
+                id: subscription.metadata.userId,
               },
               data: {
                 subscription_status: 'active',
                 subscription_type: updateSubscription.type,
-                subscripton_end_date: updateSubscription.currentPeriodEnd
-
-              }
-            })
+                subscripton_end_date: updateSubscription.currentPeriodEnd,
+              },
+            });
           }
 
-
           break;
-
-
 
         case 'payout.paid':
           const paidPayout = event.data.object;

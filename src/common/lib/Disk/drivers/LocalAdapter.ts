@@ -23,7 +23,21 @@ export class LocalAdapter implements IStorage {
     const publicUrl = this._config.connection.publicUrl;
     const separator = publicUrl.endsWith('/') || key.startsWith('/') ? '' : '/';
     return `${process.env.APP_URL}${publicUrl}${separator}${key}`;
+    // return `${publicUrl}${separator}${key}`;
   }
+
+  // url(key: string): string {
+  //   const publicUrl = this._config.connection.publicUrl;
+  //   const separator = publicUrl.endsWith('/') || key.startsWith('/') ? '' : '/';
+
+  //   const appUrl = process.env.APP_URL;
+
+  //   if (!appUrl) {
+  //     throw new Error('APP_URL is not defined in .env');
+  //   }
+
+  //   return `${appUrl}${publicUrl}${separator}${key}`;
+  // }
 
   /**
    * check if file exists

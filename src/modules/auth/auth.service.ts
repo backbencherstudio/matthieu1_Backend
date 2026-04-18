@@ -15,7 +15,6 @@ import { MailService } from '../../mail/mail.service';
 import { UcodeRepository } from '../../common/repository/ucode/ucode.repository';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { FileStorage } from '../../common/lib/Disk/FileStorage';
-import { DateHelper } from '../../common/helper/date.helper';
 import { StripePayment } from '../../common/lib/Payment/stripe/StripePayment';
 import { StringHelper } from '../../common/helper/string.helper';
 import { addMinutes } from 'date-fns';
@@ -23,7 +22,9 @@ import { NotificationService } from '../application/notification/notification.se
 import { AccountManagementService } from './account-management/account-management.service';
 import { SubscriptionService } from '../application/subscription/subscription.service';
 import { NotificationGateway } from '../application/notification/notification.gateway';
+import { StringValue } from 'ms';
 import * as geoip from 'geoip-lite';
+// import { CartService } from '../application/user-portal/cart/cart.service';
 
 @Injectable()
 export class AuthService {
@@ -31,6 +32,7 @@ export class AuthService {
     private jwtService: JwtService,
     private prisma: PrismaService,
     private mailService: MailService,
+    // private readonly cartService: CartService,
     private readonly notificationService: NotificationService,
     private readonly subscriptionService: SubscriptionService,
     private readonly accountManagementService: AccountManagementService,
@@ -61,6 +63,8 @@ export class AuthService {
         select: {
           id: true,
           name: true,
+          first_name: true,
+          last_name: true,
           bio: true,
           email: true,
           username: true,
@@ -110,62 +114,187 @@ export class AuthService {
     }
   }
 
+  async getUserAddress(userId: string) {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          phone_number: true,
+          address: true,
+        },
+      });
+
+      if (!user) {
+        return {
+          success: false,
+          message: 'User not found',
+        };
+      }
+
+      return {
+        success: true,
+        message: 'Contact information fetched successfully',
+        data: user,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message,
+      };
+    }
+  }
+
+  // async updateUser(
+  //   userId: string,
+  //   updateUserDto: UpdateUserDto,
+  //   image?: Express.Multer.File,
+  //   coverPhoto?: Express.Multer.File,
+  // ) {
+  //   try {
+  //     const data: any = {};
+  //     if (updateUserDto.name) {
+  //       data.name = updateUserDto.name;
+  //     }
+  //     if (updateUserDto.phone_number) {
+  //       data.phone_number = updateUserDto.phone_number;
+  //     }
+  //     if (updateUserDto.country) {
+  //       data.country = updateUserDto.country;
+  //     }
+  //     if (updateUserDto.state) {
+  //       data.state = updateUserDto.state;
+  //     }
+  //     if (updateUserDto.local_government) {
+  //       data.local_government = updateUserDto.local_government;
+  //     }
+  //     if (updateUserDto.city) {
+  //       data.city = updateUserDto.city;
+  //     }
+  //     if (updateUserDto.bio) {
+  //       data.bio = updateUserDto.bio;
+  //     }
+  //     if (updateUserDto.username) {
+  //       data.username = updateUserDto.username;
+  //     }
+  //     if (updateUserDto.zip_code) {
+  //       data.zip_code = updateUserDto.zip_code;
+  //     }
+  //     if (updateUserDto.address) {
+  //       data.address = updateUserDto.address;
+  //     }
+  //     if (updateUserDto.gender) {
+  //       data.gender = updateUserDto.gender;
+  //     }
+  //     if (updateUserDto.date_of_birth) {
+  //       data.date_of_birth = DateHelper.format(updateUserDto.date_of_birth);
+  //     }
+  //     if (image) {
+  //       const oldImage = await this.prisma.user.findFirst({
+  //         where: { id: userId },
+  //         select: { avatar: true },
+  //       });
+  //       if (oldImage.avatar) {
+  //         await FileStorage.delete(
+  //           appConfig().storageUrl.avatar + oldImage.avatar,
+  //         );
+  //       }
+
+  //       const fileName = `${StringHelper.randomString()}${image.originalname}`;
+  //       await FileStorage.put(
+  //         appConfig().storageUrl.avatar + fileName,
+  //         image.buffer,
+  //       );
+
+  //       data.avatar = fileName;
+  //     }
+
+  //     if (coverPhoto) {
+  //       const oldImage = await this.prisma.user.findFirst({
+  //         where: { id: userId },
+  //         select: { coverPhoto: true },
+  //       });
+  //       if (oldImage.coverPhoto) {
+  //         await FileStorage.delete(
+  //           appConfig().storageUrl.avatar + oldImage.coverPhoto,
+  //         );
+  //       }
+
+  //       // upload file
+  //       const fileName = `${StringHelper.randomString()}${image.originalname}`;
+  //       await FileStorage.put(
+  //         appConfig().storageUrl.avatar + fileName,
+  //         coverPhoto.buffer,
+  //       );
+
+  //       data.coverPhoto = fileName;
+  //     }
+  //     const user = await UserRepository.getUserDetails(userId);
+  //     if (user) {
+  //       await this.prisma.user.update({
+  //         where: { id: userId },
+  //         data: {
+  //           ...data,
+  //         },
+  //       });
+  //       //console.log(user);
+
+  //       return {
+  //         success: true,
+  //         message: 'User updated successfully',
+  //       };
+  //     } else {
+  //       return {
+  //         success: false,
+  //         message: 'User not found',
+  //       };
+  //     }
+  //   } catch (error) {
+  //     return {
+  //       success: false,
+  //       message: error.message,
+  //     };
+  //   }
+  // }
+
   async updateUser(
     userId: string,
     updateUserDto: UpdateUserDto,
     image?: Express.Multer.File,
-    coverPhoto?: Express.Multer.File,
   ) {
     try {
       const data: any = {};
-      if (updateUserDto.name) {
-        data.name = updateUserDto.name;
+
+      if (updateUserDto.first_name) {
+        data.first_name = updateUserDto.first_name;
       }
+
+      if (updateUserDto.last_name) {
+        data.last_name = updateUserDto.last_name;
+      }
+
+      if (updateUserDto.email) {
+        data.email = updateUserDto.email;
+      }
+
       if (updateUserDto.phone_number) {
         data.phone_number = updateUserDto.phone_number;
       }
-      if (updateUserDto.country) {
-        data.country = updateUserDto.country;
-      }
-      if (updateUserDto.state) {
-        data.state = updateUserDto.state;
-      }
-      if (updateUserDto.local_government) {
-        data.local_government = updateUserDto.local_government;
-      }
-      if (updateUserDto.city) {
-        data.city = updateUserDto.city;
-      }
-      if (updateUserDto.bio) {
-        data.bio = updateUserDto.bio;
-      }
-      if (updateUserDto.username) {
-        data.username = updateUserDto.username;
-      }
-      if (updateUserDto.zip_code) {
-        data.zip_code = updateUserDto.zip_code;
-      }
-      if (updateUserDto.address) {
-        data.address = updateUserDto.address;
-      }
-      if (updateUserDto.gender) {
-        data.gender = updateUserDto.gender;
-      }
-      if (updateUserDto.date_of_birth) {
-        data.date_of_birth = DateHelper.format(updateUserDto.date_of_birth);
-      }
+
+      // Image Upload
       if (image) {
         const oldImage = await this.prisma.user.findFirst({
           where: { id: userId },
           select: { avatar: true },
         });
-        if (oldImage.avatar) {
+
+        if (oldImage?.avatar) {
           await FileStorage.delete(
             appConfig().storageUrl.avatar + oldImage.avatar,
           );
         }
 
         const fileName = `${StringHelper.randomString()}${image.originalname}`;
+
         await FileStorage.put(
           appConfig().storageUrl.avatar + fileName,
           image.buffer,
@@ -174,46 +303,72 @@ export class AuthService {
         data.avatar = fileName;
       }
 
-      if (coverPhoto) {
-        const oldImage = await this.prisma.user.findFirst({
-          where: { id: userId },
-          select: { coverPhoto: true },
-        });
-        if (oldImage.coverPhoto) {
-          await FileStorage.delete(
-            appConfig().storageUrl.avatar + oldImage.coverPhoto,
-          );
-        }
-
-        // upload file
-        const fileName = `${StringHelper.randomString()}${image.originalname}`;
-        await FileStorage.put(
-          appConfig().storageUrl.avatar + fileName,
-          coverPhoto.buffer,
-        );
-
-        data.coverPhoto = fileName;
-      }
       const user = await UserRepository.getUserDetails(userId);
-      if (user) {
-        await this.prisma.user.update({
-          where: { id: userId },
-          data: {
-            ...data,
-          },
-        });
-        //console.log(user);
 
-        return {
-          success: true,
-          message: 'User updated successfully',
-        };
-      } else {
+      if (!user) {
         return {
           success: false,
           message: 'User not found',
         };
       }
+
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          ...data,
+          ...((data.first_name || data.last_name) && {
+            name: `${data.first_name && data.first_name} ${data.last_name && data.last_name}`,
+          }),
+        },
+      });
+
+      return {
+        success: true,
+        message: 'User updated successfully',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message,
+      };
+    }
+  }
+
+  async updateUserAddress(
+    userId: string,
+    data: {
+      phone_number?: string;
+      // country?: string;
+      // state?: string;
+      // city?: string;
+      address?: string;
+      // zip_code?: string;
+    },
+  ) {
+    try {
+      const user = await UserRepository.getUserDetails(userId);
+
+      if (!user) {
+        return {
+          success: false,
+          message: 'User not found',
+        };
+      }
+
+      const updateData: any = {};
+
+      if (data.phone_number) updateData.phone_number = data.phone_number;
+      if (data.address) updateData.address = data.address;
+
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: updateData,
+      });
+
+      return {
+        success: true,
+        message: 'Address information updated successfully',
+      };
     } catch (error) {
       return {
         success: false,
@@ -320,9 +475,19 @@ export class AuthService {
       //const token = this.jwtService.sign(payload);
       const jwtExpiry = process.env.JWT_EXPIRY || '1d';
       const token = this.jwtService.sign(payload, {
+<<<<<<< HEAD
         secret: process.env.JWT_SECRET as string,
         expiresIn: jwtExpiry as unknown as jwt.SignOptions['expiresIn'],
+=======
+        secret: process.env.JWT_SECRET,
+        expiresIn: process.env.JWT_EXPIRY as StringValue, // '1d' works directly
+>>>>>>> e990286489baae4568a4d59bf4d4138a61b5aa89
       });
+
+      // const sessionId = req.cookies?.cart_session;
+      // if (sessionId) {
+      //   await this.cartService.mergeGuestCartToUser(sessionId, user.id);
+      // }
 
       await this.prisma.user.update({
         where: { id: user.id },
@@ -399,84 +564,84 @@ export class AuthService {
     }
   }
 
-  async register({ email, password }: { email: string; password: string }) {
-    try {
-      // Check if email already exists
-      const userEmailExist = await UserRepository.exist({
-        field: 'email',
-        value: String(email),
-      });
+  // async register({ email, password }: { email: string; password: string }) {
+  //   try {
+  //     // Check if email already exists
+  //     const userEmailExist = await UserRepository.exist({
+  //       field: 'email',
+  //       value: String(email),
+  //     });
 
-      if (userEmailExist) {
-        return {
-          success: false,
-          statusCode: 409,
-          message: 'Email already exists',
-        };
-      }
+  //     if (userEmailExist) {
+  //       return {
+  //         success: false,
+  //         statusCode: 409,
+  //         message: 'Email already exists',
+  //       };
+  //     }
 
-      // Create the user (no need to check for name uniqueness)
-      const user = await UserRepository.createUser({
-        email,
-        password,
-      });
+  //     // Create the user (no need to check for name uniqueness)
+  //     const user = await UserRepository.createUser({
+  //       email,
+  //       password,
+  //     });
 
-      if (!user || user.success === false) {
-        return {
-          success: false,
-          statusCode: 500,
-          message: 'Failed to create account',
-        };
-      }
+  //     if (!user || user.success === false) {
+  //       return {
+  //         success: false,
+  //         statusCode: 500,
+  //         message: 'Failed to create account',
+  //       };
+  //     }
 
-      // Create Stripe customer (if needed)
-      const stripeCustomer = await StripePayment.createCustomer({
-        user_id: user.data.id,
-        email: email,
-      });
+  //     // Create Stripe customer (if needed)
+  //     const stripeCustomer = await StripePayment.createCustomer({
+  //       user_id: user.data.id,
+  //       email: email,
+  //     });
 
-      if (stripeCustomer) {
-        await this.prisma.user.update({
-          where: { id: user.data.id },
-          data: { billing_id: stripeCustomer.id },
-        });
-      }
+  //     if (stripeCustomer) {
+  //       await this.prisma.user.update({
+  //         where: { id: user.data.id },
+  //         data: { billing_id: stripeCustomer.id },
+  //       });
+  //     }
 
-      // Notify admin
-      const adminUsers = await this.prisma.user.findMany({
-        where: { type: 'ADMIN' },
-        select: { id: true },
-      });
+  //     // Notify admin
+  //     const adminUsers = await this.prisma.user.findMany({
+  //       where: { type: 'ADMIN' },
+  //       select: { id: true },
+  //     });
 
-      for (const admin of adminUsers) {
-        const dataToEmit = await this.notificationService.createNotification({
-          receiver_id: admin.id,
-          sender_id: user.data.id,
-          message: `New user registered: ${user.data.email}`,
-          type: 'register',
-          post_id: null,
-        });
+  //     for (const admin of adminUsers) {
+  //       const dataToEmit = await this.notificationService.createNotification({
+  //         receiver_id: admin.id,
+  //         sender_id: user.data.id,
+  //         message: `New user registered: ${user.data.email}`,
+  //         type: 'register',
+  //         post_id: null,
+  //       });
 
-        this.notificationGateway.notifyAdmin(admin.id, dataToEmit);
-      }
+  //       this.notificationGateway.notifyAdmin(admin.id, dataToEmit);
+  //     }
 
-      return {
-        success: true,
-        statusCode: 201,
-        message: 'Registered successfully',
-        data: {
-          userId: user.data.id,
-          email: user.data.email,
-        },
-      };
-    } catch (error) {
-      return {
-        success: false,
-        statusCode: 500,
-        message: error?.message || 'Something went wrong',
-      };
-    }
-  }
+  //     return {
+  //       success: true,
+  //       statusCode: 201,
+  //       message: 'Registered successfully',
+  //       data: {
+  //         userId: user.data.id,
+  //         email: user.data.email,
+  //       },
+  //     };
+  //   } catch (error) {
+  //     return {
+  //       success: false,
+  //       statusCode: 500,
+  //       message: error?.message || 'Something went wrong',
+  //     };
+  //   }
+  // }
 
   //   async getAllUsers() {
   //   try {
@@ -517,7 +682,107 @@ export class AuthService {
   //   }
   // }
 
-  async getUsersWithPagination(page = 1, limit = 10) {
+  async register({
+    email,
+    password,
+    confirm_password,
+    first_name,
+    last_name,
+  }: {
+    email: string;
+    password: string;
+    confirm_password: string;
+    first_name: string;
+    last_name: string;
+  }) {
+    try {
+      if (password !== confirm_password) {
+        return {
+          success: false,
+          statusCode: 400,
+          message: 'Passwords do not match',
+        };
+      }
+
+      const userEmailExist = await UserRepository.exist({
+        field: 'email',
+        value: String(email),
+      });
+
+      if (userEmailExist) {
+        return {
+          success: false,
+          statusCode: 409,
+          message: 'Email already exists',
+        };
+      }
+
+      const user = await UserRepository.createUser({
+        email,
+        password,
+        first_name,
+        last_name,
+        name: `${first_name} ${last_name}`.trim(),
+      });
+
+      if (!user || user.success === false) {
+        return {
+          success: false,
+          statusCode: 500,
+          message: 'Failed to create account',
+        };
+      }
+
+      const stripeCustomer = await StripePayment.createCustomer({
+        user_id: user.data.id,
+        email,
+      });
+
+      if (stripeCustomer) {
+        await this.prisma.user.update({
+          where: { id: user.data.id },
+          data: { billing_id: stripeCustomer.id },
+        });
+      }
+
+      const adminUsers = await this.prisma.user.findMany({
+        where: { type: 'ADMIN' },
+        select: { id: true },
+      });
+
+      for (const admin of adminUsers) {
+        const dataToEmit = await this.notificationService.createNotification({
+          receiver_id: admin.id,
+          sender_id: user.data.id,
+          message: `New user registered: ${user.data.email}`,
+          type: 'register',
+          post_id: null,
+        });
+
+        this.notificationGateway.notifyAdmin(admin.id, dataToEmit);
+      }
+
+      return {
+        success: true,
+        statusCode: 201,
+        message: 'Registered successfully',
+        data: {
+          userId: user.data.id,
+          email: user.data.email,
+          first_name: user.data.first_name,
+          last_name: user.data.last_name,
+          name: user.data.name,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        statusCode: 500,
+        message: error?.message || 'Something went wrong',
+      };
+    }
+  }
+  async getUsersWithPagination(page = 1, limit = 10, search = '') {
     try {
       const skip = (page - 1) * limit;
 
@@ -526,6 +791,13 @@ export class AuthService {
           where: {
             type: 'user',
             deleted_at: null,
+            ...(search && {
+              OR: [
+                { email: { contains: search, mode: 'insensitive' } },
+                { name: { contains: search, mode: 'insensitive' } },
+                { username: { contains: search, mode: 'insensitive' } },
+              ],
+            }),
           },
           skip,
           take: limit,
@@ -701,6 +973,12 @@ export class AuthService {
             data: {
               email_verified_at: new Date(Date.now()),
             },
+          });
+
+          // delete otp code
+          await UcodeRepository.deleteToken({
+            email: email,
+            token: token,
           });
 
           return {
@@ -1071,5 +1349,27 @@ export class AuthService {
     });
 
     return { message: '2FA enabled successfully' };
+  }
+
+  async verifyOtpOnly({ email, token }: { email: string; token: string }) {
+    try {
+      const isValid = await UcodeRepository.checkTokenOnly({ email, token });
+      if (isValid) {
+        return {
+          success: true,
+          message: 'OTP is valid',
+        };
+      } else {
+        return {
+          success: false,
+          message: 'Invalid or expired OTP',
+        };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message,
+      };
+    }
   }
 }

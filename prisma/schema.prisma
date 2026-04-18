@@ -1,6 +1,6 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["fullTextSearchPostgres"]
+  previewFeatures = ["fullTextSearch"]
 }
 
 datasource db {
@@ -8,35 +8,31 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 model User {
   id         String    @id @default(cuid())
   created_at DateTime  @default(now())
   updated_at DateTime  @default(now())
   deleted_at DateTime?
   status     Int?      @default(1) @db.SmallInt
-  isActive          Boolean   @default(true)
-  isPrivate         Boolean   @default(false)
-
+  isActive   Boolean   @default(true)
+  isPrivate  Boolean   @default(false)
 
   approved_at  DateTime?
   availability String?
 
-  email               String?   @unique
-  username            String?
-  name                String?   @db.VarChar(255)
-  first_name          String?   @db.VarChar(255)
-  last_name           String?   @db.VarChar(255)
-  bio                 String?   @db.VarChar(255)
-  password            String?   @db.VarChar(255)
-  domain              String?   @unique
-  avatar              String? 
-  coverPhoto          String?
+  email      String? @unique
+  username   String?
+  name       String? @db.VarChar(255)
+  first_name String? @db.VarChar(255)
+  last_name  String? @db.VarChar(255)
+  bio        String? @db.VarChar(255)
+  password   String? @db.VarChar(255)
+  domain     String? @unique
+  avatar     String?
+  coverPhoto String?
 
-
-
-  google_id   String? @unique
-  apple_id     String? @unique
+  google_id String? @unique
+  apple_id  String? @unique
 
   phone_number  String?
   country       String?
@@ -53,20 +49,19 @@ model User {
   billing_id           String?
   subscripton_end_date DateTime?
 
-  type               String?   @default("user")
-  email_verified_at  DateTime?
+  type              String?   @default("user")
+  email_verified_at DateTime?
 
   isTwoFactorEnabled Boolean   @default(false)
   twoFactorMethod    String?
   twoFactorCode      String?
   twoFactorExpiresAt DateTime?
 
-
   admincontrol admincontrol @default(active)
 
-  is_two_factor_enabled  Int?         @default(0)
-  two_factor_secret      String? 
-  credit                 Float? 
+  is_two_factor_enabled Int?    @default(0)
+  two_factor_secret     String?
+  credit                Float?
 
   user_payment_methods UserPaymentMethod[]
   user_settings        UserSetting[]
@@ -78,8 +73,8 @@ model User {
   NotificationSent     Notification[] @relation("SenderNotifications")
   NotificationReceived Notification[] @relation("ReceiverNotifications")
 
-  carts                Cart[]
-  favorites            Favorite[]
+  carts     Cart[]
+  favorites Favorite[]
 
   @@map("users")
 }
@@ -89,13 +84,12 @@ enum admincontrol {
   suspended
 }
 
-
-
 enum SubscriptionType {
   FREE
   PREMIUM_MONTHLY
   PREMIUM_YEARLY
 }
+
 enum Status {
   PENDING
   COMPLETE
@@ -103,29 +97,21 @@ enum Status {
 }
 
 model Subscription {
-  id                   String            @id @default(cuid())
-  user                 User              @relation(fields: [userId], references: [id])
-  userId               String            
-  paypalSubscriptionId String?           @unique
-  stripeSubscriptionId String?           @unique
-  appleSubscriptionId  String?           @unique
-  googlePaySubscriptionId String?          @unique
-  status               Status
-  type                 SubscriptionType?
-  price                Float?
-  customId             String?
-  currentPeriodEnd     DateTime
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
+  id                      String            @id @default(cuid())
+  user                    User              @relation(fields: [userId], references: [id])
+  userId                  String
+  paypalSubscriptionId    String?           @unique
+  stripeSubscriptionId    String?           @unique
+  appleSubscriptionId     String?           @unique
+  googlePaySubscriptionId String?           @unique
+  status                  Status
+  type                    SubscriptionType?
+  price                   Float?
+  customId                String?
+  currentPeriodEnd        DateTime
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
 }
-
-
-
-
-
-
-
-
 
 model Ucode {
   id         String   @id @default(cuid())
@@ -155,14 +141,11 @@ model Role {
 
   user_id String?
   user    User?   @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  
+
   role_users RoleUser[]
- 
 
   @@map("roles")
 }
-
-
 
 model RoleUser {
   created_at DateTime @default(now())
@@ -178,18 +161,16 @@ model RoleUser {
   @@map("role_users")
 }
 
-
-
 enum NotificationType {
   like
   comment
   share
-  comment_reply 
-  friend_request 
-  friend_accept 
-  register 
-  payment 
-  subscription 
+  comment_reply
+  friend_request
+  friend_accept
+  register
+  payment
+  subscription
 }
 
 model Notification {
@@ -205,11 +186,9 @@ model Notification {
   post_id       String
   comment_id    String?
   read          Boolean          @default(false)
-  friendship_id String? 
+  friendship_id String?
   receiver      User             @relation("ReceiverNotifications", fields: [receiver_id], references: [id])
   sender        User             @relation("SenderNotifications", fields: [sender_id], references: [id])
-
- 
 
   @@map("notifications")
 }
@@ -235,19 +214,25 @@ model PaymentTransaction {
   updated_at DateTime  @default(now())
   deleted_at DateTime?
 
-  store_id String?
+  custom_transaction_id String?  @unique
+  store_id              String?
+  user_id               String?
+  user                  User?    @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  order_id              String?  @unique
+  order                 Order?   @relation(fields: [order_id], references: [id], onDelete: SetNull)
+  amount                Decimal?
+  status                String?  @default("pending")
+  type                  String?  @default("order")
 
-  user_id String?
-  user    User?   @relation(fields: [user_id], references: [id])
+  payment_intent_id String?
+  client_secret     String?
+  payment_method_id String? @default("card")
+  payment_gateway   String? @default("stripe")
+  withdraw_via      String? @default("wallet")
 
-  order_id         String?
-  type             String?  @default("order")
-  withdraw_via     String?  @default("wallet")
   provider         String?
   reference_number String?
-  status           String?  @default("pending")
   raw_status       String?
-  amount           Decimal?
   currency         String?
   paid_amount      Decimal?
   paid_currency    String?
@@ -255,14 +240,12 @@ model PaymentTransaction {
   @@map("payment_transactions")
 }
 
-
 enum MessageStatus {
   PENDING
   SENT
   DELIVERED
   READ
 }
-
 
 model Attachment {
   id         String    @id @default(cuid())
@@ -276,11 +259,8 @@ model Attachment {
   file     String?
   file_alt String?
 
-
   @@map("attachments")
 }
-
-
 
 model Faq {
   id         String    @id @default(cuid())
@@ -295,21 +275,20 @@ model Faq {
 
   @@map("faqs")
 }
+
 model Contact {
   id         String   @id @default(cuid())
   created_at DateTime @default(now())
   updated_at DateTime @default(now())
-  
 
   name    String?
   email   String?
   subject String
- 
+
   message String?
 
   @@map("contacts")
 }
-
 
 model Setting {
   id         String    @id @default(cuid())
@@ -345,8 +324,6 @@ model UserSetting {
   @@map("user_settings")
 }
 
-
-
 model GeneralSetting {
   id             String   @id @default(cuid())
   appName        String
@@ -357,15 +334,17 @@ model GeneralSetting {
   updatedAt      DateTime @updatedAt
 }
 
-
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////// BLOG MODELS STARTS/////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+<<<<<<< HEAD
 
 
 enum BlogCategory {
+=======
+enum Blog_Category {
+>>>>>>> e990286489baae4568a4d59bf4d4138a61b5aa89
   RIDER_SPOTLIGHTS
   SPORT_HIGHLIGHTS
   ON_THE_ROAD
@@ -378,23 +357,30 @@ enum BlogStatus {
 }
 
 model Blog {
-  id                String              @id @default(cuid())
+  id                String             @id @default(cuid())
   title             String
   authorName        String
   thumbnailImageUrl String?
   thumbnailVideoUrl String?
+<<<<<<< HEAD
   description      String
   tags              String[]
   category          BlogCategory    
+=======
+  descriptions      String?
+  tags              String[]
+  category          Blog_Category
+>>>>>>> e990286489baae4568a4d59bf4d4138a61b5aa89
   contentImages     BlogContentImage[]
-  status            BlogStatus          @default(DRAFT)
+  status            BlogStatus         @default(DRAFT)
   publishedAt       DateTime?
-  created_at        DateTime            @default(now())
-  updated_at        DateTime            @updatedAt
-  clicks            Int                 @default(0)
+  created_at        DateTime           @default(now())
+  updated_at        DateTime           @updatedAt
+  clicks            Int                @default(0)
 }
 
 model BlogContentImage {
+<<<<<<< HEAD
   id          String   @id @default(cuid())
   imageUrl    String
   imageTitle  String
@@ -417,14 +403,26 @@ model BlogContentImage {
 //   created_at  DateTime @default(now())
 //   updated_at  DateTime @updatedAt
 // }
+=======
+  id               String @id @default(cuid())
+  imageUrl         String
+  imageTitle       String
+  imageDetail      String
+  imageDescription String
+
+  blogId     String
+  blog       Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+>>>>>>> e990286489baae4568a4d59bf4d4138a61b5aa89
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////// BLOG MODELS ENDS///////////////////////////////////////////////// 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
 model Job {
-  id         String     @id @default(cuid())
+  id         String   @id @default(cuid())
   firstName  String
   lastName   String
   email      String
@@ -434,11 +432,12 @@ model Job {
   experience String
   message    String
   files      String?
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
+
 model ContactInformation {
-  id        String     @id @default(cuid())
+  id        String  @id @default(cuid())
   address   String
   facebook  String? @db.VarChar(255)
   instagram String? @db.VarChar(255)
@@ -446,94 +445,80 @@ model ContactInformation {
   youtube   String? @db.VarChar(255)
 }
 
-
 enum type {
   SADDLES
   TACK
 }
-model Category {
-  id           String    @id @default(cuid())
-  name          String
-  type          type
-  subcategories Subcategory[] 
-  products      Product[]     
-  baseProducts  BaseProduct[]
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  @@unique([name, type])
-}
-
-model Subcategory {
-  id         String    @id @default(cuid())
-  name       String
-  categoryId String?
-  category   Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  products   Product[]
-  baseProducts BaseProduct[]
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-
-  //@@unique([name, categoryId]) 
-}
-
-// ProductName enum removed; name becomes free-form string, validated in service for SADDLES
-
-
-model Product {
-  id              String    @id @default(cuid())
-  name            String
-  sku             String      @unique
-  stockQuantity   Int
-  benefits        String?
-  description     String?
-  leatherCareGuide String?
-  price           Float
-  discountPrice   Float?
-  color           String?
-  size            String?
-
-  categoryId      String?
-  category        Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  subcategoryId   String?
-  subcategory     Subcategory? @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
-
-  carts           CartItem[]
-  images          ProductImage[]
-
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-}
-
-
-model ProductImage {
-  id        String    @id @default(cuid())
-  url       String
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  productId String
-}
-
-
 
 model Cart {
-  id        String     @id @default(cuid())
-  user                 User              @relation(fields: [userId], references: [id])
-  userId               String  
+  id         String  @id @default(cuid())
+  user       User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String?
+  sessionId  String? @unique
+  couponCode String?
+
   items     CartItem[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+
+  @@index([userId])
+  @@index([sessionId])
 }
 
 model CartItem {
-  id        String   @id @default(cuid())
-  cart      Cart     @relation(fields: [cartId], references: [id])
-  cartId    String
+  id       String @id @default(cuid())
+  cart     Cart   @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  cartId   String
+  quantity Int    @default(1)
 
-  product   Product  @relation(fields: [productId], references: [id])
-  productId String
+  // ---- TACK PRODUCT ----
+  tackProductId String?
+  tackProduct   TackProduct? @relation(fields: [tackProductId], references: [id], onDelete: Cascade)
 
-  quantity  Int      @default(1)
+  variantId String?
+  variant   Variant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  // ---- USED SADDLE ----
+  usedSaddleId String?
+  usedSaddle   UsedSaddle? @relation(fields: [usedSaddleId], references: [id], onDelete: Cascade)
+
+  // ---- LEADLINE ----
+  leadlineId String?
+  leadline   SaddlesProduct? @relation(fields: [leadlineId], references: [id], onDelete: Cascade)
+
+  trialPeriod TrialPeriod?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model coupon {
+  id             String        @id @default(cuid())
+  code           String        @unique
+  discount       Float
+  expiresAt      DateTime
+  // discountType        DiscountType @default(PERCENTAGE)
+  // maxDiscount_usd     Float?
+  // maxDiscount_eur     Float?
+  maxUsers       Int?
+  maxUsesPerUser Int?
+  usages         couponUsage[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model couponUsage {
+  id        String @id @default(cuid())
+  userId    String
+  couponId  String
+  usedCount Int    @default(0)
+
+  coupon coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, couponId])
 }
 
 enum Discpline {
@@ -549,119 +534,131 @@ enum Color {
 }
 
 model CustomerAlert {
-  id           String   @id @default(cuid())
-  alertId      String   @unique
-  priceMin     Float
-  priceMax     Float
-  brand        String
-  discpline    Discpline
+  id                String    @id @default(cuid())
+  alertId           String    @unique
+  priceMin          Float
+  priceMax          Float
+  brand             String
+  discpline         Discpline
   seatsSize         String
-  color        Color
+  color             Color
   customerFirstName String
-  customerLastName String
-  customerEmail String
-  phoneNumber String
-  town String
-  state String
-  notes String
-  createdAt    DateTime @default(now())
+  customerLastName  String
+  customerEmail     String
+  phoneNumber       String
+  town              String
+  state             String
+  notes             String
+  createdAt         DateTime  @default(now())
 }
 
 model Favorite {
-  id         String   @id @default(cuid())
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
 
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  baseProductId String?
-  baseProduct   BaseProduct? @relation(fields: [baseProductId], references: [id], onDelete: Cascade)
+  tackProductId String?
+  tackProduct   TackProduct? @relation(fields: [tackProductId], references: [id], onDelete: Cascade)
 
   saddleProductId String?
   saddleProduct   SaddlesProduct? @relation(fields: [saddleProductId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, baseProductId])
+
+  usedSaddleProductId String?
+  usedSaddleProduct   UsedSaddle? @relation(fields: [usedSaddleProductId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tackProductId])
   @@unique([userId, saddleProductId])
+  @@unique([userId, usedSaddleProductId])
   @@map("favorites")
 }
 
+///////////////////////////////////////////////////// Tack Product Models/////////////////////////////////////////////////
 
-
-//////////////////////////////////////////////////////Base Product Models/////////////////////////////////////////////////
-model color {
-  id         String   @id @default(cuid())
-  name       String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  Variant Variant[]
-}
-model size {
-  id         String   @id @default(cuid())
-  name       String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  Variant Variant[]
-}
-
-model BaseProduct {
-  id           String        @id @default(cuid())
-  name         String
-  sku          String        @unique
-  benefits        String?
-  description     String?
+model TackProduct {
+  id               String           @id @default(cuid())
+  name             String
+  sku              String           @unique
+  benefits         String?
+  description      String?
   leatherCareGuide String?
-  variants     Variant[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  categoryId      String?
-  category        Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  subcategoryId   String?
-  subcategory     Subcategory? @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
+  thumbnailImage   String?
+  country          saddlecountry
+  category         productcategory
+  subcategory      tackSubcategory?
 
-  Favorite Favorite[]
+  variants Variant[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  Favorite  Favorite[]
+  cartItems CartItem[]
 }
 
 model Variant {
-  id            String        @id @default(cuid())
-  BaseproductId     String
-  Baseproduct       BaseProduct       @relation(fields: [BaseproductId], references: [id], onDelete: Cascade)
+  id String @id @default(cuid())
 
-  // FK references to color and size
-  colorId       String?
-  colorRef      color?         @relation(fields: [colorId], references: [id], onDelete: SetNull)
-  sizeId        String?
-  sizeRef       size?          @relation(fields: [sizeId], references: [id], onDelete: SetNull)
+  TackProductId String
+  Tackproduct   TackProduct @relation(fields: [TackProductId], references: [id], onDelete: Cascade)
 
-  // Optional denormalized names for quick reads
-  color         String?
-  size          String?
-  price         Float
+  colorId  String?
+  colorRef color?  @relation(fields: [colorId], references: [id], onDelete: Cascade)
+
+  sizeId  String?
+  sizeRef size?   @relation(fields: [sizeId], references: [id], onDelete: Cascade)
+
+  color String?
+  size  String?
+
+  price_usd     Float
+  price_eur     Float
   stockQuantity Int
-  isDefault     Boolean       @default(false)
-  images        VariantImage[]
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
 
-  @@unique([BaseproductId, colorId, sizeId])
-  @@index([BaseproductId])
-  @@index([colorId])
-  @@index([sizeId])
+  isDefault Boolean @default(false)
+
+  images VariantImage[]
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  cartItems CartItem[]
+
+  @@unique([TackProductId, colorId, sizeId])
+  @@index([TackProductId])
+}
+
+model color {
+  id        String    @id @default(cuid())
+  name      String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  Variant   Variant[]
+}
+
+model size {
+  id        String    @id @default(cuid())
+  name      String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  Variant   Variant[]
 }
 
 model VariantImage {
-  id        String   @id @default(cuid())
+  id        String  @id @default(cuid())
   url       String
   variantId String
-  variant   Variant  @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  variant   Variant @relation(fields: [variantId], references: [id], onDelete: Cascade)
 }
 
 //////////////////////////////////////////////////////Base Product Models End/////////////////////////////////////////////////
 
 model Team {
-  id         String   @id @default(cuid())
-  name       String
+  id          String  @id @default(cuid())
+  name        String
   designation String?
-  image      String?
+  image       String?
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -670,12 +667,12 @@ model Team {
 }
 
 model Ambassador {
-  id         String   @id @default(cuid())
-  name       String
+  id           String  @id @default(cuid())
+  name         String
   social_links String?
-  image      String?
-  country    String?
-  flag_image String?
+  image        String?
+  country      String?
+  flag_image   String?
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -692,33 +689,31 @@ model competition {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  @@map("competitions") 
+  @@map("competitions")
 }
 
-model contact_infos{
-  id         String   @id @default(cuid())
-  address    String
-  fb_link    String?
+model contact_infos {
+  id             String   @id @default(cuid())
+  address        String
+  fb_link        String?
   instagram_link String?
-  tiktok_link String?
-  youtube_link String?
-  updated_at DateTime @updatedAt
+  tiktok_link    String?
+  youtube_link   String?
+  updated_at     DateTime @updatedAt
 
   @@map("contact_infos")
 }
 
-model contact_us{
+model contact_us {
   id         String   @id @default(cuid())
   first_name String
   last_name  String
   email      String
   phone      String
-  address1   String
-  address2   String
+  address    String
   city       String
   state      String
   zip_code   String
-  subject    String
   message    String
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -726,13 +721,41 @@ model contact_us{
   @@map("contact_us")
 }
 
-model Expert{
+enum try_saddle_discipline {
+HUNTER
+JUMPER
+EQUTATION
+DRESSAGE
+CROSS_COUNTRY
+OTHER
+}
+
+model try_saddles {
   id         String   @id @default(cuid())
-  name       String
+  first_name String
+  last_name  String
   email      String
-  phone      String?
-  country    String?
-  region     String?
+  phone      String
+  address    String
+  country    String
+  city       String
+  state      String
+  zip_code   String
+  message    String
+  discipline try_saddle_discipline
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("try_saddles")
+}
+
+model Expert {
+  id      String  @id @default(cuid())
+  name    String
+  email   String
+  phone   String?
+  country String?
+  region  String?
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -755,7 +778,10 @@ enum saddleSubcategory {
   ATHENA
 }
 
-
+enum saddlecountry {
+  USA
+  EUROPE
+}
 
 enum tackSubcategory {
   BRIDLES
@@ -767,37 +793,286 @@ enum tackSubcategory {
   RIDER_APPAREL
   BOOTS
   ACCESSORIES
+  HALTERS
+  LEATHER_CARE
+  OTHER
 }
 
+enum saddleSize {
+  SIZE_12_5
+  SIZE_14_5
+}
 
 model SaddlesProduct {
-  id              String    @id @default(cuid())
-  name            String
-  sku             String      @unique
-  header_title    String?
+  id                 String               @id @default(cuid())
+  name               String
+  sku                String               @unique
+  header_title       String?
   header_description String?
-  price           String
-  sizes           String[]
-  description     String?
-  category        productcategory
-  subcategory     saddleSubcategory?
-  images          SaddleProductImage[]
-  colors              String[]  
-  piping_color        String[]      
-  leather_type        String[] 
+  price_usd          String
+  price_eur          String
+  size               saddleSize?
+  stockQuantity      Int?
+  description        String?
+  country            saddlecountry
+  category           productcategory
+  subcategory        saddleSubcategory?
+  images             SaddleProductImage[]
+  colors             String[]
+  piping_color       String[]
+  leather_type       String[]
 
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  Favorite Favorite[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  Favorite  Favorite[]
+  cartItems CartItem[]
 
   @@map("saddles_products")
 }
 
 model SaddleProductImage {
-  id        String    @id @default(cuid())
-  url       String
-  saddleproduct   SaddlesProduct @relation(fields: [SaddlesProductId], references: [id], onDelete: Cascade)
+  id               String         @id @default(cuid())
+  url              String
+  saddleproduct    SaddlesProduct @relation(fields: [SaddlesProductId], references: [id], onDelete: Cascade)
   SaddlesProductId String
 }
 
 // ---------------------------------saddles product part ends----------------------------------
+
+// ---------------------------------user saddles product part start----------------------------------
+
+enum TrialPeriod {
+  NO_TRIAL
+  TRIAL_7_DAYS
+  TRIAL_14_DAYS
+}
+
+enum Brand {
+  AMERIGO
+  ANTARES
+  ARION
+  BUTET
+  CWD
+  DEVOUCOUX
+  ERREPLUS
+  FORSTIER
+  HERMES
+  MEYER
+  N2_SADDLERY
+  VOLTAIRE
+}
+
+enum SeatSize {
+  SIZE_16_5 @map("16.5")
+  SIZE_17   @map("17")
+  SIZE_17_5 @map("17.5")
+  SIZE_18   @map("18")
+  SIZE_18_5 @map("18.5")
+}
+
+model UsedSaddle {
+  id                 String          @id @default(cuid())
+  sku                String          @unique
+  title              String
+  description        String
+  seatSize           SeatSize
+  stockQuantity      Int
+  category           productcategory
+  usedsaddlecategory String
+  discipline         Discpline
+  brand              Brand
+  basePrice_usd      Int
+  basePrice_eur      Int
+  country            saddlecountry
+  isAvailable        Boolean         @default(true)
+
+  images    UsedSaddleImage[]
+  favorites Favorite[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  cartItems CartItem[]
+}
+
+model UsedSaddleImage {
+  id           String     @id @default(cuid())
+  url          String
+  usedsaddle   UsedSaddle @relation(fields: [UsedSaddleId], references: [id], onDelete: Cascade)
+  UsedSaddleId String
+}
+
+// enum OrderStatus {
+//   PENDING
+//   PAID
+//   FAILED
+//   CANCELLED
+// }
+
+// enum PaymentProvider {
+//   STRIPE
+// }
+
+// enum PaymentStatus {
+//   PENDING
+//   SUCCEEDED
+//   FAILED
+//   CANCELED
+// }
+
+// model Order {
+//   id              String       @id @default(cuid())
+//   userId          String?
+//   sessionId       String?
+//   cartId          String?
+
+//   country         String?
+//   currency        String
+
+//   subtotal        Float
+//   shipping        Float
+//   tax             Float
+//   couponDiscount  Float
+//   total           Float
+
+//   couponCode      String?
+//   couponId        String?
+
+//   status          OrderStatus  @default(PENDING)
+//   paymentIntentId String?      @unique
+
+//   items           OrderItem[]
+//   payment         Payment?
+
+//   createdAt       DateTime     @default(now())
+//   updatedAt       DateTime     @updatedAt
+// }
+
+// model OrderItem {
+//   id         String   @id @default(cuid())
+
+//   orderId    String
+//   order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+//   itemId     String?
+//   itemName   String
+//   itemImage  String?
+//   price      Float
+//   quantity   Int
+//   total      Float
+//   currency   String
+
+//   createdAt  DateTime @default(now())
+//   updatedAt  DateTime @updatedAt
+// }
+
+// model Payment {
+//   id              String          @id @default(cuid())
+//   orderId          String          @unique
+//   order            Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+//   provider         PaymentProvider @default(STRIPE)
+//   paymentIntentId  String          @unique
+//   clientSecret     String?
+//   amount           Float
+//   currency         String
+//   status           PaymentStatus   @default(PENDING)
+
+//   createdAt        DateTime        @default(now())
+//   updatedAt        DateTime        @updatedAt
+// }
+
+model CheckoutAddress {
+  id String @id @default(uuid())
+
+  userId    String?
+  sessionId String?
+
+  firstName   String
+  lastName    String
+  email       String
+  phone       String
+  companyName String?
+
+  streetAddress String
+  apartment     String?
+
+  city    String
+  state   String
+  zipCode String
+  country String
+
+  createdAt DateTime @default(now())
+}
+
+enum OrderStatus {
+  PENDING
+  DELIVERED
+  INPROCESS
+  CANCLE
+}
+
+model Order {
+  id          String @id @default(uuid())
+  orderNumber String @unique
+
+  userId    String?
+  sessionId String?
+
+  subtotal Float
+  shipping Float
+  tax      Float
+  discount Float
+  total    Float
+  currency String
+
+  status OrderStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items               OrderItem[]
+  address             OrderAddress?
+  payment_transaction PaymentTransaction?
+
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id      String @id @default(uuid())
+  orderId String
+
+  tackProductId String?
+  variantId     String?
+  usedSaddleId  String?
+  leadlineId    String?
+
+  itemName   String
+  itemImage  String?
+  price      Float
+  quantity   Int
+  totalPrice Float
+  currency   String
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model OrderAddress {
+  id      String @id @default(uuid())
+  orderId String @unique
+
+  firstName String
+  lastName  String
+  email     String
+  phone     String
+
+  streetAddress String
+  apartment     String?
+
+  city    String
+  state   String
+  zipCode String
+  country String
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}

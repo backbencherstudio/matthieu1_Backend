@@ -3,7 +3,6 @@ import { PrismaModule } from 'src/prisma/prisma.module';
 import { BlogUploadService } from './blog-upload.service';
 import { BlogsController } from './blog.controller';
 import { BlogsService } from './blog.service';
-// import { BlogsPublicController } from './blog.user.controller';
 
 @Module({
   imports: [PrismaModule],

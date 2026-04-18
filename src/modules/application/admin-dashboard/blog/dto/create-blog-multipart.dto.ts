@@ -27,6 +27,7 @@
 // }
 
 
+<<<<<<< HEAD
 import {
   IsArray,
   IsEnum,
@@ -37,6 +38,10 @@ import {
   IsJSON,
 } from 'class-validator';
 import { BlogCategory, BlogStatus } from '@prisma/client';
+=======
+import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { Blog_Category } from '@prisma/client';
+>>>>>>> e990286489baae4568a4d59bf4d4138a61b5aa89
 
 export class CreateBlogMultipartDto {
   @IsString()
@@ -45,6 +50,7 @@ export class CreateBlogMultipartDto {
   @IsString()
   authorName: string;
 
+<<<<<<< HEAD
   @IsString()
   description: string;
 
@@ -75,4 +81,19 @@ export class CreateBlogMultipartDto {
   @ValidateIf(o => o.contentImagesMeta !== undefined)
   @IsJSON()
   contentImagesMeta?: string;
+=======
+  @IsOptional()
+  @IsString()
+  descriptions?: string;
+
+  @IsString()
+  tags: string; // comma separated
+
+  @IsEnum(Blog_Category)
+  category: Blog_Category;
+
+  @IsOptional()
+  @IsString()
+  contentImagesMeta?: string; // JSON
+>>>>>>> e990286489baae4568a4d59bf4d4138a61b5aa89
 }

@@ -1,18 +1,24 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { CreateSaddleAlertDto } from './dto/create-saddle-alert.dto';
 import { UpdateSaddleAlertDto } from './dto/update-saddle-alert.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { MailService } from 'src/mail/mail.service';
+import { Role } from 'src/common/guard/role/role.enum';
+import appConfig from 'src/config/app.config';
 
 @Injectable()
 export class SaddleAlertService {
-  constructor(private prisma: PrismaService) { }
-
+  constructor(
+    private prisma: PrismaService,
+    private mailService: MailService,
+  ) {}
 
   private generateAlertId(): string {
-    const randomDigits = Math.floor(Math.random() * 100000000).toString().padStart(8, '0');
+    const randomDigits = Math.floor(Math.random() * 100000000)
+      .toString()
+      .padStart(8, '0');
     return `ALT-${randomDigits}`;
   }
-
 
   private async generateUniqueAlertId(): Promise<string> {
     let alertId: string;
@@ -30,7 +36,10 @@ export class SaddleAlertService {
   }
 
   private buildSearchConditions(search: string) {
-    const searchWords = search.trim().split(/\s+/).filter(word => word.length > 0);
+    const searchWords = search
+      .trim()
+      .split(/\s+/)
+      .filter((word) => word.length > 0);
     const searchUpper = search.toUpperCase();
 
     const stringFieldConditions = [
@@ -42,18 +51,30 @@ export class SaddleAlertService {
       { brand: { contains: search, mode: 'insensitive' as const } },
     ];
 
-    const wordBasedConditions = searchWords.length > 1 ? searchWords.flatMap(word => [
-      { customerFirstName: { contains: word, mode: 'insensitive' as const } },
-      { customerLastName: { contains: word, mode: 'insensitive' as const } },
-      { customerEmail: { contains: word, mode: 'insensitive' as const } },
-      { phoneNumber: { contains: word, mode: 'insensitive' as const } },
-      { seatsSize: { contains: word, mode: 'insensitive' as const } },
-      { brand: { contains: word, mode: 'insensitive' as const } },
-    ]) : [];
+    const wordBasedConditions =
+      searchWords.length > 1
+        ? searchWords.flatMap((word) => [
+            {
+              customerFirstName: {
+                contains: word,
+                mode: 'insensitive' as const,
+              },
+            },
+            {
+              customerLastName: {
+                contains: word,
+                mode: 'insensitive' as const,
+              },
+            },
+            { customerEmail: { contains: word, mode: 'insensitive' as const } },
+            { phoneNumber: { contains: word, mode: 'insensitive' as const } },
+            { seatsSize: { contains: word, mode: 'insensitive' as const } },
+            { brand: { contains: word, mode: 'insensitive' as const } },
+          ])
+        : [];
 
     const enumConditions = [];
 
-    
     if (searchUpper.includes('BLACK') || searchUpper.includes('BLAC')) {
       enumConditions.push({ color: 'BLACK' as any });
     }
@@ -64,7 +85,6 @@ export class SaddleAlertService {
       enumConditions.push({ color: 'DARK_BROWN' as any });
     }
 
-    
     if (searchUpper.includes('JUMP') || searchUpper.includes('JUMPING')) {
       enumConditions.push({ discpline: 'JUMPING' as any });
     }
@@ -76,23 +96,48 @@ export class SaddleAlertService {
     }
 
     return {
-      OR: [
-        ...stringFieldConditions,
-        ...wordBasedConditions,
-        ...enumConditions,
-      ]
+      OR: [...stringFieldConditions, ...wordBasedConditions, ...enumConditions],
     };
   }
 
   async create(createSaddleAlertDto: CreateSaddleAlertDto) {
     const alertId = await this.generateUniqueAlertId();
 
-    return await this.prisma.customerAlert.create({
+    const alert = await this.prisma.customerAlert.create({
       data: {
         ...createSaddleAlertDto,
         alertId,
       },
     });
+
+    try {
+      const receiverEmail = appConfig().mail.saddle_alert_receiver;
+
+      if (receiverEmail) {
+        const formattedDate = new Date(alert.createdAt).toLocaleString(
+          'en-US',
+          {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          },
+        );
+
+        await this.mailService.sendSaddleAlertToAdmin({
+          email: receiverEmail,
+          data: {
+            ...alert,
+            createdAt: formattedDate,
+          },
+        });
+      }
+    } catch (error) {
+      console.log('Error sending saddle alert email:', error);
+    }
+
+    return alert;
   }
 
   async findAllAlerts(page = 1, limit = 10, search?: string) {
@@ -111,10 +156,10 @@ export class SaddleAlertService {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-      })
+      }),
     ]);
 
-    const formattedAlerts = alerts.map(alert => ({
+    const formattedAlerts = alerts.map((alert) => ({
       alert_id: alert.alertId,
       id: alert.id,
       customer: `${alert.customerFirstName} ${alert.customerLastName} , ${alert.customerEmail}`,
@@ -159,12 +204,21 @@ export class SaddleAlertService {
     };
   }
 
-
-
   async remove(id: string) {
-    return await this.prisma.customerAlert.delete({
-      where: { id },
-    });
-  }
+    try {
+      // Attempt to delete the alert from the database
+      const data = await this.prisma.customerAlert.delete({
+        where: { id },
+      });
 
+      return data;
+    } catch (error) {
+
+      if (error) {
+        throw new NotFoundException(`Saddle alert with ID ${id} not found`);
+      }
+
+      throw new InternalServerErrorException('Error deleting the saddle alert');
+    }
+  }
 }

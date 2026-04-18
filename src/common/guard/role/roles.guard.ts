@@ -4,6 +4,7 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from './roles.decorator';
@@ -24,10 +25,15 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    const { user } = context.switchToHttp().getRequest();
-    
+    const request = context.switchToHttp().getRequest();
+    const { user } = request;
+
+    if (!user || !user.userId) {
+      throw new UnauthorizedException('Authentication required');
+    }
+
     const userDetails = await UserRepository.getUserDetails(user.userId);
-    
+
     if (!userDetails) {
       return false;
     }

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateColorDto } from './dto/create-color.dto';
 import { UpdateColorDto } from './dto/update-color.dto';
@@ -11,7 +11,46 @@ export class ColorSizeService {
 
     // Color
     async createColor(dto: CreateColorDto) {
-        return await this.prisma.color.create({ data: dto });
+        // ✅ Validation: Only allow 'black' and 'brown' colors
+        const allowedColors = ['black', 'brown'];
+        const normalizedName = dto.name.toLowerCase().trim();
+
+        if (!allowedColors.includes(normalizedName)) {
+            throw new BadRequestException(
+                `Only 'black' and 'brown' colors are allowed. You provided: '${dto.name}'`
+            );
+        }
+
+        // ✅ Check if color already exists
+        const existingColor = await this.prisma.color.findFirst({
+            where: {
+                name: {
+                    equals: normalizedName,
+                    mode: 'insensitive'
+                }
+            }
+        });
+
+        if (existingColor) {
+            throw new BadRequestException(
+                `Color '${normalizedName}' already exists`
+            );
+        }
+
+        // ✅ Validation: Maximum 2 colors allowed
+        const colorCount = await this.prisma.color.count();
+        if (colorCount >= 2) {
+            throw new BadRequestException(
+                `Maximum 2 colors allowed. Currently have ${colorCount} colors.`
+            );
+        }
+
+        // ✅ Create color with normalized name
+        return await this.prisma.color.create({
+            data: {
+                name: normalizedName
+            }
+        });
     }
 
     async findAllColors() {

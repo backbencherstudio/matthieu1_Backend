@@ -1,5 +1,13 @@
-import { Transform } from 'class-transformer';
-import { IsOptional, IsArray, IsString } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import {
+  IsOptional,
+  IsArray,
+  IsString,
+  Min,
+  IsInt,
+  IsEnum,
+} from 'class-validator';
+import { saddleSize,saddlecountry } from '@prisma/client';
 
 const normalizeArray = ({ value }: { value: any }) => {
   if (Array.isArray(value)) return value;
@@ -17,13 +25,24 @@ export class UpdateSadlleDto {
   header_description?: string;
 
   @IsOptional()
-  price?: string;
+  price_usd?: string;
 
   @IsOptional()
-  @Transform(normalizeArray)
-  @IsArray()
-  @IsString({ each: true })
-  sizes?: string[];
+  price_eur?: string;
+
+  // @IsOptional()
+  // @IsEnum(saddlecountry)
+  // country: saddlecountry;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  stockQuantity?: number;
+
+  // @IsOptional()
+  // @IsEnum(saddleSize) // Ensure size is one of the valid enum values
+  // size?: saddleSize; // Change type from string to saddleSize enum
 
   @IsOptional()
   description?: string;

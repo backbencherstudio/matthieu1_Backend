@@ -1,6 +1,17 @@
-import { IsArray, IsEnum, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 import { Transform, Type } from 'class-transformer';
-import { productcategory, saddleSubcategory } from '@prisma/client';
+import {
+  productcategory,
+  saddlecountry,
+  saddleSubcategory,
+} from '@prisma/client';
 
 const normalizeArray = ({ value }: { value: any }) => {
   if (value === undefined || value === null) return undefined;
@@ -20,17 +31,27 @@ export class CreateSadlleDto {
   header_description?: string;
 
   @IsString()
-  price: string;
+  price_usd: string;
+
+  @IsString()
+  price_eur: string;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  stockQuantity?: number;
 
   @IsOptional()
-  @Transform(normalizeArray)
-  @IsArray()
-  @IsString({ each: true })
-  sizes?: string[];
+  @IsString()
+  size?: string;
 
   @IsOptional()
   @IsString()
   description?: string;
+
+  @IsEnum(saddlecountry)
+  country: saddlecountry;
 
   // 🔥 ARRAYS
   @IsOptional()

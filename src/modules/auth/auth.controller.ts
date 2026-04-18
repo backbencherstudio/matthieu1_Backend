@@ -55,17 +55,67 @@ export class AuthController {
     }
   }
 
+  // @ApiOperation({ summary: 'Register a user' })
+  // @Post('register')
+  // async create(@Body() data: CreateUserDto) {
+  //   try {
+  //     const { email, password } = data;
+
+  //     if (!email) {
+  //       return {
+  //         success: false,
+  //         statusCode: 400,
+  //         message: 'Email not provided',
+  //       };
+  //     }
+
+  //     if (!password) {
+  //       return {
+  //         success: false,
+  //         statusCode: 400,
+  //         message: 'Password not provided',
+  //       };
+  //     }
+
+  //     const response = await this.authService.register({ email, password });
+
+  //     return response; // Return the unified response
+  //   } catch (error) {
+  //     return {
+  //       success: false,
+  //       statusCode: 500,
+  //       message: error?.message || 'Something went wrong',
+  //     };
+  //   }
+  // }
+
   @ApiOperation({ summary: 'Register a user' })
   @Post('register')
   async create(@Body() data: CreateUserDto) {
     try {
-      const { email, password } = data;
+      const { email, password, confirm_password, first_name, last_name } = data;
 
       if (!email) {
         return {
           success: false,
           statusCode: 400,
           message: 'Email not provided',
+        };
+      }
+
+      if (!first_name) {
+        return {
+          success: false,
+          statusCode: 400,
+          message: 'First name not provided',
+        };
+      }
+
+      if (!last_name) {
+        return {
+          success: false,
+          statusCode: 400,
+          message: 'Last name not provided',
         };
       }
 
@@ -77,9 +127,23 @@ export class AuthController {
         };
       }
 
-      const response = await this.authService.register({ email, password });
+      if (!confirm_password) {
+        return {
+          success: false,
+          statusCode: 400,
+          message: 'Confirm password not provided',
+        };
+      }
 
-      return response; // Return the unified response
+      const response = await this.authService.register({
+        email,
+        password,
+        confirm_password,
+        first_name,
+        last_name,
+      });
+
+      return response;
     } catch (error) {
       return {
         success: false,
@@ -104,11 +168,16 @@ export class AuthController {
   //     };
   //   }
   // }
-  async getUsers(@Query('page') page = '1', @Query('limit') limit = '10') {
+  async getUsers(
+    @Query('page') page = '1',
+    @Query('limit') limit = '10',
+    @Query('search') search = '',
+  ) {
     try {
       return await this.authService.getUsersWithPagination(
         Number(page),
         Number(limit),
+        search,
       );
     } catch (error) {
       return {
@@ -175,38 +244,75 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Patch('update')
   @UseInterceptors(
-    FileFieldsInterceptor(
-      [
-        { name: 'image', maxCount: 1 },
-        { name: 'coverPhoto', maxCount: 1 },
-      ],
-      {
-        storage: memoryStorage(),
-      },
-    ),
+    FileInterceptor('image', {
+      // storage: diskStorage({
+      //   destination:
+      //     appConfig().storageUrl.rootUrl + appConfig().storageUrl.avatar,
+      //   filename: (req, file, cb) => {
+      //     const randomName = Array(32)
+      //       .fill(null)
+      //       .map(() => Math.round(Math.random() * 16).toString(16))
+      //       .join('');
+      //     return cb(null, `${randomName}${file.originalname}`);
+      //   },
+      // }),
+      storage: memoryStorage(),
+    }),
   )
   async updateUser(
     @Req() req: Request,
     @Body() data: UpdateUserDto,
-    @UploadedFiles()
-    files: {
-      image?: Express.Multer.File[];
-      coverPhoto?: Express.Multer.File[];
-    },
+    @UploadedFile() image: Express.Multer.File,
   ) {
     try {
       const user_id = req.user.userId;
-      const response = await this.authService.updateUser(
-        user_id,
-        data,
-        files.image?.[0],
-        files.coverPhoto?.[0],
-      );
+      const response = await this.authService.updateUser(user_id, data, image);
       return response;
     } catch (error) {
       return {
         success: false,
         message: 'Failed to update user',
+      };
+    }
+  }
+
+  @ApiOperation({ summary: 'Update user address and phone' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Patch('update-address')
+  async updateUserAddress(
+    @Req() req: Request,
+    @Body()
+    data: {
+      phone_number?: string;
+      address?: string;
+    },
+  ) {
+    try {
+      const user_id = req.user.userId;
+
+      return await this.authService.updateUserAddress(user_id, data);
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to update contact information',
+      };
+    }
+  }
+
+  @ApiOperation({ summary: 'Get user contact information' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Get('contact-info')
+  async getUserAddress(@Req() req: Request) {
+    try {
+      const user_id = req.user.userId;
+
+      return await this.authService.getUserAddress(user_id);
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to fetch contact information',
       };
     }
   }
@@ -238,10 +344,10 @@ export class AuthController {
       const email = data.email;
       const token = data.token;
       if (!email) {
-        throw new HttpException('Email not provided', HttpStatus.UNAUTHORIZED);
+        throw new HttpException('Email not provided', HttpStatus.BAD_REQUEST);
       }
       if (!token) {
-        throw new HttpException('Token not provided', HttpStatus.UNAUTHORIZED);
+        throw new HttpException('Token not provided', HttpStatus.BAD_REQUEST);
       }
 
       // ✅ Decode token (without verification)
@@ -313,41 +419,118 @@ export class AuthController {
     }
   }
 
+  @ApiOperation({ summary: 'Verify OTP only (no deletion)' })
+  @Post('verify-otp')
+  async verifyOtp(@Body() data: { email: string; token: string }) {
+    try {
+      const { email, token } = data;
+      if (!email) {
+        throw new HttpException('Email not provided', HttpStatus.BAD_REQUEST);
+      }
+      if (!token) {
+        throw new HttpException('Token not provided', HttpStatus.BAD_REQUEST);
+      }
+      return await this.authService.verifyOtpOnly({ email, token });
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || 'Something went wrong',
+      };
+    }
+  }
+
   // change password if user want to change the password
+  // @ApiOperation({ summary: 'Change password' })
+  // @ApiBearerAuth()
+  // @UseGuards(JwtAuthGuard)
+  // @Post('change-password')
+  // async changePassword(
+  //   @Req() req: Request,
+  //   @Body() data: { old_password: string; new_password: string },
+  // ) {
+  //   try {
+  //     const user_id = req.user.userId;
+
+  //     const oldPassword = data.old_password;
+  //     const newPassword = data.new_password;
+  //     if (!oldPassword) {
+  //       throw new HttpException(
+  //         'Old password not provided',
+  //         HttpStatus.UNAUTHORIZED,
+  //       );
+  //     }
+  //     if (!newPassword) {
+  //       throw new HttpException(
+  //         'New password not provided',
+  //         HttpStatus.UNAUTHORIZED,
+  //       );
+  //     }
+  //     return await this.authService.changePassword({
+  //       user_id: user_id,
+  //       oldPassword: oldPassword,
+  //       newPassword: newPassword,
+  //     });
+  //   } catch (error) {
+  //     return {
+  //       success: false,
+  //       message: 'Failed to change password',
+  //     };
+  //   }
+  // }
+
   @ApiOperation({ summary: 'Change password' })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post('change-password')
   async changePassword(
     @Req() req: Request,
-    @Body() data: { old_password: string; new_password: string },
+    @Body()
+    data: {
+      old_password: string;
+      new_password: string;
+      confirm_password: string;
+    },
   ) {
     try {
       const user_id = req.user.userId;
 
-      const oldPassword = data.old_password;
-      const newPassword = data.new_password;
-      if (!oldPassword) {
+      if (!data.old_password) {
         throw new HttpException(
           'Old password not provided',
-          HttpStatus.UNAUTHORIZED,
+          HttpStatus.BAD_REQUEST,
         );
       }
-      if (!newPassword) {
+
+      if (!data.new_password) {
         throw new HttpException(
           'New password not provided',
-          HttpStatus.UNAUTHORIZED,
+          HttpStatus.BAD_REQUEST,
         );
       }
+
+      if (!data.confirm_password) {
+        throw new HttpException(
+          'Confirm password not provided',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      if (data.new_password !== data.confirm_password) {
+        throw new HttpException(
+          'New password and confirm password do not match',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
       return await this.authService.changePassword({
-        user_id: user_id,
-        oldPassword: oldPassword,
-        newPassword: newPassword,
+        user_id,
+        oldPassword: data.old_password,
+        newPassword: data.new_password,
       });
     } catch (error) {
       return {
         success: false,
-        message: 'Failed to change password',
+        message: error.message,
       };
     }
   }

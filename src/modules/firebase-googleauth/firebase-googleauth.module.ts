@@ -5,7 +5,7 @@ import { FirebaseAdminService } from './firebase-admin.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { JwtModule } from '@nestjs/jwt';
 import { NotificationModule } from '../application/notification/notification.module';
-
+import { StringValue } from 'ms';
 // NOTE: NotificationModule should export NotificationService & NotificationGateway.
 // If it doesn't, either export them there or add them to `providers` here.
 @Module({
@@ -13,6 +13,12 @@ import { NotificationModule } from '../application/notification/notification.mod
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'default_jwt_secret',
       // signOptions: { expiresIn: process.env.JWT_EXPIRES_IN || '7d' },
+<<<<<<< HEAD
+=======
+      signOptions: {
+        expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as StringValue,
+      },
+>>>>>>> e990286489baae4568a4d59bf4d4138a61b5aa89
     }),
     NotificationModule,
   ],
@@ -25,4 +31,4 @@ import { NotificationModule } from '../application/notification/notification.mod
   ],
   exports: [FirebaseGoogleAuthService],
 })
-export class FirebaseGoogleAuthModule { }
+export class FirebaseGoogleAuthModule {}
