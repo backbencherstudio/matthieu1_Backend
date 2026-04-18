@@ -1,10 +1,4 @@
-// import {
-//   IsArray,
-//   IsOptional,
-//   IsString,
-//   IsUrl,
-//   ArrayNotEmpty,
-// } from 'class-validator';
+// import { IsArray, IsOptional, IsString, IsUrl, ArrayNotEmpty } from 'class-validator';
 // import { Type } from 'class-transformer';
 
 // export class CreateBlogContentImageDto {
@@ -20,24 +14,29 @@
 //   @IsOptional() @IsUrl() thumbnailImageUrl?: string;
 //   @IsOptional() @IsUrl() thumbnailVideoUrl?: string;
 
-//   @IsArray()
-//   @ArrayNotEmpty()
-//   @IsString({ each: true })
+//   @IsArray() @ArrayNotEmpty() @IsString({ each: true })
 //   descriptions: string[];
 
-//   @IsArray()
-//   @IsString({ each: true })
+//   @IsArray() @IsString({ each: true })
 //   tags: string[];
 
 //   @IsString()
 //   categoryId: string;
 
-//   @IsArray()
-//   @Type(() => CreateBlogContentImageDto)
+//   @IsArray() @Type(() => CreateBlogContentImageDto)
 //   contentImages: CreateBlogContentImageDto[];
 // }
 
-import { IsArray, IsOptional, IsString, IsUrl } from 'class-validator';
+import {
+  IsArray,
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsUrl,
+  ArrayNotEmpty,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+import { BlogCategory, BlogStatus } from '@prisma/client';
 
 export class CreateBlogContentImageDto {
   @IsUrl()
@@ -50,7 +49,7 @@ export class CreateBlogContentImageDto {
   imageDetail: string;
 
   @IsString()
-  imageDescription: string;
+  imagedescription: string;
 }
 
 export class CreateBlogDto {
@@ -72,11 +71,19 @@ export class CreateBlogDto {
   thumbnailVideoUrl?: string;
 
   @IsArray()
+  @ArrayNotEmpty()
+  @IsString({ each: true })
   tags: string[];
 
-  @IsString()
-  categoryId: string;
+  @IsEnum(BlogCategory)
+  category: BlogCategory;
 
+  @IsOptional()
+  @IsEnum(BlogStatus)
+  status?: BlogStatus;
+
+  @IsOptional()
   @IsArray()
-  contentImages: CreateBlogContentImageDto[];
+  @Type(() => CreateBlogContentImageDto)
+  contentImages?: CreateBlogContentImageDto[];
 }

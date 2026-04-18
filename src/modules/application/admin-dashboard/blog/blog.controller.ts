@@ -373,9 +373,7 @@
 
 
 
-
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -389,11 +387,11 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { BlogUploadService } from './blog-upload.service';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guard/role/roles.guard';
 import { Roles } from 'src/common/guard/role/roles.decorator';
 import { Role } from 'src/common/guard/role/role.enum';
-import { BlogUploadService } from './blog-upload.service';
 import { BlogsService } from './blog.service';
 
 @Controller('blogs')
@@ -403,7 +401,6 @@ export class BlogsController {
     private readonly blogUpload: BlogUploadService,
   ) {}
 
-  // ================= CREATE =================
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Post()
@@ -414,8 +411,8 @@ export class BlogsController {
     ]),
   )
   async create(@Body() body: any, @UploadedFiles() files: any) {
-    let thumbnailImageUrl: string | undefined;
-    let thumbnailVideoUrl: string | undefined;
+    let thumbnailImageUrl;
+    let thumbnailVideoUrl;
 
     if (files.thumbnail?.[0]) {
       const url = await this.blogUpload.uploadOne(
@@ -436,86 +433,24 @@ export class BlogsController {
       ? JSON.parse(body.contentImagesMeta)
       : [];
 
-    const contentImages = uploadedImages.map((url, i) => ({
-      imageUrl: url,
-      imageTitle: meta[i]?.imageTitle || '',
-      imageDetail: meta[i]?.imageDetail || '',
-      imageDescription: meta[i]?.imageDescription || '',
-    }));
-
     return this.blogsService.create({
       title: body.title,
       authorName: body.authorName,
       description: body.description,
       tags: Array.isArray(body.tags) ? body.tags : [body.tags],
-      categoryId: body.categoryId,
+      category: body.category,
+      status: body.status,
       thumbnailImageUrl,
       thumbnailVideoUrl,
-      contentImages,
-      status: body.status,
+      contentImages: uploadedImages.map((url, i) => ({
+        imageUrl: url,
+        imageTitle: meta[i]?.imageTitle ?? '',
+        imageDetail: meta[i]?.imageDetail ?? '',
+        imageDescription: meta[i]?.imageDescription ?? '',
+      })),
     });
   }
 
-  // ================= UPDATE BLOG =================
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN)
-  @Patch(':id')
-  async update(@Param('id') id: string, @Body() body: any) {
-    return this.blogsService.update(id, body);
-  }
-
-  // ================= ADD CONTENT IMAGE =================
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN)
-  @Post(':id/content-images')
-  @UseInterceptors(FileFieldsInterceptor([{ name: 'image', maxCount: 1 }]))
-  async addContentImage(
-    @Param('id') blogId: string,
-    @Body() body: any,
-    @UploadedFiles() files: any,
-  ) {
-    if (!files.image?.[0]) {
-      throw new BadRequestException('Image file is required');
-    }
-
-    const imageUrl = await this.blogUpload.uploadOne(
-      'blogs/content',
-      files.image[0],
-    );
-
-    return this.blogsService.addContentImage(blogId, {
-      imageUrl,
-      imageTitle: body.imageTitle || '',
-      imageDetail: body.imageDetail || '',
-      imageDescription: body.imageDescription || '',
-    });
-  }
-
-  // ================= UPDATE CONTENT IMAGE =================
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN)
-  @Patch(':id/content-images/:imageId')
-  async updateContentImage(
-    @Param('id') blogId: string,
-    @Param('imageId') imageId: string,
-    @Body() body: any,
-  ) {
-    return this.blogsService.updateContentImage(blogId, imageId, body);
-  }
-
-  // ================= DELETE CONTENT IMAGE =================
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN)
-  @Delete(':id/content-images/:imageId')
-  deleteContentImage(
-    @Param('id') blogId: string,
-    @Param('imageId') imageId: string,
-  ) {
-    return this.blogsService.deleteContentImage(blogId, imageId);
-  }
-
-  // ================= GET =================
-  @UseGuards(JwtAuthGuard)
   @Get()
   findAll(@Query() query: any) {
     return this.blogsService.findAll(query);
@@ -531,13 +466,18 @@ export class BlogsController {
     return this.blogsService.findPublishedOne(id);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.blogsService.findOne(id);
   }
 
-  // ================= DELETE BLOG =================
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() body: any) {
+    return this.blogsService.update(id, body);
+  }
+
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @Delete(':id')

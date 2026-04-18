@@ -1,27 +1,13 @@
-// import {
-//   IsArray,
-//   IsOptional,
-//   IsString,
-//   ArrayNotEmpty,
-//   ValidateIf,
-//   IsJSON,
-// } from 'class-validator';
+// import { IsArray, IsOptional, IsString, ArrayNotEmpty, ValidateIf, IsJSON } from 'class-validator';
 
 // export class CreateBlogMultipartDto {
-//   @IsString()
-//   title: string;
+//   @IsString() title: string;
+//   @IsString() authorName: string;
 
-//   @IsString()
-//   authorName: string;
+//   @IsArray() @ArrayNotEmpty() @IsString({ each: true })
+//   descriptions: string[];
 
-//   @IsString()
-//   description: string;
-
-//   @IsString()
-//   imageDescription: string;
-
-//   @IsArray()
-//   @IsString({ each: true })
+//   @IsArray() @IsString({ each: true })
 //   tags: string[];
 
 //   @IsString() categoryId: string;
@@ -40,7 +26,17 @@
 //   contentImagesMeta?: string;
 // }
 
-import { IsOptional, IsString, IsJSON } from 'class-validator';
+
+import {
+  IsArray,
+  IsEnum,
+  IsOptional,
+  IsString,
+  ArrayNotEmpty,
+  ValidateIf,
+  IsJSON,
+} from 'class-validator';
+import { BlogCategory, BlogStatus } from '@prisma/client';
 
 export class CreateBlogMultipartDto {
   @IsString()
@@ -50,25 +46,33 @@ export class CreateBlogMultipartDto {
   authorName: string;
 
   @IsString()
-  description: string; // ✅ single
+  description: string;
 
-  @IsString()
-  categoryId: string;
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsString({ each: true })
+  tags: string[];
+
+  @IsEnum(BlogCategory)
+  category: BlogCategory;
 
   @IsOptional()
-  @IsString()
-  tags?: string;
+  @IsEnum(BlogStatus)
+  status?: BlogStatus;
 
   /**
+   * JSON string aligned with uploaded contentImages:
    * [
-   *  {
-   *    "imageTitle": "",
-   *    "imageDetail": "",
-   *    "imageDescription": ""
-   *  }
+   *   {
+   *     "imageTitle": "Intro",
+   *     "imageDetail": "First step",
+   *     "imageDescription": "Hero image"
+   *   }
    * ]
    */
   @IsOptional()
+  @IsString()
+  @ValidateIf(o => o.contentImagesMeta !== undefined)
   @IsJSON()
   contentImagesMeta?: string;
 }

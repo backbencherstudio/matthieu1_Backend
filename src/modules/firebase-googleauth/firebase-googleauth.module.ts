@@ -12,7 +12,7 @@ import { NotificationModule } from '../application/notification/notification.mod
   imports: [
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'default_jwt_secret',
-      signOptions: { expiresIn: process.env.JWT_EXPIRES_IN || '7d' },
+      // signOptions: { expiresIn: process.env.JWT_EXPIRES_IN || '7d' },
     }),
     NotificationModule,
   ],

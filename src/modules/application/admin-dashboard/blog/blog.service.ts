@@ -444,11 +444,11 @@ import { BlogUploadService } from './blog-upload.service';
 @Injectable()
 export class BlogsService {
   constructor(
-    private prisma: PrismaService,
-    private blogUpload: BlogUploadService,
+    private readonly prisma: PrismaService,
+    private readonly blogUpload: BlogUploadService,
   ) {}
 
-  // ================= CREATE =================
+  // CREATE BLOG
   async create(data: any) {
     const isPublished = data.status === 'PUBLISHED';
 
@@ -457,26 +457,26 @@ export class BlogsService {
         title: data.title,
         authorName: data.authorName,
         description: data.description,
+        tags: data.tags,
+        category: data.category,
         thumbnailImageUrl: data.thumbnailImageUrl,
         thumbnailVideoUrl: data.thumbnailVideoUrl,
-        tags: data.tags,
-        categoryId: data.categoryId,
-        status: data.status || 'DRAFT',
+        status: data.status ?? 'DRAFT',
         publishedAt: isPublished ? new Date() : null,
         contentImages: {
-          create: (data.contentImages || []).map((ci) => ({
+          create: (data.contentImages || []).map(ci => ({
             imageUrl: ci.imageUrl,
             imageTitle: ci.imageTitle,
             imageDetail: ci.imageDetail,
-            imageDescription: ci.imageDescription ?? '',
+            imageDescription: ci.imageDescription,
           })),
         },
       },
-      include: { category: true, contentImages: true },
+      include: { contentImages: true },
     });
   }
 
-  // ================= UPDATE BLOG =================
+  // UPDATE BLOG
   async update(id: string, data: any) {
     const blog = await this.prisma.blog.findUnique({ where: { id } });
     if (!blog) throw new NotFoundException('Blog not found');
@@ -487,121 +487,35 @@ export class BlogsService {
       );
     }
 
-    if (
-      data.thumbnailImageUrl &&
-      blog.thumbnailImageUrl &&
-      data.thumbnailImageUrl !== blog.thumbnailImageUrl
-    ) {
-      await this.blogUpload.deleteOne(blog.thumbnailImageUrl);
-    }
-
-    if (
-      data.thumbnailVideoUrl &&
-      blog.thumbnailVideoUrl &&
-      data.thumbnailVideoUrl !== blog.thumbnailVideoUrl
-    ) {
-      await this.blogUpload.deleteOne(blog.thumbnailVideoUrl);
-    }
-
     return this.prisma.blog.update({
       where: { id },
       data,
-      include: { category: true, contentImages: true },
+      include: { contentImages: true },
     });
   }
 
-  // ================= UPDATE CONTENT IMAGE =================
-  async updateContentImage(
-    blogId: string,
-    imageId: string,
-    data: {
-      imageUrl?: string;
-      imageTitle?: string;
-      imageDetail?: string;
-      imageDescription?: string;
-    },
-  ) {
-    const image = await this.prisma.blogContentImage.findFirst({
-      where: { id: imageId, blogId },
-    });
-    if (!image) throw new NotFoundException('Content image not found');
-
-    if (data.imageUrl && data.imageUrl !== image.imageUrl) {
-      await this.blogUpload.deleteOne(image.imageUrl);
-    }
-
-    return this.prisma.blogContentImage.update({
-      where: { id: imageId },
-      data,
-    });
-  }
-
-  // ================= ADD CONTENT IMAGE =================
-  async addContentImage(blogId: string, data: any) {
-    const blog = await this.prisma.blog.findUnique({ where: { id: blogId } });
-    if (!blog) throw new NotFoundException('Blog not found');
-
-    return this.prisma.blogContentImage.create({
-      data: {
-        blogId,
-        imageUrl: data.imageUrl,
-        imageTitle: data.imageTitle,
-        imageDetail: data.imageDetail,
-        imageDescription: data.imageDescription ?? '',
-      },
-    });
-  }
-
-  // ================= GET CONTENT IMAGES =================
-  async getContentImages(blogId: string) {
-    const blog = await this.prisma.blog.findUnique({
-      where: { id: blogId },
-      select: { contentImages: true },
-    });
-    return blog?.contentImages || [];
-  }
-
-  // ================= DELETE CONTENT IMAGE =================
-  async deleteContentImage(blogId: string, imageId: string) {
-    const image = await this.prisma.blogContentImage.findFirst({
-      where: { id: imageId, blogId },
-    });
-    if (!image) throw new NotFoundException('Content image not found');
-
-    if (image.imageUrl) {
-      await this.blogUpload.deleteOne(image.imageUrl);
-    }
-
-    await this.prisma.blogContentImage.delete({
-      where: { id: imageId },
-    });
-
-    return { success: true };
-  }
-
-  // ================= GET ALL (ADMIN) =================
-  async findAll(params: any) {
-    const page = Math.max(1, Number(params.page ?? 1));
-    const limit = Math.min(100, Number(params.limit ?? 10));
-    const search = params.search?.trim();
+  // GET ALL (ADMIN)
+  async findAll(query: any) {
+    const page = Math.max(1, Number(query.page ?? 1));
+    const limit = Math.min(100, Number(query.limit ?? 10));
 
     const where: any = {};
-    if (params.status) where.status = params.status;
-    if (params.categoryId) where.categoryId = params.categoryId;
+    if (query.status) where.status = query.status;
+    if (query.category) where.category = query.category;
 
-    if (search) {
+    if (query.search) {
       where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { authorName: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-        { tags: { has: search } },
+        { title: { contains: query.search, mode: 'insensitive' } },
+        { authorName: { contains: query.search, mode: 'insensitive' } },
+        { description: { contains: query.search, mode: 'insensitive' } },
+        { tags: { has: query.search } },
       ];
     }
 
     const [data, total] = await this.prisma.$transaction([
       this.prisma.blog.findMany({
         where,
-        include: { category: true, contentImages: true },
+        include: { contentImages: true },
         orderBy: { created_at: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
@@ -620,20 +534,25 @@ export class BlogsService {
     };
   }
 
-  // ================= GET PUBLISHED =================
+  // GET ONE
+  async findOne(id: string) {
+    const blog = await this.prisma.blog.findUnique({
+      where: { id },
+      include: { contentImages: true },
+    });
+    if (!blog) throw new NotFoundException('Blog not found');
+    return blog;
+  }
+
+  // GET PUBLISHED
   async findPublished() {
     return this.prisma.blog.findMany({
       where: { status: 'PUBLISHED' },
       orderBy: { publishedAt: 'desc' },
-      select: {
-        id: true,
-        title: true,
-        thumbnailImageUrl: true,
-        publishedAt: true,
-      },
     });
   }
 
+  // GET PUBLISHED ONE + CLICK
   async findPublishedOne(id: string) {
     const blog = await this.prisma.blog.findFirst({
       where: { id, status: 'PUBLISHED' },
@@ -647,24 +566,58 @@ export class BlogsService {
     });
   }
 
-  // ================= GET ONE =================
-  async findOne(id: string) {
-    const blog = await this.prisma.blog.findUnique({
-      where: { id },
-      include: { category: true, contentImages: true },
+  // ADD CONTENT IMAGE
+  async addContentImage(blogId: string, data: any) {
+    return this.prisma.blogContentImage.create({
+      data: {
+        blogId,
+        imageUrl: data.imageUrl,
+        imageTitle: data.imageTitle,
+        imageDetail: data.imageDetail,
+        imagedescription: data.imageDescription,
+      },
     });
-    if (!blog) throw new NotFoundException('Blog not found');
-    return blog;
   }
 
-  // ================= DELETE BLOG =================
+  // UPDATE CONTENT IMAGE
+  async updateContentImage(blogId: string, imageId: string, data: any) {
+    const image = await this.prisma.blogContentImage.findFirst({
+      where: { id: imageId, blogId },
+    });
+    if (!image) throw new NotFoundException('Content image not found');
+
+    if (data.imageUrl && image.imageUrl !== data.imageUrl) {
+      await this.blogUpload.deleteOne(image.imageUrl);
+    }
+
+    return this.prisma.blogContentImage.update({
+      where: { id: imageId },
+      data,
+    });
+  }
+
+  // DELETE CONTENT IMAGE
+  async deleteContentImage(blogId: string, imageId: string) {
+    const image = await this.prisma.blogContentImage.findFirst({
+      where: { id: imageId, blogId },
+    });
+    if (!image) throw new NotFoundException('Content image not found');
+
+    await this.blogUpload.deleteOne(image.imageUrl);
+    await this.prisma.blogContentImage.delete({ where: { id: imageId } });
+
+    return { success: true };
+  }
+
+  // DELETE BLOG
   async remove(id: string) {
     const blog = await this.findOne(id);
 
-    const files: string[] = [];
-    if (blog.thumbnailImageUrl) files.push(blog.thumbnailImageUrl);
-    if (blog.thumbnailVideoUrl) files.push(blog.thumbnailVideoUrl);
-    blog.contentImages.forEach((img) => files.push(img.imageUrl));
+    const files = [
+      blog.thumbnailImageUrl,
+      blog.thumbnailVideoUrl,
+      ...blog.contentImages.map(i => i.imageUrl),
+    ].filter(Boolean);
 
     if (files.length) {
       await this.blogUpload.deleteMany(files);
@@ -675,5 +628,3 @@ export class BlogsService {
     return { message: 'Blog deleted successfully' };
   }
 }
-
-
