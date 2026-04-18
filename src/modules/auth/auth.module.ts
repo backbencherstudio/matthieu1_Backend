@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
+import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -9,7 +9,7 @@ import appConfig from '../../config/app.config';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { MailModule } from '../../mail/mail.module';
 import { NotificationModule } from '../application/notification/notification.module';
-
+import { StringValue } from 'ms';
 
 import { AccountManagementModule } from './account-management/account-management.module';
 import { AccountPrivacyController } from './account-privacy/account-privacy.controller';
@@ -22,9 +22,9 @@ import { NotificationService } from '../application/notification/notification.se
   imports: [
     PassportModule.register({}),
     JwtModule.registerAsync({
-      useFactory: async () => ({
+      useFactory: async (): Promise<JwtModuleOptions> => ({
         secret: appConfig().jwt.secret,
-        signOptions: { expiresIn: appConfig().jwt.expiry },
+        signOptions: { expiresIn: appConfig().jwt.expiry as StringValue, },
       }),
     }),
     PrismaModule,

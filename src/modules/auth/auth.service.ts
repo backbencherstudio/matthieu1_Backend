@@ -6,6 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import type * as jwt from 'jsonwebtoken';
 //internal imports
 import appConfig from '../../config/app.config';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -317,9 +318,10 @@ export class AuthService {
       // If 2FA not enabled
       const payload = { email: user.email, sub: user.id, type: user.type };
       //const token = this.jwtService.sign(payload);
+      const jwtExpiry = process.env.JWT_EXPIRY || '1d';
       const token = this.jwtService.sign(payload, {
-        secret: process.env.JWT_SECRET,
-        expiresIn: process.env.JWT_EXPIRY, // '1d' works directly
+        secret: process.env.JWT_SECRET as string,
+        expiresIn: jwtExpiry as unknown as jwt.SignOptions['expiresIn'],
       });
 
       await this.prisma.user.update({
