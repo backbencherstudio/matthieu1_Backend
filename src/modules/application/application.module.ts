@@ -5,7 +5,7 @@ import { FaqModule } from './faq/faq.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { GoogleSubscriptionModule } from './google-subscription/google-subscription.module';
 import { BlogModule } from './admin-dashboard/blog/blog.module';
-import { BlogCategoriesModule } from './admin-dashboard/blog-categories/blog-categories.module';
+// import { BlogCategoriesModule } from './admin-dashboard/blog-categories/blog-categories.module';
 import { SubcategoryModule } from './admin-dashboard/product/subcategory/subcategory.module';
 import { MainproductModule } from './admin-dashboard/product/mainproduct/mainproduct.module';
 import { ContactInfoModule } from './admin-dashboard/contact-info/contact-info.module';
@@ -20,8 +20,27 @@ import { ColorSizeModule } from './admin-dashboard/product/color-size/color-size
 import { ExpertsModule } from './experts/experts.module';
 import { SadllesModule } from './sadlles/sadlles.module';
 
-
 @Module({
-  imports: [NotificationModule, ContactModule, FaqModule, SubscriptionModule, GoogleSubscriptionModule, BlogModule, BlogCategoriesModule, SubcategoryModule, MainproductModule, ContactInfoModule, ProductModule, CartModule, JobPortalModule, SaddleAlertModule, SavedProductModule, MaincategoryModule, MainbaseproductModule, ColorSizeModule, ExpertsModule, SadllesModule],
+  imports: [
+    NotificationModule,
+    ContactModule,
+    FaqModule,
+    SubscriptionModule,
+    GoogleSubscriptionModule,
+    BlogModule,
+    SubcategoryModule,
+    MainproductModule,
+    ContactInfoModule,
+    ProductModule,
+    CartModule,
+    JobPortalModule,
+    SaddleAlertModule,
+    SavedProductModule,
+    MaincategoryModule,
+    MainbaseproductModule,
+    ColorSizeModule,
+    ExpertsModule,
+    SadllesModule,
+  ],
 })
-export class ApplicationModule { }
+export class ApplicationModule {}
